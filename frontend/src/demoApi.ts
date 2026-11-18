@@ -205,7 +205,9 @@ export function formatMoney(value: string | null, currency: Currency, signed = f
   const amount = currency === "USD" && !grouped.includes(".") ? grouped + ".00"
     : currency === "USD" && /\.\d$/.test(grouped) ? grouped + "0" : grouped;
   const sign = signed && !value.startsWith("-") && !/^0+(?:\.0+)?$/.test(value) ? "+" : "";
-  return currency === "KRW" ? `${sign}${amount}원` : `${sign}${amount}`;
+  const negative = amount.startsWith("-");
+  const unsigned = negative ? amount.slice(1) : amount;
+  return currency === "KRW" ? sign + amount + "원" : (negative ? "-" : sign) + "$" + unsigned;
 }
 export function formatPercent(value: string | null): string {
   if (value === null || !isDecimal(value)) return "—";
