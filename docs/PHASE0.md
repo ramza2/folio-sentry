@@ -43,7 +43,7 @@ cd ../frontend && npm install && npm run typecheck && npm run build
 - 의도적인 화면 디자인은 하지 않았습니다. Phase 1의 종목 조회/상세 API 계약 확정 후 Figma Make로 디자인하고, 그 디자인을 Frontend 구현 기준으로 삼습니다.
 
 ## 다음 검증
-1. CI 결과 확인
+1. CI 결과 확인 (Phase 0 초기 CI 완료)
 2. 운영 호스트의 포트 충돌·컨테이너 자원 영향 확인
-3. Phase 1 용 정규화된 instrument/price_bar API 계약 작성
+3. Phase 1 용 정규화된 instrument/price_bar API 계약 작성 (Phase 1A 문서로 완료)
 4. Figma Make: 대시보드/종목 목록/상세/뉴스/설정 디자인 생성 및 검토
