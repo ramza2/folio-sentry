@@ -38,3 +38,12 @@ jobs:
         run: npm run typecheck
       - name: Build
         run: npm run build
+
+  compose-config:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate isolated compose file (no services started)
+        env:
+          FOLIOSENTRY_DB_PASSWORD: ci-placeholder-not-a-real-secret
+        run: docker compose -f compose.yaml config -q
