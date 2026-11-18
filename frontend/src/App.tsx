@@ -804,113 +804,75 @@ function DetailPage({
 }
 
 
-function NewsPage() {
+
+function NewsPage({ data }: { data: DemoOverview }) {
   const [region, setRegion] = useState("전체");
   const [query, setQuery] = useState("");
-  const filtered = newsItems.filter(
-    (n) => (region === "전체" || n.type === region) && n.title.includes(query),
-  );
+  const instrumentOf = (id: string) =>
+    data.tracked.find((item) => item.instrument.id === id)?.instrument;
+  const filtered = data.news.filter((news) => {
+    const instrument = instrumentOf(news.instrument_id);
+    const area = instrument?.market === "KR" ? "국내" : "해외";
+    return (region === "전체" || area === region) &&
+      (news.title.toLocaleLowerCase().includes(query.toLocaleLowerCase()) ||
+        news.publisher.toLocaleLowerCase().includes(query.toLocaleLowerCase()));
+  });
   return (
     <div className="page-stack">
       <div className="page-heading">
-        <div>
-          <span className="eyebrow">MARKET INTELLIGENCE</span>
-          <h2>뉴스</h2>
-          <p>내 종목과 관련된 주요 뉴스를 중요도 순으로 확인하세요.</p>
+        <div><span className="eyebrow">MARKET INTELLIGENCE · DEMO</span><h2>뉴스</h2>
+          <p>등록 종목과 관련된 API 데모 기사입니다. 실제 뉴스가 아닙니다.</p>
         </div>
       </div>
       <DemoBanner />
       <Card className="news-page-card">
         <div className="toolbar">
           <div className="segmented large">
-            {["전체", "국내", "해외"].map((r) => (
-              <button className={region === r ? "active" : ""} onClick={() => setRegion(r)} key={r}>
-                {r}
-              </button>
+            {["전체", "국내", "해외"].map((label) => (
+              <button className={region === label ? "active" : ""} onClick={() => setRegion(label)} key={label}>{label}</button>
             ))}
           </div>
-          <div className="input-wrap search-small">
-            <Icon name="search" />
-            <input
-              placeholder="뉴스 검색"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
+          <div className="input-wrap search-small"><Icon name="search" />
+            <input placeholder="뉴스 검색" value={query} onChange={(event) => setQuery(event.target.value)} />
           </div>
         </div>
         <div className="news-layout">
           <div className="news-feed">
-            <div className="group-note">
-              <Icon name="news" />
-              <div>
-                <b>유사 기사 3건을 하나로 묶었어요</b>
-                <span>중복 기사는 대표 기사 중심으로 표시됩니다.</span>
-              </div>
-              <button disabled title="유사 기사 펼치기 기능은 이후 단계에서 구현합니다">펼쳐보기 (미지원)</button>
+            <div className="group-note"><Icon name="news" />
+              <div><b>종목별 뉴스 목록 (DEMO)</b><span>중복 기사 그룹핑은 실뉴스 연동 후 제공합니다.</span></div>
             </div>
-            {filtered.map((n, i) => (
-              <article className="news-row" key={n.title}>
-                <div className={`news-thumb n${i}`}>
-                  <span>{n.source[0]}</span>
-                </div>
-                <div className="news-body">
-                  <div className="news-meta">
-                    <span>{n.type}</span>
-                    <b>{n.source}</b>
-                    <small>{n.time}</small>
+            {filtered.length === 0 && (
+              <div className="empty-state"><Icon name="news" size={28} /><b>표시할 뉴스가 없습니다</b><p>검색이나 지역 필터를 변경하세요.</p></div>
+            )}
+            {filtered.map((news, index) => {
+              const instrument = instrumentOf(news.instrument_id);
+              return (
+                <article className="news-row" key={news.id}>
+                  <div className={"news-thumb n" + index}><span>{news.publisher.slice(0, 1)}</span></div>
+                  <div className="news-body">
+                    <div className="news-meta"><span>{instrument?.market === "KR" ? "국내" : "해외"}</span>
+                      <b>{news.publisher}</b><small>{formatDateTime(news.published_at)}</small></div>
+                    <h3>{news.title}</h3>
+                    <p>데모 기사 메타데이터만 제공됩니다. 실제 기사 본문과 AI 요약은 아직 없습니다.</p>
+                    <div><span className="tag">{instrument?.name ?? "종목 미확인"}</span>
+                      <span className="relevance">DEMO · 관련성 미평가</span></div>
                   </div>
-                  <h3>{n.title}</h3>
-                  <p>{n.summary}</p>
-                  <div>
-                    {n.tags.map((t) => (
-                      <span className="tag" key={t}>
-                        {t}
-                      </span>
-                    ))}
-                    <span className={n.importance === "높음" ? "importance" : "relevance"}>
-                      중요도 {n.importance}
-                    </span>
-                    <span className="relevance">관련성 {i % 2 ? "92" : "98"}%</span>
-                  </div>
-                </div>
-                <button className="icon-button" disabled title="가상 기사에는 원문 링크가 없습니다">
-                  <Icon name="external" />
-                </button>
-              </article>
-            ))}
+                  <button className="icon-button" disabled title="example.com 데모 링크는 실제 기사 원문이 아닙니다">
+                    <Icon name="external" />
+                  </button>
+                </article>
+              );
+            })}
           </div>
           <aside className="ai-summary">
             <div className="ai-head">
-              <span>
-                <Icon name="shield" />
-              </span>
-              <div>
-                <b>AI 뉴스 브리핑</b>
-                <small>오늘 15:30 업데이트</small>
-              </div>
+              <span><Icon name="shield" /></span>
+              <div><b>AI 뉴스 브리핑</b><small>ModelOps Gateway 미연동</small></div>
             </div>
-            <h3>오늘의 핵심 요약</h3>
-            <p>
-              AI 반도체 수요 기대가 이어지며 관련 종목의 투자 심리가 견조합니다. 국내 시장은 외국인
-              수급 개선이 주요 동력입니다.
-            </p>
-            <ul>
-              <li>
-                <i />
-                반도체 공급 확대 및 업황 회복 기대
-              </li>
-              <li>
-                <i />
-                대형 기술주 단기 변동성 확대 가능성
-              </li>
-              <li>
-                <i />
-                연준 발언에 따른 금리 민감도 주의
-              </li>
-            </ul>
-            <div className="disclaimer">
-              <Icon name="info" />
-              <span>AI가 데모 기사를 요약한 내용으로, 중요한 정보는 원문을 확인하세요.</span>
+            <h3>AI 요약 사용 안 함</h3>
+            <p>기사 본문과 ModelOps Gateway 연결이 완료된 후 출처에 기반한 요약을 제공합니다.</p>
+            <div className="disclaimer"><Icon name="info" />
+              <span>AI가 뉴스를 분석한 것처럼 보이는 가상 요약을 표시하지 않습니다.</span>
             </div>
           </aside>
         </div>
@@ -919,50 +881,24 @@ function NewsPage() {
   );
 }
 
-function SignalsPage() {
-  const [selected, setSelected] = useState(0);
-  const items = [
-    {
-      stock: "삼성전자",
-      ticker: "005930",
-      kind: "buy" as const,
-      label: "매수 검토",
-      time: "오늘 14:32",
-      title: "단기 추세 전환 및 거래량 증가",
-    },
-    {
-      stock: "NVIDIA",
-      ticker: "NVDA",
-      kind: "watch" as const,
-      label: "관망",
-      time: "오늘 11:08",
-      title: "RSI 과열 구간 근접",
-    },
-    {
-      stock: "삼성전자",
-      ticker: "005930",
-      kind: "risk" as const,
-      label: "위험 경고",
-      time: "2월 13일 10:05",
-      title: "장중 변동성 급격히 확대",
-    },
-    {
-      stock: "SPY",
-      ticker: "SPY",
-      kind: "sell" as const,
-      label: "매도 검토",
-      time: "2월 12일 23:42",
-      title: "단기 지지선 하향 이탈",
-    },
-  ];
-  const active = items[selected];
+function SignalsPage({ data }: { data: DemoOverview }) {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [filter, setFilter] = useState("전체");
+  const filtered = data.signals.filter((signal) =>
+    filter === "전체" ||
+    (filter === "매수" && signal.type === "BUY_REVIEW") ||
+    (filter === "매도" && signal.type === "SELL_REVIEW") ||
+    (filter === "경고" && signal.type === "RISK") ||
+    (filter === "관망" && signal.type === "HOLD")
+  );
+  const active = filtered.find((signal) => signal.id === selectedId) ?? filtered[0];
+  const stockOf = (id: string) =>
+    data.tracked.find((item) => item.instrument.id === id)?.instrument;
   return (
     <div className="page-stack">
       <div className="page-heading">
-        <div>
-          <span className="eyebrow">SIGNAL HISTORY</span>
-          <h2>신호 · 알림 이력</h2>
-          <p>기술적 분석 신호와 알림 전송 상태를 확인하세요.</p>
+        <div><span className="eyebrow">SIGNAL HISTORY · DEMO</span><h2>신호 · 알림 이력</h2>
+          <p>아래 신호는 API가 반환한 디자인 예시이며 실제 분석·발송 기록이 아닙니다.</p>
         </div>
       </div>
       <DemoBanner />
@@ -970,132 +906,64 @@ function SignalsPage() {
         <Card className="history-card">
           <div className="history-filter">
             <div className="segmented">
-              {["전체", "매수", "매도", "경고"].map((x, i) => (
-                <button className={i === 0 ? "active" : ""} key={x}>
-                  {x}
-                </button>
+              {["전체", "매수", "매도", "경고", "관망"].map((label) => (
+                <button className={filter === label ? "active" : ""} onClick={() => setFilter(label)} key={label}>{label}</button>
               ))}
             </div>
-            <button className="button secondary">
-              <Icon name="filter" />
-              최근 30일
-            </button>
+            <button className="button secondary" disabled title="기간 필터는 추후 지원"><Icon name="filter" /> 기간 필터 미지원</button>
           </div>
-          {items.map((x, i) => (
-            <button
-              className={`history-item ${selected === i ? "active" : ""}`}
-              onClick={() => setSelected(i)}
-              key={x.time}
-            >
-              <div className={`signal-symbol ${x.kind}`}>
-                <Icon
-                  name={
-                    x.kind === "buy"
-                      ? "arrowUp"
-                      : x.kind === "sell"
-                        ? "arrowDown"
-                        : x.kind === "risk"
-                          ? "info"
-                          : "clock"
-                  }
-                />
-              </div>
-              <div className="history-info">
-                <div>
-                  <b>{x.stock}</b>
-                  <small>{x.ticker}</small>
+          {filtered.length === 0 && <div className="empty-state">해당 유형의 신호가 없습니다.</div>}
+          {filtered.map((signal) => {
+            const instrument = stockOf(signal.instrument_id);
+            const badge = signalBadge(signal.type);
+            return (
+              <button className={"history-item " + (active?.id === signal.id ? "active" : "")}
+                onClick={() => setSelectedId(signal.id)} key={signal.id}>
+                <div className={"signal-symbol " + badge.kind}>
+                  <Icon name={badge.kind === "buy" ? "arrowUp" : badge.kind === "sell" ? "arrowDown" : badge.kind === "risk" ? "info" : "clock"} />
                 </div>
-                <h3>{x.title}</h3>
-                <span>{x.time}</span>
-              </div>
-              <div className="history-status">
-                <StatusPill kind={x.kind}>{x.label}</StatusPill>
-                <small>
-                  <i className="sent" /> 이메일 전송
-                </small>
-                <small>
-                  <i className={i === 1 ? "failed" : "sent"} /> Push {i === 1 ? "실패" : "전송"}
-                </small>
-              </div>
-              <Icon name="chevron" />
-            </button>
-          ))}
+                <div className="history-info">
+                  <div><b>{instrument?.name ?? "종목 미확인"}</b><small>{instrument?.symbol ?? "—"}</small></div>
+                  <h3>{signal.reason}</h3><span>{formatDateTime(signal.evaluated_at)}</span>
+                </div>
+                <div className="history-status"><StatusPill kind={badge.kind}>{badge.label}</StatusPill>
+                  <small>DEMO · 미발송</small></div>
+                <Icon name="chevron" />
+              </button>
+            );
+          })}
         </Card>
         <Card className="signal-detail-panel">
-          <div className="panel-head">
-            <div>
-              <span>신호 상세</span>
-              <h2>
-                {active.stock} <small>{active.ticker}</small>
-              </h2>
-            </div>
-            <StatusPill kind={active.kind}>{active.label}</StatusPill>
-          </div>
-          <div className="detail-timestamp">
-            <Icon name="clock" />
-            <span>발생 시각</span>
-            <b>{active.time}</b>
-          </div>
-          <h3>판단 근거</h3>
-          <p>
-            {active.kind === "buy"
-              ? "주가가 단기 이동평균선을 상향 돌파하고 거래량이 유의미하게 증가했습니다. 단기 추세 회복 가능성을 검토할 수 있습니다."
-              : "최근 가격 흐름과 기술적 지표의 방향이 일치하지 않아 추가 관찰이 필요합니다."}
-          </p>
-          <div className="indicator-table">
-            <div>
-              <span>지표</span>
-              <span>측정값</span>
-              <span>판정</span>
-            </div>
-            <div>
-              <b>MA20</b>
-              <span>71,820원</span>
-              <em className="positive">충족</em>
-            </div>
-            <div>
-              <b>거래량</b>
-              <span>평균 대비 1.8x</span>
-              <em className="positive">충족</em>
-            </div>
-            <div>
-              <b>RSI (14)</b>
-              <span>58.4</span>
-              <em>중립</em>
-            </div>
-            <div>
-              <b>MACD</b>
-              <span>+412</span>
-              <em className="positive">충족</em>
-            </div>
-          </div>
-          <h3>알림 전송</h3>
-          <div className="delivery">
-            <span>
-              <Icon name="news" />
-              <b>이메일</b>
-              <small>14:32:08 전송 완료</small>
-              <i className="sent" />
-            </span>
-            <span>
-              <Icon name="bell" />
-              <b>Push</b>
-              <small>14:32:10 전송 완료</small>
-              <i className="sent" />
-            </span>
-          </div>
-          <div className="disclaimer">
-            <Icon name="shield" />
-            <span>
-              이 신호는 기술적 지표 기반 참고 정보입니다. 실제 매수·매도 결정은 투자자 본인의 판단과
-              책임입니다.
-            </span>
-          </div>
+          {active ? (
+            <>
+              <div className="panel-head">
+                <div><span>신호 상세 (DEMO)</span><h2>{stockOf(active.instrument_id)?.name ?? "종목 미확인"}
+                  <small>{stockOf(active.instrument_id)?.symbol ?? "—"}</small></h2></div>
+                <StatusPill kind={signalBadge(active.type).kind}>{signalBadge(active.type).label}</StatusPill>
+              </div>
+              <div className="detail-timestamp"><Icon name="clock" /><span>평가 시각</span>
+                <b>{formatDateTime(active.evaluated_at)}</b></div>
+              <h3>판단 근거 (가상)</h3><p>{active.reason}</p>
+              <div className="indicator-table">
+                <div><span>지표</span><span>측정값</span><span>판정</span></div>
+                {active.evidence.map((entry) => (
+                  <div key={entry.metric}><b>{entry.metric}</b><span>{entry.observed ?? "—"}</span>
+                    <em className={entry.met ? "positive" : ""}>{entry.met ? "충족" : "미충족"}</em></div>
+                ))}
+                {active.evidence.length === 0 && <div><span>지표 근거 미제공</span></div>}
+              </div>
+              <h3>알림 전송</h3>
+              <div className="delivery"><span><Icon name="news" /><b>이메일</b><small>전송되지 않음 (DEMO)</small></span>
+                <span><Icon name="bell" /><b>Push</b><small>전송되지 않음 (DEMO)</small></span></div>
+              <div className="disclaimer"><Icon name="shield" /><span>실제 시세·신호·알림이 아닙니다. 매매 판단에 사용할 수 없습니다.</span></div>
+            </>
+          ) : <div className="empty-state">표시할 신호가 없습니다.</div>}
         </Card>
       </div>
     </div>
   );
 }
+
 
 function Toggle({
   value,
