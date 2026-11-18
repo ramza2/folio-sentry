@@ -141,9 +141,16 @@ export function parseDemoOverview(value: unknown): DemoOverview {
     }
     if (quote.status === "UNAVAILABLE" && (
       quote.close !== null || quote.change_pct !== null ||
-      item.market_value !== null || item.unrealized_pnl !== null
+      item.market_value !== null || item.unrealized_pnl !== null ||
+      item.unrealized_pnl_percent !== null
     )) {
       throw new Error("시세 없음 상태에 유효하지 않은 평가액이 있습니다.");
+    }
+    if (quote.status === "DEMO" && (
+      quote.close === null || !isString(quote.as_of) ||
+      !isString(quote.source) || quote.source.length === 0
+    )) {
+      throw new Error("DEMO 시세에 기준시각 또는 가격이 없습니다.");
     }
   }
   for (const item of value.news) {
@@ -193,14 +200,17 @@ function decimalText(value: string, maxFraction = 4): string {
 }
 export function formatMoney(value: string | null, currency: Currency, signed = false): string {
   if (value === null || !isDecimal(value)) return "—";
-  const amount = decimalText(value, currency === "KRW" ? 0 : 2);
+  // Preserve precision; never convert currency strings through JS floating point.
+  const grouped = decimalText(value, 8);
+  const amount = currency === "USD" && !grouped.includes(".") ? grouped + ".00"
+    : currency === "USD" && /\.\d$/.test(grouped) ? grouped + "0" : grouped;
   const sign = signed && !value.startsWith("-") && !/^0+(?:\.0+)?$/.test(value) ? "+" : "";
-  return currency === "KRW" ? `${sign}${amount}원` : `${sign}$${amount}`;
+  return currency === "KRW" ? `${sign}${amount}원` : `${sign}${amount}`;
 }
 export function formatPercent(value: string | null): string {
   if (value === null || !isDecimal(value)) return "—";
   const sign = value.startsWith("-") || /^0+(?:\.0+)?$/.test(value) ? "" : "+";
-  return `${sign}${decimalText(value, 2)}%`;
+  return `${sign}${decimalText(value, 4)}%`;
 }
 export function formatQuantity(value: string | null): string {
   return value !== null && isDecimal(value) ? `${decimalText(value)}주` : "—";
