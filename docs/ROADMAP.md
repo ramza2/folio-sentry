@@ -16,7 +16,9 @@
 - [x] REST API 및 Decimal/시간대/가용성 계약 (`docs/API_CONTRACT.md`)
 - [x] 가상 KR/US 종목·뉴스·신호 디자인 미리보기 API (`/api/v1/demo/overview`)
 - [x] Figma Make 디자인 의뢰 브리프 (`docs/FIGMA_MAKE_BRIEF.md`)
-- [ ] Figma Make에서 디자인 시안 작성 및 사용자 확정
+- [x] Figma Make React 소스 수신·구조 검토 (`docs/FIGMA_SOURCE_REVIEW.md`)
+- [ ] 디자인 최종 검토 및 UI 이식 브랜치/PR 생성
+- [ ] 디자인 기반 실제 UI·API 연동은 별도 단계로 분리
 - **게이트**: 모의 데이터 API 테스트·CI 성공, 실 API/DB/운영 배포 변경 없음
 
 ## Phase 1 — Watchlist와 시세
