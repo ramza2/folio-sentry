@@ -77,7 +77,7 @@ test("strict DEMO contract rejects non-DEMO payload", () => {
 test("decimal values are formatted without floating-point conversions", () => {
   assert.equal(formatMoney("72000", "KRW"), "72,000원");
   assert.equal(formatMoney("120.50", "USD"), "$120.50");
-  assert.equal(formatMoney("-21.3456", "USD", true), "$-21.3456");
+  assert.equal(formatMoney("-21.3456", "USD", true), "-$21.3456");
   assert.equal(formatMoney("0", "USD"), "$0.00");
   assert.equal(formatMoney(null, "KRW"), "—");
   assert.equal(formatPercent("2.8571"), "+2.8571%");
