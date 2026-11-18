@@ -645,108 +645,68 @@ function StocksPage({
 }
 
 
+
 function PriceChart({ period }: { period: string }) {
   return (
-    <div className="chart-wrap">
-      <div className="chart-labels">
-        <span>78,000</span>
-        <span>75,000</span>
-        <span>72,000</span>
-        <span>69,000</span>
-        <span>66,000</span>
-      </div>
-      <svg viewBox="0 0 800 300" preserveAspectRatio="none" className="main-chart">
+    <div className="chart-wrap" role="img" aria-label="차트 시각적 예시, 실제 OHLCV 데이터 없음">
+      <svg viewBox="0 0 800 300" preserveAspectRatio="none" className="main-chart" aria-hidden="true">
         {[40, 100, 160, 220, 280].map((y) => (
           <line key={y} x1="0" y1={y} x2="800" y2={y} className="grid-line" />
         ))}
-        <path
-          className="chart-area"
-          d="M0 245 C40 240 55 210 90 220 S150 150 190 175 S250 120 290 145 S350 165 390 120 S440 140 480 92 S550 112 590 65 S650 80 700 38 S755 62 800 28 L800 300 L0 300Z"
-        />
-        <path
-          className="price-line"
-          d="M0 245 C40 240 55 210 90 220 S150 150 190 175 S250 120 290 145 S350 165 390 120 S440 140 480 92 S550 112 590 65 S650 80 700 38 S755 62 800 28"
-        />
-        <path
-          className="ma-line ma20"
-          d="M0 250 C100 230 150 190 230 175 S340 160 420 135 S550 100 630 75 S730 65 800 50"
-        />
-        <path
-          className="ma-line ma60"
-          d="M0 265 C140 250 220 210 320 190 S500 150 600 120 S720 100 800 78"
-        />
-        {Array.from({ length: 32 }).map((_, i) => {
-          const h = 18 + ((i * 13) % 50);
-          return (
-            <rect
-              key={i}
-              x={i * 25 + 5}
-              y={295 - h}
-              width="10"
-              height={h}
-              className={i % 3 === 0 ? "volume down" : "volume"}
-            />
-          );
-        })}
+        <path className="price-line" d="M0 245 C40 240 55 210 90 220 S150 150 190 175 S250 120 290 145 S350 165 390 120 S440 140 480 92 S550 112 590 65 S650 80 700 38 S755 62 800 28" />
       </svg>
-      <div className="chart-dates">
-        <span>1/15</span>
-        <span>1/22</span>
-        <span>1/29</span>
-        <span>2/05</span>
-        <span>2/14</span>
-      </div>
       <div className="chart-tooltip">
-        <small>{period} · 02/14</small>
-        <b>73,400원</b>
-        <span className="positive">+1.24%</span>
+        <small>{period} · 디자인 시각화</small>
+        <b>과거 시세 미연동</b>
+        <span>이 선은 실제 주가 데이터가 아닙니다</span>
       </div>
     </div>
   );
 }
 
-function DetailPage({ go }: { go: (p: Page) => void }) {
+function DetailPage({
+  data, selectedId, go,
+}: {
+  data: DemoOverview;
+  selectedId: string | null;
+  go: (page: Page) => void;
+}) {
   const [period, setPeriod] = useState("1개월");
   const [indicators, setIndicators] = useState(["MA20", "MA60", "거래량"]);
-  const toggle = (x: string) =>
-    setIndicators(indicators.includes(x) ? indicators.filter((i) => i !== x) : [...indicators, x]);
+  const toggle = (name: string) =>
+    setIndicators((previous) => previous.includes(name)
+      ? previous.filter((value) => value !== name) : [...previous, name]);
+  const stock = stockViews(data).find((item) => item.id === selectedId) ??
+    stockViews(data)[0];
+  if (!stock) {
+    return <div className="page-stack"><DemoBanner /><Card><div className="empty-state">선택한 종목이 없습니다.</div></Card></div>;
+  }
+  const tracked = data.tracked.find((item) => item.instrument.id === stock.id);
+  const signal = data.signals.find((item) => item.instrument_id === stock.id);
+  const badge = signalBadge(signal?.type ?? null);
+  const relatedNews = data.news.filter((item) => item.instrument_id === stock.id);
+  const rsi = signal?.evidence.find((item) => item.metric === "RSI14")?.observed ?? null;
   return (
     <div className="page-stack">
       <div className="breadcrumb">
-        <button onClick={() => go("stocks")}>내 종목</button>
-        <Icon name="chevron" size={14} />
-        <span>삼성전자 (데모 전용 상세)</span>
+        <button onClick={() => go("stocks")}>내 종목</button><Icon name="chevron" size={14} />
+        <span>{stock.name} (데모 상세)</span>
       </div>
       <div className="detail-hero">
         <div className="detail-company">
-          <span className="stock-logo large s0">삼</span>
+          <span className="stock-logo large s0">{stock.name.slice(0, 1)}</span>
           <div>
-            <div>
-              <h2>삼성전자</h2>
-              <StatusPill kind="buy">매수 검토</StatusPill>
-            </div>
-            <p>
-              005930 · KRX · KRW <span>보유</span>
-            </p>
+            <div><h2>{stock.name}</h2><StatusPill kind={badge.kind}>{badge.label}</StatusPill></div>
+            <p>{stock.ticker} · {stock.market} · {stock.currency} <span>{stock.kind === "HOLDING" ? "보유" : "관심"}</span></p>
           </div>
         </div>
         <div className="detail-price">
-          <strong>
-            73,400<small>원</small>
-          </strong>
-          <span className="positive">
-            <Icon name="arrowUp" size={17} /> +900 (+1.24%)
-          </span>
-          <small>가상 거래일 기준</small>
+          <strong>{stock.price}</strong>
+          <span className={stock.up ? "positive" : "negative"}>{stock.change} · {stock.quoteStatus === "UNAVAILABLE" ? "시세 없음" : "DEMO"}</span>
+          <small>가상 기준 {stock.asOf}</small>
         </div>
         <div className="detail-actions">
-          <button className="button secondary" disabled title="데모 화면에서는 알림 설정이 저장되지 않습니다">
-            <Icon name="bell" />
-            알림 상태 (데모)
-          </button>
-          <button className="icon-button">
-            <Icon name="more" />
-          </button>
+          <button className="button secondary" disabled title="개인 알림 설정 API는 이후 구현"><Icon name="bell" /> 알림 설정 (미지원)</button>
         </div>
       </div>
       <DemoBanner />
@@ -754,178 +714,95 @@ function DetailPage({ go }: { go: (p: Page) => void }) {
         <Card className="chart-card">
           <div className="chart-toolbar">
             <div className="periods">
-              {["1주", "1개월", "3개월", "6개월", "1년"].map((p) => (
-                <button
-                  className={period === p ? "active" : ""}
-                  onClick={() => setPeriod(p)}
-                  key={p}
-                >
-                  {p}
-                </button>
+              {["1주", "1개월", "3개월", "6개월", "1년"].map((value) => (
+                <button key={value} className={period === value ? "active" : ""} onClick={() => setPeriod(value)}>{value}</button>
               ))}
             </div>
             <div className="chart-indicators">
-              {["MA20", "MA60", "MA120", "거래량"].map((i) => (
-                <button
-                  className={indicators.includes(i) ? "active" : ""}
-                  onClick={() => toggle(i)}
-                  key={i}
-                >
-                  <i />
-                  {i}
+              {["MA20", "MA60", "MA120", "거래량"].map((value) => (
+                <button key={value} className={indicators.includes(value) ? "active" : ""}
+                  onClick={() => toggle(value)} title="디자인 선택 상태만 변경됩니다">
+                  <i />{value}
                 </button>
               ))}
             </div>
           </div>
           <div className="ohlc">
-            <span>
-              시가 <b>72,900</b>
-            </span>
-            <span>
-              고가 <b>74,100</b>
-            </span>
-            <span>
-              저가 <b>72,600</b>
-            </span>
-            <span>
-              거래량 <b>18.4M</b>
-            </span>
+            <span>일봉 OHLCV <b>미연동</b></span>
+            <span>차트 <b>디자인 예시</b></span>
+            <span>API 시세 <b>{stock.quoteStatus === "UNAVAILABLE" ? "없음" : "DEMO"}</b></span>
           </div>
           <PriceChart period={period} />
           <div className="oscillators">
-            <div>
-              <span>RSI (14)</span>
-              <b>58.4</b>
-              <div className="rsi-line">
-                <i style={{ left: "58%" }} />
-              </div>
-              <small>중립</small>
-            </div>
-            <div>
-              <span>MACD</span>
-              <b className="positive">+412</b>
-              <div className="macd-bars">
-                {[3, 5, 8, 12, 9, 15, 18, 14, 20, 17].map((h, i) => (
-                  <i key={i} style={{ height: `${h}px` }} />
-                ))}
-              </div>
-              <small className="positive">상승</small>
-            </div>
+            <div><span>RSI(14) · 데모 근거</span><b>{rsi ?? "미제공"}</b><small>실제 계산되지 않음</small></div>
+            <div><span>MACD</span><b>미제공</b><small>실제 지표는 추후 연동</small></div>
           </div>
         </Card>
         <div className="detail-side">
           <Card className="signal-analysis">
-            <CardHeader title="기술적 분석 예시" desc="가상 지표 데이터" />
-            <div className="signal-score">
-              <div>
-                <StatusPill kind="buy">매수 검토</StatusPill>
-                <strong>
-                  긍정 지표 <em>3</em> / 5
-                </strong>
-              </div>
-              <div className="score-ring">
-                <span>3/5</span>
-              </div>
-            </div>
-            <p>
-              단기 추세가 회복되고 거래량이 동반 증가했습니다. 다만 중기 저항선 부근으로 추가 확인이
-              필요합니다.
-            </p>
-            <ul>
-              <li className="pass">
-                <Icon name="check" />
-                현재가가 MA20 위에 위치 <b>충족</b>
-              </li>
-              <li className="pass">
-                <Icon name="check" />
-                거래량 20일 평균 1.8배 <b>충족</b>
-              </li>
-              <li className="pass">
-                <Icon name="check" />
-                MACD 시그널 상향 돌파 <b>충족</b>
-              </li>
-              <li>
-                <span>—</span>RSI 과매도 구간 진입 <b>미충족</b>
-              </li>
-              <li>
-                <span>—</span>MA60 상향 돌파 <b>미충족</b>
-              </li>
-            </ul>
-            <div className="disclaimer">
-              <Icon name="shield" size={17} />
-              <span>
-                투자 판단 참고용이며 수익을 보장하지 않습니다. 자동매매 또는 주문 기능이 아닙니다.
-              </span>
+            <CardHeader title="기술적 분석 예시" desc="API가 반환한 가상 신호 근거" />
+            {signal ? (
+              <>
+                <div className="signal-score">
+                  <div><StatusPill kind={badge.kind}>{badge.label} · DEMO</StatusPill><strong>{signal.strategy_version}</strong></div>
+                  <div className="score-ring"><span>DEMO</span></div>
+                </div>
+                <p>{signal.reason}</p>
+                <ul>
+                  {signal.evidence.map((item) => (
+                    <li key={item.metric} className={item.met ? "pass" : ""}>
+                      {item.met ? <Icon name="check" /> : <span>—</span>}
+                      {item.condition} ({item.metric}: {item.observed ?? "—"}) <b>{item.met ? "충족" : "미충족"}</b>
+                    </li>
+                  ))}
+                  {signal.evidence.length === 0 && <li>검증 가능한 지표 근거 없음 (데모)</li>}
+                </ul>
+              </>
+            ) : <div className="empty-state">이 종목에 대한 신호가 없습니다.</div>}
+            <div className="disclaimer"><Icon name="shield" size={17} />
+              <span>실제 시세·기술적 분석이 아니며 매매 판단에 사용할 수 없습니다.</span>
             </div>
           </Card>
           <Card className="holding-card">
-            <CardHeader
-              title="내 보유 현황"
-              action={
-                <button className="icon-button">
-                  <Icon name="edit" size={16} />
-                </button>
-              }
-            />
-            <div>
-              <span>
-                보유 수량<b>40주</b>
-              </span>
-              <span>
-                평균 매수가<b>68,250원</b>
-              </span>
-              <span>
-                평가 금액<b>2,936,000원</b>
-              </span>
-              <span>
-                평가 손익<b className="positive">+206,000원</b>
-              </span>
-            </div>
-            <div className="return-box">
-              <span>개인 수익률</span>
-              <strong className="positive">
-                <Icon name="arrowUp" />
-                +7.55%
-              </strong>
-            </div>
+            <CardHeader title="내 보유 현황 (DEMO)" />
+            {tracked?.kind === "HOLDING" ? (
+              <>
+                <div>
+                  <span>보유 수량<b>{stock.qty}</b></span>
+                  <span>평균 매수가<b>{stock.avg}</b></span>
+                  <span>평가 금액<b>{formatMoney(tracked.market_value, stock.currency)}</b></span>
+                  <span>평가 손익<b className={stock.pnl.startsWith("-") ? "negative" : "positive"}>{stock.pnl}</b></span>
+                </div>
+                <div className="return-box"><span>가상 수익률</span><strong>{stock.pnlRate}</strong></div>
+              </>
+            ) : <div className="empty-state">관심 종목에는 보유 수량과 평가액이 없습니다.</div>}
           </Card>
         </div>
       </div>
       <Card>
-        <CardHeader
-          title="삼성전자 최신 뉴스"
-          desc="종목 관련성 순으로 정렬했습니다"
-          action={
-            <button className="text-button" onClick={() => go("news")}>
-              전체 뉴스 <Icon name="chevron" size={14} />
-            </button>
-          }
-        />
+        <CardHeader title={stock.name + " 관련 뉴스"} desc="DEMO 뉴스 · 실제 원문 미제공" action={
+          <button className="text-button" onClick={() => go("news")}>전체 뉴스 <Icon name="chevron" size={14} /></button>
+        } />
         <div className="detail-news">
-          {newsItems
-            .filter((n) => n.tags.includes("삼성전자"))
-            .map((n) => (
-              <article key={n.title}>
-                <div>
-                  <span className="importance">중요도 높음</span>
-                  <small>
-                    {n.source} · {n.time}
-                  </small>
-                </div>
-                <h3>{n.title}</h3>
-                <button>
-                  <Icon name="external" size={14} /> 원문 보기
-                </button>
-              </article>
-            ))}
+          {relatedNews.length === 0 && <div className="empty-state">이 종목과 관련된 뉴스가 없습니다.</div>}
+          {relatedNews.map((news) => (
+            <article key={news.id}>
+              <div><span className="importance">DEMO</span><small>{news.publisher} · {formatDateTime(news.published_at)}</small></div>
+              <h3>{news.title}</h3>
+              <button disabled title="실제 원문 링크는 뉴스 공급자 연동 후 활성화">
+                <Icon name="external" size={14} /> 원문 미제공 (DEMO)
+              </button>
+            </article>
+          ))}
         </div>
       </Card>
-      <div className="source-note">
-        <Icon name="info" size={14} /> 데이터 수집: DEMO 데이터 · 실제 시세 및 데이터 지연 상태는 미제공
+      <div className="source-note"><Icon name="info" size={14} />
+        데이터: {tracked?.quote.source ?? "시세 없음"} · {stock.asOf} · 가상 시세, 실제 시장 정보 아님
       </div>
     </div>
   );
 }
+
 
 function NewsPage() {
   const [region, setRegion] = useState("전체");
