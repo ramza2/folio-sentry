@@ -1,4 +1,5 @@
 """Contract tests are offline and never contact broker/news providers."""
+from copy import deepcopy
 from decimal import Decimal
 
 import pytest
@@ -59,12 +60,12 @@ def test_contract_openapi_is_exposed() -> None:
 
 def test_holding_invariants() -> None:
     payload = client.get("/api/v1/demo/overview").json()
-    demo = payload["tracked"][0]
+    demo = deepcopy(payload["tracked"][0])
     demo["kind"] = "WATCH"
     with pytest.raises(ValidationError):
         TrackedInstrumentDTO.model_validate(demo)
 
-    holding = payload["tracked"][0]
+    holding = deepcopy(payload["tracked"][0])
     holding["average_cost"] = "-1"
     with pytest.raises(ValidationError):
         TrackedInstrumentDTO.model_validate(holding)
