@@ -198,11 +198,13 @@ function Sidebar({
   setPage,
   open,
   setOpen,
+  signalCount,
 }: {
   page: Page;
   setPage: (p: Page) => void;
   open: boolean;
   setOpen: (v: boolean) => void;
+  signalCount: number;
 }) {
   return (
     <>
@@ -226,7 +228,7 @@ function Sidebar({
             >
               <Icon name={item.icon} />
               <span>{item.label}</span>
-              {item.page === "signals" && <em>3</em>}
+              {item.page === "signals" && signalCount > 0 && <em>{signalCount}</em>}
             </button>
           ))}
         </nav>
@@ -271,7 +273,7 @@ function Topbar({
         </button>
         <div>
           <h1>{title}</h1>
-          <p>오늘의 포트폴리오와 시장 흐름을 확인하세요</p>
+          <p>API에서 가져온 데모 데이터를 확인하세요</p>
         </div>
       </div>
       <div className="top-actions">
@@ -496,7 +498,10 @@ function Dashboard({
 }
 
 
-function Modal({ onClose }: { onClose: () => void }) {
+function Modal({ onClose, tracked }: {
+  onClose: () => void;
+  tracked?: DemoOverview["tracked"][number];
+}) {
   return (
     <div className="modal-wrap" role="dialog" aria-modal="true">
       <div className="modal-backdrop" onClick={onClose} />
@@ -514,35 +519,35 @@ function Modal({ onClose }: { onClose: () => void }) {
           종목 검색
           <div className="input-wrap">
             <Icon name="search" />
-            <input defaultValue="삼성전자 (005930)" />
+            <input readOnly value={tracked ? tracked.instrument.name + " (" + tracked.instrument.symbol + ")" : "종목 없음"} />
           </div>
         </label>
         <div className="selected-stock">
           <span className="stock-logo s0">삼</span>
           <div>
-            <b>삼성전자</b>
-            <small>005930 · KRX · KRW</small>
+            <b>{tracked?.instrument.name ?? "미등록"}</b>
+            <small>{tracked?.instrument.symbol ?? "—"} · {tracked?.instrument.exchange_mic ?? "—"} · {tracked?.instrument.currency ?? "—"}</small>
           </div>
           <Icon name="check" className="positive" />
         </div>
         <div className="form-grid">
           <label>
             보유 수량
-            <input type="number" defaultValue="40" />
+            <input type="number" readOnly value={tracked?.quantity ?? ""} />
             <span>주</span>
           </label>
           <label>
             평균 매수가
-            <input type="text" defaultValue="68,250" />
+            <input type="text" readOnly value={tracked?.average_cost ?? ""} />
             <span>원</span>
           </label>
         </div>
         <div className="calc-row">
-          <span>예상 매입금액</span>
-          <b>2,730,000원</b>
+          <span>가상 평가액 (시세가 있을 때만)</span>
+          <b>{formatMoney(tracked?.market_value ?? null, tracked?.instrument.currency ?? "KRW")}</b>
         </div>
         <label className="check-label">
-          <input type="checkbox" defaultChecked />
+          <input type="checkbox" defaultChecked={tracked?.alerts_enabled ?? false} disabled />
           <span>
             <Icon name="check" size={13} />
           </span>
@@ -639,7 +644,8 @@ function StocksPage({
         </div>
       </Card>
       <div className="source-note"><Icon name="info" size={14} /> 마지막 API 데모 기준: {formatDateTime(data.as_of)} · 알림 토글은 저장되지 않습니다.</div>
-      {modal && <Modal onClose={() => setModal(false)} />}
+      {modal && <Modal onClose={() => setModal(false)}
+        tracked={data.tracked.find((item) => item.kind === "HOLDING")} />}
     </div>
   );
 }
@@ -981,7 +987,11 @@ function Toggle({
   );
 }
 
-function SettingsPage({ dark, setDark }: { dark: boolean; setDark: (v: boolean) => void }) {
+function SettingsPage({ dark, setDark, data }: {
+  dark: boolean;
+  setDark: (v: boolean) => void;
+  data: DemoOverview;
+}) {
   const [settings, setSettings] = useState({
     kr: true,
     us: true,
@@ -996,7 +1006,7 @@ function SettingsPage({ dark, setDark }: { dark: boolean; setDark: (v: boolean) 
         <div>
           <span className="eyebrow">PREFERENCES</span>
           <h2>설정</h2>
-          <p>알림과 데이터, 화면 표시 방식을 관리하세요.</p>
+          <p>화면 설정을 시연합니다. 알림 설정은 저장되지 않습니다.</p>
         </div>
         <button className="button primary" disabled title="디자인 미리보기에서는 설정 저장을 지원하지 않습니다">변경사항 저장 (미지원)</button>
       </div>
@@ -1014,7 +1024,7 @@ function SettingsPage({ dark, setDark }: { dark: boolean; setDark: (v: boolean) 
           </Card>
           <Card className="settings-card">
             <CardHeader title="알림 채널" desc="수신할 채널과 알림 유형을 선택합니다." />
-            <SettingRow icon={<Icon name="news" />} title="이메일 알림" desc="설정되지 않음">
+            <SettingRow icon={<Icon name="news" />} title="이메일 알림" desc="데모 상태 · 실제 이메일 발송 기능 미연동">
               <Toggle value={settings.email} onChange={() => flip("email")} />
             </SettingRow>
             <SettingRow
@@ -1101,25 +1111,22 @@ function SettingsPage({ dark, setDark }: { dark: boolean; setDark: (v: boolean) 
               <span className="provider-logo">D</span>
               <div>
                 <b>데모 마켓 데이터</b>
-                <small>
-                  <i className="status-dot live" /> 정상 연결
-                </small>
+                <small><i className="status-dot" /> 고정 DEMO API</small>
               </div>
             </div>
             <div className="provider-detail">
               <span>
-                마지막 동기화<b>3분 전</b>
+                데모 기준 시각<b>{formatDateTime(data.as_of)}</b>
               </span>
               <span>
-                국내 시세<b>20분 지연</b>
+                국내 시세<b>가상 데이터</b>
               </span>
               <span>
-                미국 시세<b>15분 지연</b>
+                미국 시세<b>가상 데이터</b>
               </span>
             </div>
-            <button className="button secondary full">
-              <Icon name="refresh" />
-              연결 상태 확인
+            <button className="button secondary full" disabled title="공급자 연결 상태 API는 아직 미구현">
+              <Icon name="refresh" /> 공급자 확인 미지원
             </button>
           </Card>
           <div className="settings-note">
@@ -1163,27 +1170,80 @@ function SettingRow({
   );
 }
 
+
+type DataState =
+  | { phase: "loading" }
+  | { phase: "error"; message: string }
+  | { phase: "ready"; data: DemoOverview };
+
 export default function App() {
   const [page, setPage] = useState<Page>("dashboard");
   const [menu, setMenu] = useState(false);
   const [dark, setDark] = useState(false);
-  const title = useMemo(() => navItems.find((n) => n.page === page)?.label || "대시보드", [page]);
-  const go = (p: Page) => {
-    setPage(p);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [loadVersion, setLoadVersion] = useState(0);
+  const [dataState, setDataState] = useState<DataState>({ phase: "loading" });
+  useEffect(() => {
+    const controller = new AbortController();
+    setDataState({ phase: "loading" });
+    fetchDemoOverview(controller.signal)
+      .then((data) => {
+        if (!controller.signal.aborted) setDataState({ phase: "ready", data });
+      })
+      .catch((error: unknown) => {
+        if (!controller.signal.aborted) {
+          setDataState({
+            phase: "error",
+            message: error instanceof Error ? error.message : "DEMO 데이터를 불러올 수 없습니다.",
+          });
+        }
+      });
+    return () => controller.abort();
+  }, [loadVersion]);
+
+  const title = useMemo(() => navItems.find((item) => item.page === page)?.label || "대시보드", [page]);
+  const go = (next: Page) => {
+    setPage(next);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
+  const goDetail = (id: string) => {
+    setSelectedId(id);
+    go("detail");
+  };
+  const data = dataState.phase === "ready" ? dataState.data : null;
   return (
     <div className={dark ? "app dark" : "app"}>
-      <Sidebar page={page} setPage={go} open={menu} setOpen={setMenu} />
+      <Sidebar page={page} setPage={go} open={menu} setOpen={setMenu}
+        signalCount={data?.signals.length ?? 0} />
       <main className="main">
         <Topbar title={title} setMenu={setMenu} dark={dark} setDark={setDark} />
         <div className="content">
-          {page === "dashboard" && <Dashboard go={go} />}
-          {page === "stocks" && <StocksPage go={go} />}
-          {page === "detail" && <DetailPage go={go} />}
-          {page === "news" && <NewsPage />}
-          {page === "signals" && <SignalsPage />}
-          {page === "settings" && <SettingsPage dark={dark} setDark={setDark} />}
+          {dataState.phase === "loading" && (
+            <Card><div className="empty-state" role="status">
+              <span className="state-icon loading" /><h2>DEMO API 연결 중</h2>
+              <p>데이터를 확인하는 동안 가상 시세와 신호를 표시하지 않습니다.</p>
+            </div></Card>
+          )}
+          {dataState.phase === "error" && (
+            <Card><div className="empty-state" role="alert">
+              <Icon name="info" size={28} /><h2>DEMO 데이터 연결 실패</h2>
+              <p>{dataState.message}</p>
+              <p>오류 시 기존 고정 시세로 대체하지 않습니다.</p>
+              <button className="button primary" onClick={() => setLoadVersion((version) => version + 1)}>
+                <Icon name="refresh" /> 다시 시도
+              </button>
+            </div></Card>
+          )}
+          {data && (
+            <>
+              {page === "dashboard" && <Dashboard data={data} go={go} goDetail={goDetail} />}
+              {page === "stocks" && <StocksPage data={data} goDetail={goDetail} />}
+              {page === "detail" && <DetailPage data={data} selectedId={selectedId} go={go} />}
+              {page === "news" && <NewsPage data={data} />}
+              {page === "signals" && <SignalsPage data={data} />}
+              {page === "settings" && <SettingsPage data={data} dark={dark} setDark={setDark} />}
+            </>
+          )}
         </div>
       </main>
     </div>
