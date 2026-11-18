@@ -10,6 +10,14 @@
 - [ ] 테스트/린트/typecheck/build 기본 CI
 - **게이트**: 샘플 데이터로 API/DB/Frontend 연결, 실 API 키 커밋 없음
 
+## Phase 1A — 데이터 모델·API 계약·Figma 연계
+- [x] 시장·종목·보유/관심·시세·뉴스·신호 논리 모델 설계 (`docs/DATA_MODEL.md`)
+- [x] REST API 및 Decimal/시간대/가용성 계약 (`docs/API_CONTRACT.md`)
+- [x] 가상 KR/US 종목·뉴스·신호 디자인 미리보기 API (`/api/v1/demo/overview`)
+- [x] Figma Make 디자인 의뢰 브리프 (`docs/FIGMA_MAKE_BRIEF.md`)
+- [ ] Figma Make에서 디자인 시안 작성 및 사용자 확정
+- **게이트**: 모의 데이터 API 테스트·CI 성공, 실 API/DB/운영 배포 변경 없음
+
 ## Phase 1 — Watchlist와 시세
 - [ ] Instrument 검색/매핑 (시장+거래소+심볼)
 - [ ] 보유/관심 등록·수정·삭제
@@ -43,5 +51,5 @@
 - [ ] 개인용 전략 설정 및 신호 신뢰도 분석
 - **게이트**: 백테스트의 미래 참조·과최적화·선택편향 문서화
 
-## 첫 Cursor 작업 (추후 지시)
-`AGENTS.md`, `docs/PRD.md`, `docs/ARCHITECTURE.md`, `docs/ROADMAP.md`를 준수해 Phase 0의 최소 골격만 구현한다. 공급자 실 API 연결, 주문 기능, AI, 알림, 배포는 이번 작업 범위에서 제외한다.
+## 다음 Cursor 작업 (필요할 때만)
+Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 참조하여 **확정된 단일 화면**의 UI 연결 작업을 지시한다. 별도 DB/시세 수집은 각각 독립 PR로 분리한다.
