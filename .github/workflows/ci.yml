@@ -34,6 +34,8 @@ jobs:
           node-version: "22.17.0"
       - name: Install
         run: npm install --no-audit --no-fund
+      - name: DEMO adapter unit tests
+        run: npm test
       - name: Typecheck
         run: npm run typecheck
       - name: Build
