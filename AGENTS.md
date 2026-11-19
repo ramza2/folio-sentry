@@ -133,3 +133,10 @@
 - 백업은 `~/.local/share/folio-sentry/backups`의 사용자 전용 파일(권한 600)이다. 인증 해시 포함 가능: Git/채팅/외부 전송 금지. 아카이브 가독성은 복원 검증이 아니다.
 - `unpublish --confirm-stop-frontend-only`는 복구용으로 frontend만 stop한다. 기존 PickNext·Traefik 설정·공유기 포트·DB/볼륨 삭제 금지.
 - 신규 TLS 검증과 CI는 브라우저 실인수/외부 도달성/장기 인증서 갱신의 증빙이 아니다.
+
+## DEPLOY-02 운영 인수 완료 (2026-11-19)
+- 사용자가 FolioSentry HTTPS 배포 및 브라우저 로그인/DEMO/로그아웃, 기존 PickNext 정상 동작 확인. 실행 Git 커밋 `808aaf9eb1a3a9913574bc7f1495d484379fdae1`.
+- 운영 주소 `https://foliosentry.ramza.duckdns.org`. Backend Health, 신규 TLS 신뢰·호스트명, 익명 API 401, Origin 누락 로그인 403 확인 PASS. 최초 SSL 오류 6회 후 7차 재시도에서 PASS; 원인 임의 추정 금지.
+- 사용자 전용 pg_dump 사전 백업·SHA256·아카이브 가독성 PASS. **백업 복원·정기화/원격 보관은 검증되지 않음.** 백업 파일과 인증 관련 정보는 절대 Git/채팅에 공유하지 않는다.
+- 기존 PickNext TLS와 수동 기능 동작 유지. 기존 Traefik/공유기 변경 금지.
+- 다음 개발은 먼저 격리 복원·정기 백업 준비, 이후 Phase 1 Watchlist/보유종목 CRUD. **운영 중 DB를 삭제·재생성하거나 인증 초기화 반복 금지.** 실 포트폴리오 데이터를 DEMO에 섞지 않는다.
