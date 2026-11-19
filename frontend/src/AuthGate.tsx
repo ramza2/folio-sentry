@@ -1,5 +1,5 @@
 import {
-  createContext, useCallback, useContext, useEffect, useState,
+  createContext, useCallback, useContext, useEffect, useRef, useState,
   type FormEvent, type ReactNode,
 } from "react";
 import { getOwnerSession, loginOwner, logoutOwner, type OwnerSession } from "./authApi";
@@ -71,14 +71,18 @@ function LoginView({ onLogin, error }: {
 
 export default function AuthGate({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({ status: "checking" });
+  const requestEpoch = useRef(0);
+  const mutating = useRef(false);
 
   const validate = useCallback(async (signal?: AbortSignal) => {
+    if (mutating.current) return;
+    const epoch = ++requestEpoch.current;
     try {
       const session = await getOwnerSession(signal);
-      if (signal?.aborted) return;
+      if (signal?.aborted || epoch !== requestEpoch.current || mutating.current) return;
       setState(session ? { status: "authenticated", session } : { status: "unauthenticated" });
     } catch {
-      if (!signal?.aborted) {
+      if (!signal?.aborted && epoch === requestEpoch.current && !mutating.current) {
         setState({ status: "error", message: "인증 서버 상태를 확인할 수 없습니다." });
       }
     }
@@ -103,13 +107,21 @@ export default function AuthGate({ children }: { children: ReactNode }) {
   }, [validate]);
 
   const login = async (username: string, password: string) => {
-    const session = await loginOwner(username, password);
-    setState({ status: "authenticated", session });
+    mutating.current = true;
+    requestEpoch.current++;
+    try {
+      const session = await loginOwner(username, password);
+      setState({ status: "authenticated", session });
+    } finally {
+      mutating.current = false;
+    }
   };
 
   const logout = async () => {
     if (state.status !== "authenticated") return;
     const token = state.session.csrf_token;
+    mutating.current = true;
+    requestEpoch.current++;
     // Hide financial information immediately while invalidating the server session.
     setState({ status: "checking" });
     try {
@@ -117,6 +129,8 @@ export default function AuthGate({ children }: { children: ReactNode }) {
       setState({ status: "unauthenticated" });
     } catch {
       setState({ status: "error", message: "로그아웃을 확인하지 못했습니다. 서버 상태를 확인하고 재시도하세요." });
+    } finally {
+      mutating.current = false;
     }
   };
 
