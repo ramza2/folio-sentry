@@ -58,15 +58,15 @@ try {
 
   const nav = page.locator("nav");
   await nav.getByRole("button", { name: "내 종목" }).click();
-  await page.getByRole("heading", { name: "내 종목", exact: true }).waitFor();
+  await page.getByRole("heading", { name: "내 종목", exact: true, level: 2 }).waitFor();
   await page.locator(".table-row[role='button']").first().click();
   await page.getByRole("heading", { name: "삼성전자", exact: true }).waitFor();
   await nav.getByRole("button", { name: "뉴스" }).click();
-  await page.getByRole("heading", { name: "뉴스", exact: true }).waitFor();
+  await page.getByRole("heading", { name: "뉴스", exact: true, level: 2 }).waitFor();
   await nav.getByRole("button", { name: /신호 · 알림/ }).click();
   await page.getByRole("heading", { name: "신호 · 알림 이력" }).waitFor();
   await nav.getByRole("button", { name: "설정" }).click();
-  await page.getByRole("heading", { name: "설정", exact: true }).waitFor();
+  await page.getByRole("heading", { name: "설정", exact: true, level: 2 }).waitFor();
   await nav.getByRole("button", { name: "대시보드" }).click();
   check("six Figma UI screens and stock detail navigation");
 
