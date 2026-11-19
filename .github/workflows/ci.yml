@@ -125,6 +125,25 @@ jobs:
         run: |
           bash -n scripts/deploy.sh
           bash -n scripts/inspect-traefik.sh
+          bash -n scripts/check-duckdns-route.sh
+          fakebin="$(mktemp -d)"
+          cat > "$fakebin/getent" <<'EOF'
+          #!/bin/sh
+          [ "$1" = ahostsv4 ] || exit 1
+          case "$2" in
+            picknext.ramza.duckdns.org|foliosentry.ramza.duckdns.org)
+              printf '192.0.2.42 STREAM %s\n' "$2" ;;
+            *) exit 2 ;;
+          esac
+          EOF
+          chmod +x "$fakebin/getent"
+          result="$(PATH="$fakebin:$PATH" bash scripts/check-duckdns-route.sh)"
+          grep -Fq "FOLIOSENTRY_DUCKDNS_READONLY_CHECK_PASS" <<< "$result"
+          grep -Fq "IP_VALUES_PRINTED=NO" <<< "$result"
+          if grep -Fq "192.0.2.42" <<< "$result"; then exit 1; fi
+          grep -Fq "Existing Traefik Docker network [proxy]:" scripts/deploy.sh
+          grep -Fq "Existing HTTPS entrypoint [websecure]:" scripts/deploy.sh
+          grep -Fq "Existing TLS certificate resolver [myresolver]:" scripts/deploy.sh
           bash scripts/deploy.sh --help
           if bash scripts/deploy.sh db-init >/dev/null 2>&1; then
             echo "db-init missing-confirmation unexpectedly succeeded"
