@@ -62,4 +62,9 @@ archives=("$scratch"/.local/share/folio-sentry/backups/*.pgdump)
 ( cd "$(dirname "${archives[0]}")" &&
   sha256sum -c "$(basename "${archives[0]}").sha256" >/dev/null )
 
+# Restore the exact synthetic archive into a no-network, tmpfs-only container.
+HOME="$scratch" bash scripts/verify-backup-restore.sh \
+  --confirm-isolated-restore "${archives[0]}"
+
 echo "FOLIOSENTRY_DEPLOY02_SYNTHETIC_BACKUP_E2E_PASS"
+echo "FOLIOSENTRY_OPS01_SYNTHETIC_ISOLATED_RESTORE_PASS"
