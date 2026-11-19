@@ -78,15 +78,20 @@ configure() {
   command -v openssl >/dev/null || fatal "openssl is needed to create a random DB secret"
   local domain network entrypoint resolver secret_dir secret_file
   say "Existing PickNext Traefik configuration is NOT changed."
-  say "Use 'inspect' to find the real Docker network, entrypoint, resolver."
+  say "Verified on MiniPC 2026-11-19: proxy / websecure / myresolver."
+  say "Press Enter to accept each observed default, or enter a changed value."
+  say "HTTPS hostname is still a candidate until DNS/TLS verification succeeds."
   read -r -p "FolioSentry DuckDNS FQDN (e.g. foliosentry.ramza.duckdns.org): " domain
   domain="${domain,,}"
   valid_domain "$domain" || fatal "Domain invalid: enter a DuckDNS hostname, not URL"
-  read -r -p "Existing Traefik Docker network: " network
+  read -r -p "Existing Traefik Docker network [proxy]: " network
+  network="${network:-proxy}"
   valid_network "$network" || fatal "Network name invalid"
-  read -r -p "Existing HTTPS entrypoint (usually websecure): " entrypoint
+  read -r -p "Existing HTTPS entrypoint [websecure]: " entrypoint
+  entrypoint="${entrypoint:-websecure}"
   valid_id "$entrypoint" || fatal "Entry point invalid"
-  read -r -p "Existing TLS certificate resolver label: " resolver
+  read -r -p "Existing TLS certificate resolver [myresolver]: " resolver
+  resolver="${resolver:-myresolver}"
   valid_id "$resolver" || fatal "Certificate resolver invalid"
   secret_dir="$HOME/.config/folio-sentry"
   secret_file="$secret_dir/pg_password"
