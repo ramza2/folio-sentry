@@ -1,0 +1,82 @@
+# Independent FolioSentry production stack; NOT a modification of compose.yaml.
+# Run only using scripts/deploy.sh with -p foliosentry-prod.
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    mem_limit: 768m
+    pids_limit: 160
+    environment:
+      POSTGRES_USER: folio
+      POSTGRES_DB: folio
+      POSTGRES_PASSWORD_FILE: /run/secrets/folio_db_password
+    secrets:
+      - folio_db_password
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - private
+    labels:
+      traefik.enable: "false"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U folio -d folio"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+
+  backend:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    mem_limit: 512m
+    pids_limit: 160
+    environment:
+      FOLIOSENTRY_DB_HOST: db
+      FOLIOSENTRY_DB_PORT: "5432"
+      FOLIOSENTRY_DB_USER: folio
+      FOLIOSENTRY_DB_NAME: folio
+      FOLIOSENTRY_DB_PASSWORD_FILE: /run/secrets/folio_db_password
+      FOLIOSENTRY_AUTH_ALLOWED_ORIGINS: https://${FOLIOSENTRY_DOMAIN:?Run deploy.sh configure}
+      FOLIOSENTRY_AUTH_COOKIE_SECURE: "true"
+      FOLIOSENTRY_ALLOW_HTTP_DEV: "false"
+    secrets:
+      - folio_db_password
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - private
+    labels:
+      traefik.enable: "false"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health/ready', timeout=2)"]
+      interval: 15s
+      timeout: 4s
+      retries: 4
+      start_period: 10s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+    restart: unless-stopped
+    mem_limit: 192m
+    pids_limit: 120
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - private
+    labels:
+      traefik.enable: "false"
+
+networks:
+  private:
+    driver: bridge
+
+volumes:
+  pgdata:
+
+secrets:
+  folio_db_password:
+    file: ${FOLIOSENTRY_DB_SECRET_FILE:?Run deploy.sh configure}

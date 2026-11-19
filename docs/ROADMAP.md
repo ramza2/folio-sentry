@@ -6,7 +6,14 @@
 - [ ] 국내·해외 일봉 시세 API 자격/호출량/지연/수정주가 검증
 - [ ] 국내·미국 뉴스 API 요금/약관/기사 메타데이터 검증
 - [x] 최종 배포 대상으로 집의 개인 MiniPC 선정 (서버 구성/포트/인증 방법은 미확정)
-- [ ] MiniPC OS/사양/기존 서비스/포트·배포 경로·접속/인증 방식 확인
+- [x] MiniPC OS·사양·Docker/Compose·포트 점검 (2026-11-19, REVIEW_FLAGS=0)
+- [x] 기존 PickNext/Traefik 네트워크 `proxy`, entrypoint `websecure`, resolver `myresolver` 확인 (2026-11-19)
+- [x] FolioSentry 신규 DuckDNS 후보 주소와 PickNext의 IPv4 매핑 일치 확인 (2026-11-19)
+- [x] 기존 PickNext TLS 신뢰 검증 PASS, 31일 잔여, FolioSentry 후보 SAN 미포함 확인 (2026-11-19)
+- [x] Traefik myresolver **TLS-ALPN-01**, Docker 443 publish, ACME 저장소 마운트 확인 (2026-11-19)
+- [ ] 외부 네트워크의 443 도달성·실제 신규 도메인 TLS 발급 확인 (라우터 등록 이후)
+- [ ] 기존 ACME 저장소 백업·복구 방법 확인
+- [ ] FolioSentry 새 HTTPS 라우터 발급 인증서 실검증 (공개 승인 및 라우터 생성 이후)
 - [ ] FastAPI + React + PostgreSQL 최소 골격 및 Docker Compose
 - [ ] 테스트/린트/typecheck/build 기본 CI
 - **게이트**: 샘플 데이터로 API/DB/Frontend 연결, 실 API 키 커밋 없음
@@ -70,7 +77,12 @@
 
 ## MiniPC 배포 준비 (기능 완성 및 명시적 승인 후)
 - [x] 안전 사전점검 스크립트/기준 문서 준비 (`scripts/minipc-auth-preflight.sh`, `docs/MINIPC_AUTH_PREVIEW_PLAN.md`)
-- [ ] 실제 MiniPC 리소스·기존 Compose 프로젝트·포트·디스크/백업 위치 확인
+- [x] 실제 MiniPC 리소스/포트/디스크 여유 점검 (읽기 전용, 2026-11-19)
+- [x] Traefik·DuckDNS 연동 프로덕션 Compose 및 대화형 배포 도우미 초안 구현 (Draft PR, 배포 아님)
+- [x] 기존 Traefik의 실제 네트워크/entrypoint/certresolver 확인 (읽기 전용)
+- [x] DuckDNS 신규 후보와 기존 PickNext의 IPv4 DNS 매핑 일치 확인
+- [ ] 기존 PickNext 인증서 사전검사 및 신규 FolioSentry HTTPS 인증서 검증
+- [ ] PostgreSQL 백업/복구 위치 및 자원 상한 실기 검증
 - [ ] 개인 전용 인증/VPN 등 외부 접속 안전 방안 확정
 - [ ] Compose 리소스 격리, 환경변수·비밀관리, PostgreSQL 백업/복원 테스트
 - [ ] 실제 운영 데이터 수집·알림 점검; 개인 자산/토큰 로그 유출 검사

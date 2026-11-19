@@ -25,7 +25,7 @@
 
 ## 고정된 배포 및 LLM 정책 (2026-11-18)
 - **최종 배포 대상은 사용자의 집에 있는 개인 MiniPC**다. 회사 GPU 서버/ModelOps 호스트에 FolioSentry 애플리케이션·DB·스케줄러를 배포하지 않는다.
-- MiniPC의 OS, CPU/RAM, 경로, 네트워크, 기존 포트/컨테이너는 아직 미확정. 실제 환경 확인 전 포트 개방/배포 명령 실행 금지.
+- MiniPC는 Ubuntu 26.04 LTS/8 논리코어/14GiB RAM/39GB 여유 디스크, Docker 29.6.2 및 Compose 5.3.1임을 읽기 전용 사전 점검으로 확인. 18901·18902 포트 미점유. Traefik 상세 네트워크/entrypoint/resolver는 아직 미확인. 실제 환경 확인 전 포트 개방/배포 명령 실행 금지.
 - 개인 MiniPC의 다른 서비스에 간섭하지 않도록 별도 Compose 프로젝트·볼륨·네트워크를 사용하고 자원 사용량/백업을 관리한다.
 - **LLM은 선택 기능**이다. 종목 뉴스 요약·설명이 필요해질 때 기존 ModelOps Gateway API를 외부 서비스로 호출할 수 있게 adapter로 분리한다.
 - MiniPC에 LLM 모델·GPU 런타임 설치를 기본 요구사항으로 추가하지 않는다. Gateway 미연결·장애 시에도 핵심 차트/규칙 신호/뉴스 원문 조회가 동작해야 한다.
@@ -98,3 +98,30 @@
 - 실제 배포 전 사용자가 LAN/외부 접속 선호를 명시하지 않았다면 임의로 공개하지 않는다. HTTP 개발 쿠키는 루프백 전용, 외부 원격접속은 별도 HTTPS/VPN 설계 후.
 - 안전 점검 완료 마커는 배포 승인이나 DB 마이그레이션 승인으로 취급하지 않는다.
 - 계획/수행 경계: `docs/MINIPC_AUTH_PREVIEW_PLAN.md`. 
+
+## DEPLOY-01 — 집 MiniPC 기존 Traefik/DuckDNS (2026-11-19)
+- 실제 MiniPC에는 기존 Traefik, DuckDNS, ipTIME 포트포워딩이 있으며 `https://picknext.ramza.duckdns.org` 사용 중. 2026-11-19 확인한 라우팅 값은 **외부 Docker 네트워크 `proxy`, HTTPS entrypoint `websecure`, TLS resolver `myresolver`**. 이 라우터와 공유기 규칙을 **수정하지 않는다**.
+- 배포 설계는 `compose.production.yml` + `compose.traefik.yml`, 정적 Nginx/Vite 빌드(`frontend/Dockerfile.prod`)로 분리. Backend·DB는 호스트 포트 노출 금지. frontend만 기존 Traefik 네트워크에 연결.
+- `bash scripts/deploy.sh inspect`로 기존 Traefik 네트워크·entrypoint·resolver 단서를 민감정보 없이 확인, `configure`는 최초에만 개인 설정·암호를 생성, `check`는 배포 없이 검증.
+- `db-init`은 **새 FolioSentry DB 생성/마이그레이션/개인 계정 초기화**, `publish`는 **공개 HTTPS 경로 활성화**라는 운영 변경이므로 각각 사용자 명시적 승인 전 실행하지 않는다. PR Draft 상태에서는 금지.
+- `scripts/deploy.sh`는 검토된 `main`·깨끗한 워크트리·GitHub 동기화 상태를 실제 명령 실행의 필수조건으로 검증해야 한다.
+- 운영 DB 비밀번호를 `.env.deploy`에 담지 않고 사용자의 `~/.config/folio-sentry/pg_password`(권한 600) Docker Secret 파일로 보관. 로그인 비밀번호는 별도 대화형 생성. 모든 값과 토큰은 Git에 기록하지 않는다.
+- DuckDNS 하위 호스트 레코드가 기존 IP를 가리키더라도 새 HTTPS 인증서 존재/유효성은 별도 검증해야 한다. 장기 개인 정보 저장 전 외부 VPN/추가 2차인증과 백업·복구 검증.
+- 전용 배포 절차: `docs/TRAEFIK_MINIPC_DEPLOYMENT.md`.
+
+- 후보 URL `foliosentry.ramza.duckdns.org`는 DNS 조회/인증서 발급이 실제 확인되기 전까지 **확정 주소가 아니다**. 공개 HTTPS 배포를 승인했다고 해석하지 않는다.
+- `scripts/check-duckdns-route.sh`는 기존 `picknext.ramza.duckdns.org`와 새 후보 주소의 DNS IPv4 응답만 비교하고 실제 공인 IP는 출력하지 않는다. MiniPC에서 2026-11-19 IPv4 매핑 **일치 확인 완료**. DNS 일치는 TLS·접근 제어·운영 승인과 동일하지 않다.
+- `scripts/check-existing-tls.py`는 기존 PickNext 도메인에 대한 인증서 신뢰와 SAN 커버리지 확인만 수행한다. **새 FolioSentry TLS 인증서 검증 완료로 오인하지 않는다.** 운영 변경·비밀 정보 접근 금지.
+- `scripts/deploy.sh configure`는 MiniPC에서 확인된 세 Traefik 이름을 Enter 기본값으로 제안하되, 실제 사용자는 도메인·네트워크 구성 변경 시 값을 검증한다.
+
+## DEPLOY-01 기존 TLS 인증서 검사 결과 (2026-11-19)
+- PickNext TLS 인증서 신뢰·호스트 확인 PASS, 잔여 기간 31일, FolioSentry 후보 주소 SAN 포함 **NO**.
+- `myresolver` 신규 인증서 발급은 아직 확인되지 않았다. 도메인 DNS 일치나 기존 PickNext 인증서 정상만으로 새 호스트 운영 HTTPS 준비 완료를 선언하지 않는다.
+- `scripts/inspect-traefik-acme.py`는 기존 Traefik Docker 메타데이터에서 ACME challenge 방식·호스트 포트 매핑 힌트만 읽고 환경/인증서/설정파일/비밀키를 읽거나 출력하지 않는다.
+- HTTP-01은 외부 80, TLS-ALPN-01은 외부 443 도달 및 발급 검증이 필요하다. Docker 포트 공개와 공유기·공인인터넷 도달성은 별개다.
+- 실제 Router 공개와 인증서 발급은 별도 명시적 승인 및 운영 전 보안 점검 이후 수행.
+
+## DEPLOY-01 TLS-ALPN 실측 및 사전 게이트 (2026-11-19)
+- MiniPC의 기존 Traefik `myresolver`는 `TLS_ALPN_01`, Docker 443 publish, 인증서 저장소 bind/volume mount 확인. 이 사실은 외부 인터넷의 포트 도달, 인증서 발급 성공, 저장소 백업을 **의미하지 않는다**.
+- `scripts/deploy.sh check`는 실행 전에 관측된 ACME 설정/443 바인딩/영속 마운트 및 새 DuckDNS 매핑을 검증하여 조건이 바뀌면 fail closed 한다.
+- 공개 라우터가 실제 생성되기 전 신규 도메인 인증서 발급 PASS 주장 금지. 공개 전 사용자의 명시적 승인 및 기존 다른 서비스 영향 방지.
