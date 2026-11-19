@@ -140,3 +140,11 @@
 - 사용자 전용 pg_dump 사전 백업·SHA256·아카이브 가독성 PASS. **백업 복원·정기화/원격 보관은 검증되지 않음.** 백업 파일과 인증 관련 정보는 절대 Git/채팅에 공유하지 않는다.
 - 기존 PickNext TLS와 수동 기능 동작 유지. 기존 Traefik/공유기 변경 금지.
 - 다음 개발은 먼저 격리 복원·정기 백업 준비, 이후 Phase 1 Watchlist/보유종목 CRUD. **운영 중 DB를 삭제·재생성하거나 인증 초기화 반복 금지.** 실 포트폴리오 데이터를 DEMO에 섞지 않는다.
+
+## OPS-01 백업 복원 시험/정기화 경계 (2026-11-19)
+- 운영 `foliosentry-prod` DB·Backend·Frontend·Traefik은 **현재 공개 운영 중**. 백업 복원 검증을 위해 운영 DB 복원, 컨테이너 재시작·중지, 볼륨 교체/삭제는 절대 하지 않는다.
+- `scripts/verify-backup-restore.sh`는 *사용자가 선택한 비공개 archive*를 체크섬 확인 후 **새 postgres:17-alpine 컨테이너(네트워크 none/host port 없음/tmpfs 데이터)**에만 복원, schema/owner만 확인하고 임시 컨테이너를 정리한다. 실제 비밀번호 해시·세션 내용은 출력하지 않는다.
+- `scripts/backup-db.sh --confirm-daily-backup`은 운영 DB에 읽기 전용 pg_dump만 수행하며 기존 `--confirm-prepublish-backup` 호환성을 유지한다. `scripts/run-daily-backup.sh`은 새 백업 검증 후에만 14일 이상 된 `daily-` 파일의 SHA256 검증된 쌍만 삭제. `prepublish-` 파일과 불명 파일은 절대 삭제하지 않는다.
+- `ops/systemd/foliosentry-backup.timer`은 준비용 파일이며 MiniPC에 실제 등록/활성화되지 않았다. 사용자의 별도 승인 전 `systemctl --user enable/start`, `loginctl enable-linger` 금지.
+- CI 격리 synthetic PostgreSQL 테스트 성공과 MiniPC 실 백업의 복원 성공을 혼동하지 않는다. 로그·GitHub·채팅에 DB/해시/백업 원본 전송 금지.
+- 상세 운영 절차: `docs/BACKUP_RESTORE_OPERATIONS.md`.
