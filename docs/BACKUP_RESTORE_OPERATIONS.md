@@ -55,7 +55,7 @@ FOLIOSENTRY_OPS01_RESTORE_PROBE_PASS
 
 ### 다음 운영 단계 (아직 실행하지 않음)
 
-실제 운영 DB를 추가로 변경하지 않고 **새 daily 백업 1건 생성 및 무결성 검증**을 먼저 실행한다. `scripts/backup-db.sh --confirm-daily-backup`는 새로운 백업 쌍만 만들며, 이전 백업 삭제를 수행하지 않는다. 완료 후 시스템 타이머 등록 여부를 별도로 결정한다.
+**2026-11-19 MiniPC 수동 일일 백업 1회 PASS.** `scripts/backup-db.sh --confirm-daily-backup`로 신규 백업 한 건만 생성했고 이전 파일 삭제/운영 데이터 변경 없음. 시스템 타이머 등록 여부는 별도 승인 전 사전검사로 결정한다.
 
 ## 2. 정기 백업 동작 (아직 운영 자동 등록 안 함)
 
@@ -96,3 +96,11 @@ loginctl show-user "$USER" -p Linger
 - 백업 파일, SHA256 원문, 로그인 해시, 원본 데이터, DB secret, `acme.json`을 GitHub·채팅에 올리지 않는다
 - 정상 운영 중 `deploy.sh publish` 재실행 금지. OPS-01 검증은 독립적으로 진행
 - 외부 저장소의 암호화 백업·복원 절차, 실패 알림 및 ACME 저장소 백업은 별도 계획
+
+## OPS-01 수동 일일 백업 인수 결과 (2026-11-19)
+
+- `main@d65ff72b98b775096a560293386c49813ed7074c` 동기화, 임시 복원 컨테이너 잔존 여부 조회 PASS.
+- 새 백업 `daily-20261119T062547Z.JrHzGbdU.pgdump` 생성. `FOLIOSENTRY_DAILY_BACKUP_VERIFY_PASS`, `BACKUP_SHA256_CHECK=PASS`, `ARCHIVE_READABILITY=PASS_NOT_RESTORE_TRIAL`, `FOLIOSENTRY_DAILY_BACKUP_MANUAL_PASS`.
+- 데이터 변경 없음. 이번 **daily 아카이브 자체의 독립 복원 시험은 미실행**이며, 앞선 `prepublish` 아카이브의 격리 복원은 PASS.
+- 여전히 운영 타이머 미설치·미활성화. 다음은 systemd 사용자 서비스 연결 상태, `Linger`, 서버 시간대, 중복 유닛 존재 여부 **읽기 전용**으로 점검한다.
+- systemd 활성화 시 `Persistent=true`이므로 과거 03:30 실행 시각이 지나 있었다면 서비스가 즉시 한번 실행될 수 있다. 타이머 설치·enable·start는 사용자 별도 승인 후.

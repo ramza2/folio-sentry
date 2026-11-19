@@ -123,6 +123,7 @@ Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 �
 - [x] systemd 사용자 서비스/03:30 로컬 시간 타이머 **설정 파일만** 작성 (MiniPC 미등록)
 - [x] CI 합성 DB 생성→백업→임시 DB 복원→보존 정책 PASS 및 PR #12 병합
 - [x] MiniPC 기존 prepublish 백업을 **별도 임시 컨테이너**에 실제 복원하고 schema/owner 확인 (2026-11-19)
-- [ ] MiniPC 일일 백업 1회 수동 실행 및 무결성 확인 (기존 파일 보존)
+- [x] MiniPC 일일 백업 1회 수동 실행 및 무결성 확인 (2026-11-19, 기존 파일 보존)
+- [ ] MiniPC systemd 사용자 단위/시간대/Linger/충돌 읽기 전용 사전검사
 - [ ] 사용자의 별도 승인 후 systemd 사용자 timer 등록 검토
 - [ ] 오프사이트 암호화·복원/보존·실패 알림, ACME 인증서 저장소 백업 별도 검토
