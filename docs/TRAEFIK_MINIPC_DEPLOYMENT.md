@@ -216,3 +216,15 @@ bash scripts/deploy.sh unpublish --confirm-stop-frontend-only
 
 이 명령은 `foliosentry-prod` Frontend만 stop하고 PostgreSQL·Backend·다른 서비스를 보존한다. 어떠한 `down -v`, `prune`, 공유기/Traefik 설정 조작도 수행하지 않는다.
 
+
+## 운영 전환 결과 — 2026-11-19 (사후 실측)
+
+- 사용자 승인 하에 `main@808aaf9eb1a3a9913574bc7f1495d484379fdae1`의 `scripts/deploy.sh publish --confirm-public-https` 실행 성공.
+- 사전 백업: `~/.local/share/folio-sentry/backups/prepublish-20261119T052831Z.Mo0rXRKV.pgdump` (로컬 접근 권한 제한). SHA256 검사 PASS, `pg_restore` 아카이브 스트림 가독성 PASS. **실 복원 검증 미실행**. 비밀번호 Argon2id 해시 등이 있을 수 있어 파일 원본과 내용을 외부로 공유하지 않음.
+- Backend 정상 기동, Frontend 운영 빌드·라우터 추가 성공. 기존 Traefik 컨테이너·PickNext·ipTIME 공유기 설정 변경 없음.
+- 기존 PickNext TLS PASS. 신규 FolioSentry 인증서 확인은 초기 6회 `SSLCertVerificationError`로 재시도되다가 7차 시도에서 신뢰 체인·호스트명 PASS. 인증서가 정확히 언제/어떻게 발급됐는지는 로그만으로 확정할 수 없음.
+- 신규 Frontend 200, Backend ready, 미인증 API 401, Origin 누락 로그인 403 자동 PASS.
+- 사용자가 브라우저에서 FolioSentry 로그인 화면, 소유자 계정 로그인, DEMO 대시보드, 로그아웃 및 기존 PickNext의 정상 동작을 확인했다고 보고.
+- `FOLIOSENTRY_PUBLIC_HTTPS_ACCEPTANCE_PASS`, `FOLIOSENTRY_PUBLIC_ROUTE_APPLIED`, `FOLIOSENTRY_DEPLOY02_COMMAND_PASS`.
+- **제약:** 집 LAN/서버 경유 이외의 외부망 실검사, 모바일 반응형, 자동 갱신, DB 실제 복원·오프사이트 백업은 아직 확인되지 않음. 또한 서비스 화면 데이터는 **DEMO**이며 실 증권 시세·실 계좌 정보 연동 아님.
+- **운영 정책:** 재게시를 위해 `publish`를 반복 실행하지 않는다. 공개 중단 시 `unpublish --confirm-stop-frontend-only`의 승인과 상태 확인이 필요하며, DB 볼륨/백업을 절대 삭제하지 않는다.

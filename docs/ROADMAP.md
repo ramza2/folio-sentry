@@ -5,17 +5,18 @@
 ## Phase 0 — 검증과 초기 구조
 - [ ] 국내·해외 일봉 시세 API 자격/호출량/지연/수정주가 검증
 - [ ] 국내·미국 뉴스 API 요금/약관/기사 메타데이터 검증
-- [x] 최종 배포 대상으로 집의 개인 MiniPC 선정 (서버 구성/포트/인증 방법은 미확정)
+- [x] 최종 배포 대상으로 집의 개인 MiniPC 선정 (전용 PostgreSQL/HTTPS/소유자 인증 운영 확인: 2026-11-19)
 - [x] MiniPC OS·사양·Docker/Compose·포트 점검 (2026-11-19, REVIEW_FLAGS=0)
 - [x] 기존 PickNext/Traefik 네트워크 `proxy`, entrypoint `websecure`, resolver `myresolver` 확인 (2026-11-19)
 - [x] FolioSentry 신규 DuckDNS 후보 주소와 PickNext의 IPv4 매핑 일치 확인 (2026-11-19)
 - [x] 기존 PickNext TLS 신뢰 검증 PASS, 31일 잔여, FolioSentry 후보 SAN 미포함 확인 (2026-11-19)
 - [x] Traefik myresolver **TLS-ALPN-01**, Docker 443 publish, ACME 저장소 마운트 확인 (2026-11-19)
-- [ ] 외부 네트워크의 443 도달성·실제 신규 도메인 TLS 발급 확인 (라우터 등록 이후)
+- [x] FolioSentry 신규 호스트 TLS 인증서 체인·호스트명 검증 PASS (2026-11-19, MiniPC에서 실행한 자동 검사)
+- [ ] 외부 모바일/LTE 등 **별도 공인망**에서 443 접근 확인 (현재 미검증)
 - [ ] 기존 ACME 저장소 백업·복구 방법 확인
-- [ ] FolioSentry 새 HTTPS 라우터 발급 인증서 실검증 (공개 승인 및 라우터 생성 이후)
-- [ ] FastAPI + React + PostgreSQL 최소 골격 및 Docker Compose
-- [ ] 테스트/린트/typecheck/build 기본 CI
+- [x] 신규 FolioSentry HTTPS 라우터/인증서 실검증 (2026-11-19, 초기 6회 SSL 검증 재시도 후 PASS)
+- [x] FastAPI + React + PostgreSQL 최소 골격 및 Docker Compose
+- [x] Backend/Frontend/typecheck/build/Compose/인증·백업 CI 통과
 - **게이트**: 샘플 데이터로 API/DB/Frontend 연결, 실 API 키 커밋 없음
 
 ## Phase 1A — 데이터 모델·API 계약·Figma 연계
@@ -24,7 +25,7 @@
 - [x] 가상 KR/US 종목·뉴스·신호 디자인 미리보기 API (`/api/v1/demo/overview`)
 - [x] Figma Make 디자인 의뢰 브리프 (`docs/FIGMA_MAKE_BRIEF.md`)
 - [x] Figma Make React 소스 수신·구조 검토 (`docs/FIGMA_SOURCE_REVIEW.md`)
-- [x] UI-01 Figma 디자인 소스 이식 (PR #4, Draft / CI PASS)
+- [x] UI-01 Figma 디자인 소스 이식 (PR #4 병합 / CI PASS)
 - [x] UI-02 데모 overview API 바인딩, 로딩/오류/시세 없음 처리 (`docs/UI02_DEMO_INTEGRATION.md`)
 - [ ] 6개 화면 데스크톱/모바일 브라우저 인수검사 및 디자인 사용자 확정
 - [ ] UI-03 실제 보유·관심 CRUD API 연결 (독립 DB PR 필요)
@@ -35,9 +36,11 @@
 - [x] Backend 기본 거부 인증 미들웨어 + 세션 쿠키/CSRF/Origin/로그아웃
 - [x] Figma 화면 로그인 게이트, 이전 세션 재확인 및 로그아웃
 - [x] 인증 테스트 및 격리 PostgreSQL Alembic 마이그레이션 CI 구성
-- [ ] GitHub CI 전체 통과, 데스크톱/모바일 브라우저 로그인 인수검사
-- [ ] 집 MiniPC 도메인/VPN/HTTPS 인증 접근 방식 확정
-- [ ] 운영 배포·마이그레이션·소유자 초기화는 각각 명시적으로 승인받은 뒤 진행
+- [x] GitHub 인증 CI 및 운영 로그인/로그아웃·DEMO 대시보드 브라우저 수동 확인 (2026-11-19)
+- [ ] 운영 모바일 화면 레이아웃 및 외부망 접속 별도 인수검사
+- [x] 집 MiniPC DuckDNS + 기존 Traefik HTTPS 인증 경로 확정 및 운영 연결
+- [ ] VPN/2FA 등 추가 접근 보호 필요성 검토 (실 개인정보·투자정보 등록 전)
+- [x] 별도 승인으로 DB 스키마, 소유자 1명, HTTPS 운영 배포 수행 (2026-11-19)
 - **게이트**: 비인증 포트폴리오 API 접근 불가, 인증 없는 개인 데이터 저장/배포 금지
 - 세부: `docs/AUTH_DESIGN.md`
 
@@ -78,11 +81,12 @@
 ## MiniPC 배포 준비 (기능 완성 및 명시적 승인 후)
 - [x] 안전 사전점검 스크립트/기준 문서 준비 (`scripts/minipc-auth-preflight.sh`, `docs/MINIPC_AUTH_PREVIEW_PLAN.md`)
 - [x] 실제 MiniPC 리소스/포트/디스크 여유 점검 (읽기 전용, 2026-11-19)
-- [x] Traefik·DuckDNS 연동 프로덕션 Compose 및 대화형 배포 도우미 초안 구현 (Draft PR, 배포 아님)
+- [x] Traefik·DuckDNS 연동 Production Compose 및 배포 도우미 구현·운영 적용 (PR #8, #10 병합)
 - [x] 기존 Traefik의 실제 네트워크/entrypoint/certresolver 확인 (읽기 전용)
 - [x] DuckDNS 신규 후보와 기존 PickNext의 IPv4 DNS 매핑 일치 확인
-- [ ] 기존 PickNext 인증서 사전검사 및 신규 FolioSentry HTTPS 인증서 검증
-- [ ] PostgreSQL 백업/복구 위치 및 자원 상한 실기 검증
+- [x] 기존 PickNext TLS 사전/사후 확인과 FolioSentry 신규 HTTPS 체인/호스트명 검증 (2026-11-19)
+- [x] PostgreSQL 백업 실제 생성·SHA256·아카이브 가독성 검사 (복원 검증 아님)
+- [ ] 백업 복원 시험 및 별도 장소 백업/암호화·보존 정책 확인
 - [ ] 개인 전용 인증/VPN 등 외부 접속 안전 방안 확정
 - [ ] Compose 리소스 격리, 환경변수·비밀관리, PostgreSQL 백업/복원 테스트
 - [ ] 실제 운영 데이터 수집·알림 점검; 개인 자산/토큰 로그 유출 검사
@@ -95,6 +99,16 @@ Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 �
 ## DEPLOY-02 운영 공개 인수 게이트
 - [x] 개인 MiniPC 전용 PostgreSQL 생성, 인증 테이블·소유자 1명 확인 (2026-11-19)
 - [x] GitHub 내 전용 DB 백업/HTTPS 검증/Frontend 중단 보호 코드 작성
-- [ ] 새 공개 전 전용 DB 압축 백업 생성 + SHA256·아카이브 스트림 검증 (실 MiniPC)
-- [ ] Backend Health, Frontend HTTPS, 신규 인증서, 로그인/비로그인 보호, PickNext 회귀 실측
+- [x] 새 공개 전 전용 DB 압축 백업 생성 + SHA256·아카이브 스트림 검증 (MiniPC 2026-11-19)
+- [x] Backend Health, Frontend HTTPS, 신규 인증서, 익명 API 401·Origin 403, PickNext TLS 자동 확인
+- [x] 사용자 브라우저에서 로그인 화면, ramza 계정 로그인, DEMO 대시보드, 로그아웃, 기존 PickNext 정상 확인 (2026-11-19)
 - [ ] 별도 복원 시험 및 장기 ACME 저장소 백업·갱신 검토
+
+## DEPLOY-02 실제 운영 인수 기록 — 2026-11-19
+- 배포 Git HEAD: `808aaf9eb1a3a9913574bc7f1495d484379fdae1` (PR #10 병합).
+- `FOLIOSENTRY_PREPUBLISH_BACKUP_VERIFY_PASS`, `BACKUP_SHA256_CHECK=PASS`, `ARCHIVE_READABILITY=PASS_NOT_RESTORE_TRIAL`.
+- Backend `HEALTHY`; 신규 FolioSentry TLS 첫 6회 `SSLCertVerificationError` 재시도 후 인증서 체인/호스트명 확인 최종 PASS. 발급 지연이 원인이라고 단정하지 않음.
+- 익명 API 접근 차단 401·로그인 Origin 누락 403·Frontend 200·Backend Ready 자동 PASS.
+- 사용자가 브라우저에서 로그인, DEMO, 로그아웃, 기존 PickNext 정상 동작 확인.
+- **아직 미완료:** DB 임시 복원 시험, 정기 백업·오프사이트 보존, 외부망/모바일 검증, ACME 자동 갱신, 실 포트폴리오 CRUD 및 시세·뉴스·알림 API.
+- 다음 권고 작업: **별도 격리 DB 복원 시험과 정기 백업 자동화**를 먼저 설계/검증하고, 이후 Watchlist/보유종목 CRUD를 진행. 운영 DB에 테스트 데이터/마이그레이션 직접 적용 금지.
