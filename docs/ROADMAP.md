@@ -125,5 +125,6 @@ Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 �
 - [x] MiniPC 기존 prepublish 백업을 **별도 임시 컨테이너**에 실제 복원하고 schema/owner 확인 (2026-11-19)
 - [x] MiniPC 일일 백업 1회 수동 실행 및 무결성 확인 (2026-11-19, 기존 파일 보존)
 - [ ] MiniPC systemd 사용자 단위/시간대/Linger/충돌 읽기 전용 사전검사
-- [ ] 사용자의 별도 승인 후 systemd 사용자 timer 등록 검토
+- [x] systemd 사용자 타이머 설치/활성화, Linger=yes·다음 2026-11-20 03:30 KST 확인 (2026-11-19)
+- [ ] 첫 자동 예약 실행(2026-11-20 03:30 KST) 성공·실제 백업 파일 생성·보존 규칙 확인
 - [ ] 오프사이트 암호화·복원/보존·실패 알림, ACME 인증서 저장소 백업 별도 검토
