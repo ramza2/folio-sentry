@@ -72,7 +72,7 @@ services:
 
 networks:
   private:
-    internal: true
+    driver: bridge
 
 volumes:
   pgdata:
