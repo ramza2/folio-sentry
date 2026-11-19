@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useOwnerAuth } from "./AuthGate";
 import {
   fetchDemoOverview, formatDateTime, formatMoney, formatPercent,
   signalBadge, stockViews, type DemoOverview,
@@ -265,6 +266,7 @@ function Topbar({
   dark: boolean;
   setDark: (v: boolean) => void;
 }) {
+  const { username, logout } = useOwnerAuth();
   return (
     <header className="topbar">
       <div className="topbar-title">
@@ -287,6 +289,10 @@ function Topbar({
         </button>
         <button className="icon-button has-dot" disabled title="알림 기능은 이후 단계에서 연결합니다" aria-label="알림 미지원">
           <Icon name="bell" />
+        </button>
+        <span className="auth-top-user" title="로그인 계정">{username}</span>
+        <button className="auth-logout-button" onClick={() => void logout()} title="서버 세션 종료">
+          로그아웃
         </button>
         <div className="avatar">FS</div>
       </div>
