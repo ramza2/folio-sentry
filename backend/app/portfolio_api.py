@@ -129,7 +129,7 @@ def instrument_json(value: Instrument) -> dict:
 
 def tracked_json(row: TrackedInstrument, instrument: Instrument) -> dict:
     def decimal_string(value: Decimal | None):
-        return None if value is None else format(value, "f")
+        return None if value is None else format(value, ".8f")
     return {
         "id": str(row.id), "instrument": instrument_json(instrument),
         "kind": row.kind, "quantity": decimal_string(row.quantity),
