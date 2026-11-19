@@ -107,3 +107,9 @@
 - 이번 PR: 데이터 모델/REST 계약 문서, 응답 DTO, DEMO 전용 API fixture/테스트.
 - 다음 PR: Alembic 마이그레이션 + 저장소 계층 + 종목/관심/보유 CRUD를 독립된 작업으로 도입.
 - 외부 접속은 인증 도입 전 금지. UI는 실제 데이터와 DEMO를 혼용해 보여주지 않는다.
+
+## Phase 1 P1 구현 상태 (2026-11-19)
+- PostgreSQL `instrument`와 `tracked_instrument` **모델 및 additive Alembic revision 코드 작성** (`20261119_portfolio01`, 이전 `20261119_auth01`). 실제 MiniPC 운영 DB에는 아직 실행하지 않음.
+- `NUMERIC(24,8)`와 보유/관심 CHECK, 유니크 종목·단일 추적 레코드를 DB 제약으로 보호.
+- 공급자 미확정으로 종목은 사용자 수동 등록(`MANUAL_UNVERIFIED`)만 지원. **시세/price_bar/뉴스/신호 테이블은 미구현**이며 DEMO와 실제 등록정보는 분리한다.
+- 자동 백업 타이머는 사용자가 비활성화했으므로 이 PR은 다시 켜지 않음. 마이그레이션은 별도 승인.
