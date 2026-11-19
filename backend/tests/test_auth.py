@@ -120,3 +120,9 @@ def test_missing_owner_or_auth_schema_fails_closed():
     auth.AuthSession.__table__.drop(auth.get_engine())
     client.cookies.set(auth.cookie_name(), "test-session")
     assert client.get("/api/v1/demo/overview").status_code == 503
+
+
+def test_ready_fails_if_session_schema_was_not_created():
+    auth.AuthSession.__table__.drop(auth.get_engine())
+    assert client.get("/api/health/ready").status_code == 503
+    assert client.get("/api/health/ready").json()["auth"] == "unavailable"
