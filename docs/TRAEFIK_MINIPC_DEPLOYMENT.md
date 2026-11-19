@@ -153,6 +153,25 @@ python3 /tmp/foliosentry-traefik-acme.py
 
 이 검사는 Traefik 컨테이너의 **Docker 메타데이터만** 확인하며 환경변수 값, 설정 파일, 인증서 저장소(`acme.json`) 및 개인 자격증명에 접근하지 않는다. 플래그에 직접 지정된 경우에만 `HTTP_01`/`TLS_ALPN_01`/`DNS_01` 여부를 표시한다. YAML/TOML 설정 파일에 선언된 항목은 `NOT_VISIBLE_IN_COMMAND_FLAGS`로 표시하며, **미설정이라고 단정하면 안 된다**. Docker 포트 매핑은 ipTIME 외부 도달성의 증명이 아니다.
 
+## TLS-ALPN-01 실제 MiniPC 확인 결과 (2026-11-19)
+
+```text
+TRAEFIK_ACME_CHALLENGE=TLS_ALPN_01
+ACME_HTTP_ENTRYPOINT=NOT_CONFIRMED
+ACME_CA_CATEGORY=DEFAULT_PRODUCTION_IF_FLAGS_ACTIVE
+ACME_STORAGE_MOUNT=MOUNT_PRESENT_NOT_BACKUP_VERIFIED
+DOCKER_HOST_PORT_80=PUBLISHED_BY_DOCKER_NOT_EXTERNAL_VERIFIED
+DOCKER_HOST_PORT_443=PUBLISHED_BY_DOCKER_NOT_EXTERNAL_VERIFIED
+FOLIOSENTRY_TRAEFIK_ACME_READONLY_INSPECTION_COMPLETE
+```
+
+- **확인됨:** `myresolver`는 TLS-ALPN-01을 사용하도록 실행 플래그가 설정되어 있으며, Traefik 컨테이너의 443/TCP는 호스트에 publish 상태다. 인증서 저장소는 bind/volume 영속 마운트가 보인다.
+- **미확인:** 실제 인터넷에서 공유기를 통해 443에 도달하는지, 신규 FolioSentry 도메인에 인증서가 발급되는지, 저장소 백업/복구가 가능한지. `ACME_CA_CATEGORY`도 실행 플래그에 별도 CA 값이 안 보인다는 뜻이며 전체 설정 감사와 동일하지 않다.
+- **별도 80 포트 개방 불필요:** 현재 관측된 TLS-ALPN-01 인증에 필요한 포트는 443이다. 기존 80 포트 publish는 확인됐지만 FolioSentry에서 새 포트포워딩이나 개방을 요구하지 않는다.
+- `scripts/deploy.sh check`는 이제 DNS가 PickNext와 같은 IPv4를 가리키는지, 실행 플래그의 `TLS_ALPN_01`, Docker 443 publish, 영속 ACME 마운트를 **읽기 전용으로 검사**하며 이 중 하나라도 달라지면 배포를 중단한다. 실제 TLS 발급/외부 접근은 계속 별도 게이트다.
+- 기존 PickNext 인증서는 검사일 기준 31일 남았고 신규 도메인은 SAN에 포함되지 않는다. 그러므로 신규 라우터 생성 후에 별도 신규 인증서 확인이 반드시 필요하다.
+- PR #1~#8은 Draft이며 main 병합, Traefik 수정, DB/컨테이너 생성은 진행하지 않았다.
+
 ## 필수 승인/검증 게이트
 - 저장소 PR #1~#7과 본 PR 검토, 병합 순서 확인. 실 개인용 계정·자산 데이터 투입 전 보안 테스트.
 - 기존 Traefik 연결값(`proxy`/`websecure`/`myresolver`) 확인 완료, 신규 DuckDNS A 매핑 일치 확인 완료. TLS 인증서/공개 라우터/충돌 및 원격접속 보안은 아직 별도 검사해야 함.
