@@ -29,13 +29,16 @@ def api_error(status: int, code: str) -> JSONResponse:
 @app.middleware("http")
 async def protect_api(request: Request, call_next):
     path = request.url.path
-    if path.startswith("/api/v1/"):
+    is_private_api = path.startswith("/api/") and path not in {
+        "/api/health/live", "/api/health/ready",
+    }
+    if is_private_api:
         if request.method not in ("GET", "HEAD", "OPTIONS"):
             if (request.headers.get("sec-fetch-site") == "cross-site" or
                     not auth.origin_allowed(request.headers.get("origin"))):
                 return api_error(403, "ORIGIN_REJECTED")
 
-        # Every new /api/v1/* endpoint is protected without the author adding
+        # Every new /api/* endpoint is protected without the author adding
         # another dependency. Only the login endpoint is public.
         if not (path == "/api/v1/auth/login" and request.method == "POST"):
             try:
