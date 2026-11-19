@@ -1,0 +1,28 @@
+# This override explicitly enables public HTTPS routing for frontend ONLY.
+# The existing Traefik container, its router, ports and DuckDNS updater are
+# NEVER modified by FolioSentry. Requires an approved, already existing network.
+services:
+  frontend:
+    networks:
+      - private
+      - traefik_edge
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: ${FOLIOSENTRY_TRAEFIK_NETWORK:?Configure network}
+      traefik.http.routers.foliosentry-prod.rule: "Host(`${FOLIOSENTRY_DOMAIN:?Configure domain}`)"
+      traefik.http.routers.foliosentry-prod.entrypoints: ${FOLIOSENTRY_TRAEFIK_ENTRYPOINT:?Configure entrypoint}
+      traefik.http.routers.foliosentry-prod.tls: "true"
+      traefik.http.routers.foliosentry-prod.tls.certresolver: ${FOLIOSENTRY_TRAEFIK_CERTRESOLVER:?Configure certresolver}
+      traefik.http.routers.foliosentry-prod.service: foliosentry-prod
+      traefik.http.routers.foliosentry-prod.middlewares: foliosentry-prod-limits,foliosentry-prod-headers
+      traefik.http.middlewares.foliosentry-prod-limits.ratelimit.average: "10"
+      traefik.http.middlewares.foliosentry-prod-limits.ratelimit.burst: "25"
+      traefik.http.middlewares.foliosentry-prod-headers.headers.contentTypeNosniff: "true"
+      traefik.http.middlewares.foliosentry-prod-headers.headers.frameDeny: "true"
+      traefik.http.middlewares.foliosentry-prod-headers.headers.stsSeconds: "31536000"
+      traefik.http.services.foliosentry-prod.loadbalancer.server.port: "8080"
+
+networks:
+  traefik_edge:
+    external: true
+    name: ${FOLIOSENTRY_TRAEFIK_NETWORK:?Configure existing network}
