@@ -128,6 +128,9 @@ jobs:
           bash -n scripts/check-duckdns-route.sh
           python3 scripts/check-existing-tls.py --self-test
           python3 scripts/inspect-traefik-acme.py --self-test
+          grep -Fq "TRAEFIK_ACME_PREFLIGHT=PASS_NOT_EXTERNAL_REACHABILITY" scripts/deploy.sh
+          grep -Fq "FOLIOSENTRY_DUCKDNS_READONLY_CHECK_PASS" scripts/deploy.sh
+          grep -Fq "ACME_STORAGE_MOUNT=MOUNT_PRESENT_NOT_BACKUP_VERIFIED" scripts/deploy.sh
           fakebin="$(mktemp -d)"
           cat > "$fakebin/getent" <<'EOF'
           #!/bin/sh
