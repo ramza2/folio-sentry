@@ -1,0 +1,52 @@
+name: folio-sentry
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: folio
+      POSTGRES_DB: folio
+      POSTGRES_PASSWORD: ${FOLIOSENTRY_DB_PASSWORD:?Set FOLIOSENTRY_DB_PASSWORD in .env}
+    volumes:
+      - foliosentry_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+    networks: [internal]
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    environment:
+      FOLIOSENTRY_DB_HOST: db
+      FOLIOSENTRY_DB_PORT: "5432"
+      FOLIOSENTRY_DB_USER: folio
+      FOLIOSENTRY_DB_NAME: folio
+      FOLIOSENTRY_DB_PASSWORD: ${FOLIOSENTRY_DB_PASSWORD:?Set FOLIOSENTRY_DB_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:${FOLIOSENTRY_BACKEND_PORT:-18901}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [internal]
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    environment:
+      VITE_API_PROXY_TARGET: http://backend:8000
+    ports:
+      - "127.0.0.1:${FOLIOSENTRY_FRONTEND_PORT:-18902}:5173"
+    depends_on:
+      backend:
+        condition: service_started
+    networks: [internal]
+    restart: unless-stopped
+
+networks:
+  internal:
+
+volumes:
+  foliosentry_pgdata:
