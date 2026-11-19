@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useOwnerAuth } from "./AuthGate";
+import RealPortfolioPage from "./RealPortfolioPage";
 import {
   fetchDemoOverview, formatDateTime, formatMoney, formatPercent,
   signalBadge, stockViews, type DemoOverview,
 } from "./demoApi";
 
-type Page = "dashboard" | "stocks" | "detail" | "news" | "signals" | "settings";
+type Page = "dashboard" | "stocks" | "portfolio" | "detail" | "news" | "signals" | "settings";
 type IconName =
   | "grid"
   | "briefcase"
@@ -173,7 +174,8 @@ function Icon({
 
 const navItems: { page: Page; label: string; icon: IconName }[] = [
   { page: "dashboard", label: "대시보드", icon: "grid" },
-  { page: "stocks", label: "내 종목", icon: "briefcase" },
+  { page: "stocks", label: "내 종목 (DEMO)", icon: "briefcase" },
+  { page: "portfolio", label: "실제 종목 관리", icon: "briefcase" },
   { page: "detail", label: "종목 상세", icon: "chart" },
   { page: "news", label: "뉴스", icon: "news" },
   { page: "signals", label: "신호 · 알림", icon: "bell" },
@@ -1224,13 +1226,14 @@ export default function App() {
       <main className="main">
         <Topbar title={title} setMenu={setMenu} dark={dark} setDark={setDark} />
         <div className="content">
-          {dataState.phase === "loading" && (
+          {page === "portfolio" && <RealPortfolioPage />}
+          {page !== "portfolio" && dataState.phase === "loading" && (
             <Card><div className="empty-state" role="status">
               <span className="state-icon loading" /><h2>DEMO API 연결 중</h2>
               <p>데이터를 확인하는 동안 가상 시세와 신호를 표시하지 않습니다.</p>
             </div></Card>
           )}
-          {dataState.phase === "error" && (
+          {page !== "portfolio" && dataState.phase === "error" && (
             <Card><div className="empty-state" role="alert">
               <Icon name="info" size={28} /><h2>DEMO 데이터 연결 실패</h2>
               <p>{dataState.message}</p>
