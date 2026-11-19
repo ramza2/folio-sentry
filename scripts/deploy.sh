@@ -74,7 +74,7 @@ read_settings() {
 
 configure() {
   [[ -t 0 ]] || fatal "configure needs interactive terminal"
-  [[ ! -e "$ENV_FILE" ]] || fatal "Configuration already exists. Review/edit .env.deploy privately (mode 600)"
+  [[ ! -e "$ENV_FILE" && ! -L "$ENV_FILE" ]] || fatal "Configuration already exists. Review/edit .env.deploy privately (mode 600)"
   command -v openssl >/dev/null || fatal "openssl is needed to create a random DB secret"
   local domain network entrypoint resolver secret_dir secret_file
   say "Existing PickNext Traefik configuration is NOT changed."
@@ -92,7 +92,7 @@ configure() {
   secret_file="$secret_dir/pg_password"
   mkdir -p -m 700 "$secret_dir"
   chmod 700 "$secret_dir"
-  [[ ! -e "$secret_file" ]] || fatal "DB secret already exists: refuse to overwrite"
+  [[ ! -e "$secret_file" && ! -L "$secret_file" ]] || fatal "DB secret already exists: refuse to overwrite"
   ( umask 077; openssl rand -hex 32 > "$secret_file"; chmod 600 "$secret_file" )
   {
     printf 'FOLIOSENTRY_DOMAIN=%s\n' "$domain"
@@ -110,6 +110,7 @@ configure() {
 }
 check() {
   need_deps
+  command -v python3 >/dev/null || fatal "Python3 is required for config safety checks"
   read_settings
   [[ -d "$ROOT/.git" ]] || fatal "Not a Git working tree"
   docker info >/dev/null 2>&1 || fatal "Docker daemon inaccessible"
@@ -187,7 +188,17 @@ publish() {
     "import sys; from app.auth import auth_ready; sys.exit(0 if auth_ready() else 1)" ||
     fatal "Owner not initialized / AUTH tables unavailable"
   "${BASE[@]}" up -d backend
-  "${BASE[@]}" ps backend
+  local backend_cid health
+  backend_cid=$("${BASE[@]}" ps -q backend)
+  [[ -n "$backend_cid" ]] || fatal "Backend container not found"
+  health=""
+  for _ in $(seq 1 30); do
+    health=$(docker inspect -f '{{.State.Health.Status}}' "$backend_cid" 2>/dev/null || :)
+    [[ "$health" == "healthy" ]] && break
+    sleep 2
+  done
+  [[ "$health" == "healthy" ]] || fatal "Backend did not become healthy; no public route created"
+  say "BACKEND_HEALTH=HEALTHY"
   say "Starting ONLY FolioSentry frontend with existing Traefik integration"
   "${EDGE[@]}" up -d --build --no-deps frontend
   say "FOLIOSENTRY_PUBLIC_ROUTE_APPLIED"
