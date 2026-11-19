@@ -117,6 +117,25 @@ check() {
   docker network inspect "$FOLIOSENTRY_TRAEFIK_NETWORK" >/dev/null 2>&1 ||
     fatal "Existing Traefik network not found (never create/rename it)"
   say "TRAEFIK_EXISTING_NETWORK=PASS"
+  # Check existing Docker routing rules without printing other app labels.
+  python3 - "$FOLIOSENTRY_DOMAIN" <<'PY'
+import json, subprocess, sys
+domain = sys.argv[1].lower()
+ids = subprocess.run(
+    ["docker", "ps", "--format", "{{.ID}}"],
+    check=True, capture_output=True, text=True,
+).stdout.splitlines()
+for cid in ids:
+    obj = json.loads(subprocess.run(
+        ["docker", "inspect", cid], check=True, capture_output=True, text=True,
+    ).stdout)[0]
+    labels = obj.get("Config", {}).get("Labels") or {}
+    for key, value in labels.items():
+        if key.startswith("traefik.http.routers.") and key.endswith(".rule"):
+            if isinstance(value, str) and "Host(" in value and domain in value.lower():
+                raise SystemExit("ERROR: Traefik hostname is already used by a running router")
+print("TRAEFIK_EXISTING_HOST_ROUTE=NO_COLLISION_SEEN")
+PY
   if getent ahostsv4 "$FOLIOSENTRY_DOMAIN" >/dev/null 2>&1; then
     say "DUCKDNS_DNS_RESOLUTION=PASS_NOT_CERTIFICATE_VALIDATION"
   else
