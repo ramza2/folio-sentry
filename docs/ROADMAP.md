@@ -48,6 +48,8 @@
 ## Phase 1 — Watchlist와 시세
 - [x] P1: 수동 Instrument 등록·검색 API (시장+거래소+심볼), 중복 검증·미검증 출처 표시 (GitHub 코드·격리 CI)
 - [x] P1: 보유/관심 등록·조회·수정·삭제 Backend API + 인증·Decimal 검증 (GitHub 코드·격리 CI)
+- [x] P1: MiniPC 운영 AUTH01 DB schema·owner 읽기 전용 사전검사 PASS (2026-11-19)
+- [x] P1: 운영 전용 preflight 및 단계별 전환·복구 계획 GitHub 준비 (운영 미변경)
 - [ ] P1: 신규 DB 마이그레이션 운영 적용 **별도 승인 필요**
 - [x] UI-03: 별도 실제 보유·관심 관리 UI + CSRF 보호 API 연결 (GitHub 코드)
 - [ ] UI-03 운영 스키마/Backend/Frontend 업데이트와 브라우저 인수검사 (**별도 승인 필요**)

@@ -185,3 +185,11 @@
 - **운영 DB의 기존 AUTH-only 스키마에 신규 Backend/Frontend를 그대로 배포하면 실패할 수 있으므로 배포 금지.** 운영 DB revision 확인, additive 마이그레이션, Backend/Frontend 차례 배포는 반드시 개별 사용자 승인 및 운영 안전 점검 후.
 - 사용자가 자동 백업 timer를 `inactive/disabled`로 유지하길 선택함. 이 작업에서 백업 활성화·설정 변경 금지.
 - 브라우저 인수는 합성 종목/금액으로 시행. 실제 계좌/매수가 정보를 인수검사용으로 사용하지 않음. 상세 `docs/UI03_REAL_PORTFOLIO.md`.
+
+## Phase 1 운영 전환 사전검사 및 안전 게이트 (2026-11-19)
+- 사용자가 MiniPC에서 `main@1f81e35416a9f29dc51a643c9dd16830fc61829b`을 ff-only 동기화한 뒤 읽기 전용 SQL로 `DB_STATE=PHASE1_SCHEMA_PENDING_EXPECTED`, `FOLIOSENTRY_PHASE1_PREFLIGHT_PASS`, `DATABASE_MODIFIED=NO`, `SERVICE_DEPLOYED=NO`를 확인.
+- 기존 `scripts/deploy.sh publish`는 새 공개용/백업 강제 실행이며 **이미 공개한 서비스의 업데이트 용도로 절대 사용하지 않는다**. `db-init` 역시 신규 초기화 전용. 업데이트 시 마이그레이션 → Backend → Frontend만 별도 승인 단계로 진행.
+- `scripts/phase1-live-preflight.sh`는 현재 운영 FolioSentry DB/Backend/Frontend 1개씩 running/healthy, 인증 revision·owner·신규 테이블 없음, 이미지 ID, 자동 백업 타이머 inactive/disabled를 **읽기 전용**으로 검증한다. 실제 배포 명령이 아님.
+- 새 migration `20261119_portfolio01` 및 Backend/Frontend 이미지 교체는 사용자 명시 승인 없이는 금지. 다운그레이드·볼륨 삭제·기존 PickNext/Traefik 변경 금지.
+- Frontend Nginx가 `backend`를 시작 시 정적 해석하므로 Backend 교체 후 Frontend 교체 전 일시적 502 가능. 무중단을 장담하지 말고 전환/복구 순서를 문서로 확인.
+- 사용자가 자동 백업을 선택적으로 끄기로 확정함. `foliosentry-backup.timer`를 임의로 enable/start하지 않는다. 상세: `docs/PHASE1_LIVE_CUTOVER.md`.
