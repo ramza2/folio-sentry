@@ -24,9 +24,11 @@ FolioSentry MiniPC deployment assistant (private single-owner service)
   bash scripts/deploy.sh db-init --confirm-new-private-db
                                        # CREATE separate DB/migrate/interactive owner
   bash scripts/deploy.sh publish --confirm-public-https
-                                       # Start backend then HTTPS-only frontend
-No stop/down/prune command is provided. Existing services are never targeted.
-Not for live use until the Draft PRs have been reviewed and explicitly approved.
+                                       # Verified backup, backend, HTTPS frontend, automatic safe rollback
+  bash scripts/deploy.sh unpublish --confirm-stop-frontend-only
+                                       # Emergency stop of ONLY FolioSentry frontend
+No down/prune or database deletion command is provided. Existing services are never targeted.
+Deployment requires an explicit user approval and reviewed, synced main.
 EOF
 }
 valid_domain() {
@@ -226,10 +228,28 @@ publish() {
     fatal "Explicit authorization required: publish --confirm-public-https"
   require_release
   check
-  # Existing DB must already have an owner; refuse to publish on initial failure.
+
+  # Restrict publishing to the already-approved, healthy FolioSentry DB.
+  local db_ids
+  mapfile -t db_ids < <(docker ps -q \
+    --filter "label=com.docker.compose.project=$PROJECT" \
+    --filter 'label=com.docker.compose.service=db')
+  [[ "${#db_ids[@]}" -eq 1 ]] ||
+    fatal "Expected exactly one running FolioSentry PostgreSQL container"
+  [[ "$(docker inspect -f '{{.State.Health.Status}}' "${db_ids[0]}")" == "healthy" ]] ||
+    fatal "FolioSentry PostgreSQL not healthy"
+
+  # Existing owner and auth schema must be available. No migrations/bootstrap.
   "${BASE[@]}" run --rm --no-deps backend python -c \
     "import sys; from app.auth import auth_ready; sys.exit(0 if auth_ready() else 1)" ||
     fatal "Owner not initialized / AUTH tables unavailable"
+  say "FOLIOSENTRY_OWNER_AUTH_READY=PASS"
+
+  # Fail closed unless a new, locally-private, checksummed dump is readable.
+  # Restoring this dump is not attempted here; only the archive is checked.
+  bash "$ROOT/scripts/backup-db.sh" --confirm-prepublish-backup ||
+    fatal "Pre-publication private DB backup failed; no public router created"
+
   "${BASE[@]}" up -d backend
   local backend_cid health
   backend_cid=$("${BASE[@]}" ps -q backend)
@@ -240,13 +260,39 @@ publish() {
     [[ "$health" == "healthy" ]] && break
     sleep 2
   done
-  [[ "$health" == "healthy" ]] || fatal "Backend did not become healthy; no public route created"
+  [[ "$health" == "healthy" ]] ||
+    fatal "Backend did not become healthy; no public router created"
   say "BACKEND_HEALTH=HEALTHY"
-  say "Starting ONLY FolioSentry frontend with existing Traefik integration"
-  "${EDGE[@]}" up -d --build --no-deps frontend
+
+  say "Starting ONLY FolioSentry HTTPS frontend on existing Traefik"
+  if ! "${EDGE[@]}" up -d --build --no-deps frontend; then
+    "${EDGE[@]}" stop frontend >/dev/null 2>&1 || :
+    fatal "Frontend failed to start; attempted to stop ONLY FolioSentry frontend"
+  fi
+  if ! python3 "$ROOT/scripts/verify-public-https.py"; then
+    say "FOLIOSENTRY_HTTPS_VERIFY=FAIL_STOPPING_OWN_FRONTEND"
+    if ! "${EDGE[@]}" stop frontend; then
+      fatal "FAILED_TO_STOP_FOLIOSENTRY_FRONTEND_MANUAL_ACTION_REQUIRED"
+    fi
+    fatal "HTTPS checks failed; own frontend stopped; DB and existing apps unchanged"
+  fi
+
+  say "FOLIOSENTRY_PUBLIC_HTTPS_ACCEPTANCE_PASS"
   say "FOLIOSENTRY_PUBLIC_ROUTE_APPLIED"
-  say "Check HTTPS certificate, user login and external accessibility separately."
+  say "NEXT=MANUAL_OWNER_LOGIN_AND_PICKNEXT_BROWSER_ACCEPTANCE"
 }
+unpublish() {
+  [[ "${1:-}" == "--confirm-stop-frontend-only" ]] ||
+    fatal "Explicit authorization required: unpublish --confirm-stop-frontend-only"
+  require_release
+  read_settings
+  need_deps
+  # Project and service are explicitly scoped; DB/backend and other stacks stay up.
+  "${EDGE[@]}" stop frontend
+  say "FOLIOSENTRY_FRONTEND_STOPPED"
+  say "DATABASE_AND_BACKEND_PRESERVED=YES"
+}
+
 case "${1:-help}" in
   inspect) exec bash "$ROOT/scripts/inspect-traefik.sh" ;;
   inspect-acme) exec python3 "$ROOT/scripts/inspect-traefik-acme.py" ;;
@@ -254,6 +300,7 @@ case "${1:-help}" in
   check) check ;;
   db-init) db_init "${2:-}" ;;
   publish) publish "${2:-}" ;;
+  unpublish) unpublish "${2:-}" ;;
   status)
     need_deps
     read_settings
