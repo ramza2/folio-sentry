@@ -125,3 +125,11 @@
 - MiniPC의 기존 Traefik `myresolver`는 `TLS_ALPN_01`, Docker 443 publish, 인증서 저장소 bind/volume mount 확인. 이 사실은 외부 인터넷의 포트 도달, 인증서 발급 성공, 저장소 백업을 **의미하지 않는다**.
 - `scripts/deploy.sh check`는 실행 전에 관측된 ACME 설정/443 바인딩/영속 마운트 및 새 DuckDNS 매핑을 검증하여 조건이 바뀌면 fail closed 한다.
 - 공개 라우터가 실제 생성되기 전 신규 도메인 인증서 발급 PASS 주장 금지. 공개 전 사용자의 명시적 승인 및 기존 다른 서비스 영향 방지.
+
+## DEPLOY-02 승인 후 공개 가드 (2026-11-19)
+- FolioSentry 전용 DB는 초기화되었고 `auth_owner=1`, 운영 비밀번호 최소 길이 8자 정책. 공개 전에 다른 앱이나 DB를 변경/마이그레이션하면 안 된다.
+- `scripts/deploy.sh publish`는 사전 점검, 준비된 소유자 계정, `scripts/backup-db.sh`의 검증된 전용 PG dump, Backend 건강 상태를 확인한 후에만 Frontend를 공개한다.
+- `scripts/verify-public-https.py`는 신규 호스트의 TLS trust/hostname, 200/Ready, 비로그인 401, Origin 없는 login 403, 기존 PickNext TLS를 **익명·읽기 전용**으로 검증한다. 검증 실패 시 FolioSentry Frontend만 정지한다.
+- 백업은 `~/.local/share/folio-sentry/backups`의 사용자 전용 파일(권한 600)이다. 인증 해시 포함 가능: Git/채팅/외부 전송 금지. 아카이브 가독성은 복원 검증이 아니다.
+- `unpublish --confirm-stop-frontend-only`는 복구용으로 frontend만 stop한다. 기존 PickNext·Traefik 설정·공유기 포트·DB/볼륨 삭제 금지.
+- 신규 TLS 검증과 CI는 브라우저 실인수/외부 도달성/장기 인증서 갱신의 증빙이 아니다.

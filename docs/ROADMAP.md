@@ -91,3 +91,10 @@
 
 ## 다음 Cursor 작업 (필요할 때만)
 Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 참조하여 **확정된 단일 화면**의 UI 연결 작업을 지시한다. 별도 DB/시세 수집은 각각 독립 PR로 분리한다.
+
+## DEPLOY-02 운영 공개 인수 게이트
+- [x] 개인 MiniPC 전용 PostgreSQL 생성, 인증 테이블·소유자 1명 확인 (2026-11-19)
+- [x] GitHub 내 전용 DB 백업/HTTPS 검증/Frontend 중단 보호 코드 작성
+- [ ] 새 공개 전 전용 DB 압축 백업 생성 + SHA256·아카이브 스트림 검증 (실 MiniPC)
+- [ ] Backend Health, Frontend HTTPS, 신규 인증서, 로그인/비로그인 보호, PickNext 회귀 실측
+- [ ] 별도 복원 시험 및 장기 ACME 저장소 백업·갱신 검토
