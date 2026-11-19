@@ -1141,7 +1141,7 @@ function SettingsPage({ dark, setDark, data }: {
             <Icon name="shield" />
             <p>
               <b>개인정보 및 데이터 안내</b>
-              <span>본 프로토타입은 실제 계좌 정보나 개인정보를 저장하지 않습니다.</span>
+              <span>DEMO 데이터는 가상이며 별도입니다. ‘실제 종목 관리’에 직접 등록하는 수량·평균단가·메모는 개인 DB에 저장됩니다.</span>
             </p>
           </div>
         </aside>
