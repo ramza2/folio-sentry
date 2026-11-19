@@ -126,6 +126,7 @@ jobs:
           bash -n scripts/deploy.sh
           bash -n scripts/inspect-traefik.sh
           bash -n scripts/check-duckdns-route.sh
+          python3 scripts/check-existing-tls.py --self-test
           fakebin="$(mktemp -d)"
           cat > "$fakebin/getent" <<'EOF'
           #!/bin/sh
