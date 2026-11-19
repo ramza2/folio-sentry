@@ -17,8 +17,10 @@
 - [x] 가상 KR/US 종목·뉴스·신호 디자인 미리보기 API (`/api/v1/demo/overview`)
 - [x] Figma Make 디자인 의뢰 브리프 (`docs/FIGMA_MAKE_BRIEF.md`)
 - [x] Figma Make React 소스 수신·구조 검토 (`docs/FIGMA_SOURCE_REVIEW.md`)
-- [ ] 디자인 최종 검토 및 UI 이식 브랜치/PR 생성
-- [ ] 디자인 기반 실제 UI·API 연동은 별도 단계로 분리
+- [x] UI-01 Figma 디자인 소스 이식 (PR #4, Draft / CI PASS)
+- [x] UI-02 데모 overview API 바인딩, 로딩/오류/시세 없음 처리 (`docs/UI02_DEMO_INTEGRATION.md`)
+- [ ] 6개 화면 데스크톱/모바일 브라우저 인수검사 및 디자인 사용자 확정
+- [ ] UI-03 실제 보유·관심 CRUD API 연결 (독립 DB PR 필요)
 - **게이트**: 모의 데이터 API 테스트·CI 성공, 실 API/DB/운영 배포 변경 없음
 
 ## Phase 1 — Watchlist와 시세
