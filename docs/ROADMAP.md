@@ -112,3 +112,12 @@ Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 �
 - 사용자가 브라우저에서 로그인, DEMO, 로그아웃, 기존 PickNext 정상 동작 확인.
 - **아직 미완료:** DB 임시 복원 시험, 정기 백업·오프사이트 보존, 외부망/모바일 검증, ACME 자동 갱신, 실 포트폴리오 CRUD 및 시세·뉴스·알림 API.
 - 다음 권고 작업: **별도 격리 DB 복원 시험과 정기 백업 자동화**를 먼저 설계/검증하고, 이후 Watchlist/보유종목 CRUD를 진행. 운영 DB에 테스트 데이터/마이그레이션 직접 적용 금지.
+
+## OPS-01 — 격리 복원·정기 백업 준비 (2026-11-19)
+- [x] 운영 PostgreSQL 데이터/서비스를 건드리지 않는 임시 Postgres 복원 검증 스크립트 작성 (`scripts/verify-backup-restore.sh`)
+- [x] 일일 백업(잠금·SHA256·아카이브 검증) 및 14일 오래된 daily 파일만 정리하는 코드 작성
+- [x] systemd 사용자 서비스/03:30 로컬 시간 타이머 **설정 파일만** 작성 (MiniPC 미등록)
+- [ ] CI 합성 DB 생성→백업→임시 DB 복원→보존 정책 PASS 후 PR 병합
+- [ ] MiniPC 기존 prepublish 백업을 **별도 임시 컨테이너**에 실제 복원하고 schema/owner 확인
+- [ ] 사용자 승인 후 MiniPC 일일 백업 1회 실행 및 systemd timer 등록 검토
+- [ ] 오프사이트 암호화·복원/보존·실패 알림, ACME 인증서 저장소 백업 별도 검토
