@@ -45,8 +45,8 @@ def _digest(token: str) -> str:
 
 
 def password_policy(password: str) -> None:
-    if len(password) < 12 or len(password) > 128:
-        raise ValueError("비밀번호는 12~128자로 설정해야 합니다.")
+    if len(password) < 8 or len(password) > 128:
+        raise ValueError("비밀번호는 8~128자로 설정해야 합니다.")
 
 
 def bootstrap_owner(username: str, password: str) -> None:
