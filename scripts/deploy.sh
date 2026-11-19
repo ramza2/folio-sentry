@@ -17,6 +17,7 @@ usage() {
 FolioSentry MiniPC deployment assistant (private single-owner service)
 
   bash scripts/deploy.sh inspect       # Show safe Traefik/PickNext routing hints
+  bash scripts/deploy.sh inspect-acme  # Read-only ACME resolver/port mapping hints
   bash scripts/deploy.sh configure     # Interactive domain/network/certificate setup
   bash scripts/deploy.sh check         # Read-only DNS, Docker, and Compose preflight
   bash scripts/deploy.sh status        # Only inspect FolioSentry project's containers
@@ -230,6 +231,7 @@ publish() {
 }
 case "${1:-help}" in
   inspect) exec bash "$ROOT/scripts/inspect-traefik.sh" ;;
+  inspect-acme) exec python3 "$ROOT/scripts/inspect-traefik-acme.py" ;;
   configure) configure ;;
   check) check ;;
   db-init) db_init "${2:-}" ;;
