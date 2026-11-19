@@ -85,10 +85,12 @@
 - [x] 기존 Traefik의 실제 네트워크/entrypoint/certresolver 확인 (읽기 전용)
 - [x] DuckDNS 신규 후보와 기존 PickNext의 IPv4 DNS 매핑 일치 확인
 - [x] 기존 PickNext TLS 사전/사후 확인과 FolioSentry 신규 HTTPS 체인/호스트명 검증 (2026-11-19)
-- [x] PostgreSQL 백업 실제 생성·SHA256·아카이브 가독성 검사 (복원 검증 아님)
-- [ ] 백업 복원 시험 및 별도 장소 백업/암호화·보존 정책 확인
+- [x] PostgreSQL 백업 실제 생성·SHA256·아카이브 가독성 및 격리 임시 DB 실제 복원 확인 (2026-11-19)
+- [x] 운영 백업의 독립 임시 PostgreSQL 복원·인증 테이블/소유자 건수 검증 (2026-11-19)
+- [ ] 별도 장소 암호화 백업·보존 정책 검증
 - [ ] 개인 전용 인증/VPN 등 외부 접속 안전 방안 확정
-- [ ] Compose 리소스 격리, 환경변수·비밀관리, PostgreSQL 백업/복원 테스트
+- [x] 인증 DB 백업을 네트워크 없는 임시 컨테이너에 복원하는 기본 시험
+- [ ] 전체 복구 절차·암호화·백업 보존 및 인증서 저장소 복원 검증
 - [ ] 실제 운영 데이터 수집·알림 점검; 개인 자산/토큰 로그 유출 검사
 - [ ] 필요 시 ModelOps Gateway 연결 실증 (승인·최소 데이터·장애 fallback)
 - **게이트**: 배포 승인 전에는 MiniPC/회사 서버 어떤 환경에도 배포하지 않음
@@ -102,7 +104,8 @@ Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 �
 - [x] 새 공개 전 전용 DB 압축 백업 생성 + SHA256·아카이브 스트림 검증 (MiniPC 2026-11-19)
 - [x] Backend Health, Frontend HTTPS, 신규 인증서, 익명 API 401·Origin 403, PickNext TLS 자동 확인
 - [x] 사용자 브라우저에서 로그인 화면, ramza 계정 로그인, DEMO 대시보드, 로그아웃, 기존 PickNext 정상 확인 (2026-11-19)
-- [ ] 별도 복원 시험 및 장기 ACME 저장소 백업·갱신 검토
+- [x] 별도 격리 DB 복원 시험 (2026-11-19)
+- [ ] 장기 ACME 저장소 백업·갱신 검토
 
 ## DEPLOY-02 실제 운영 인수 기록 — 2026-11-19
 - 배포 Git HEAD: `808aaf9eb1a3a9913574bc7f1495d484379fdae1` (PR #10 병합).
@@ -110,14 +113,16 @@ Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 �
 - Backend `HEALTHY`; 신규 FolioSentry TLS 첫 6회 `SSLCertVerificationError` 재시도 후 인증서 체인/호스트명 확인 최종 PASS. 발급 지연이 원인이라고 단정하지 않음.
 - 익명 API 접근 차단 401·로그인 Origin 누락 403·Frontend 200·Backend Ready 자동 PASS.
 - 사용자가 브라우저에서 로그인, DEMO, 로그아웃, 기존 PickNext 정상 동작 확인.
-- **아직 미완료:** DB 임시 복원 시험, 정기 백업·오프사이트 보존, 외부망/모바일 검증, ACME 자동 갱신, 실 포트폴리오 CRUD 및 시세·뉴스·알림 API.
+- **2026-11-19 후속:** DB 격리 임시 복원 시험 PASS.
+- **아직 미완료:** 정기 백업·오프사이트 보존, 외부망/모바일 검증, ACME 자동 갱신, 실 포트폴리오 CRUD 및 시세·뉴스·알림 API.
 - 다음 권고 작업: **별도 격리 DB 복원 시험과 정기 백업 자동화**를 먼저 설계/검증하고, 이후 Watchlist/보유종목 CRUD를 진행. 운영 DB에 테스트 데이터/마이그레이션 직접 적용 금지.
 
 ## OPS-01 — 격리 복원·정기 백업 준비 (2026-11-19)
 - [x] 운영 PostgreSQL 데이터/서비스를 건드리지 않는 임시 Postgres 복원 검증 스크립트 작성 (`scripts/verify-backup-restore.sh`)
 - [x] 일일 백업(잠금·SHA256·아카이브 검증) 및 14일 오래된 daily 파일만 정리하는 코드 작성
 - [x] systemd 사용자 서비스/03:30 로컬 시간 타이머 **설정 파일만** 작성 (MiniPC 미등록)
-- [ ] CI 합성 DB 생성→백업→임시 DB 복원→보존 정책 PASS 후 PR 병합
-- [ ] MiniPC 기존 prepublish 백업을 **별도 임시 컨테이너**에 실제 복원하고 schema/owner 확인
-- [ ] 사용자 승인 후 MiniPC 일일 백업 1회 실행 및 systemd timer 등록 검토
+- [x] CI 합성 DB 생성→백업→임시 DB 복원→보존 정책 PASS 및 PR #12 병합
+- [x] MiniPC 기존 prepublish 백업을 **별도 임시 컨테이너**에 실제 복원하고 schema/owner 확인 (2026-11-19)
+- [ ] MiniPC 일일 백업 1회 수동 실행 및 무결성 확인 (기존 파일 보존)
+- [ ] 사용자의 별도 승인 후 systemd 사용자 timer 등록 검토
 - [ ] 오프사이트 암호화·복원/보존·실패 알림, ACME 인증서 저장소 백업 별도 검토

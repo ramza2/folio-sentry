@@ -148,3 +148,9 @@
 - `ops/systemd/foliosentry-backup.timer`은 준비용 파일이며 MiniPC에 실제 등록/활성화되지 않았다. 사용자의 별도 승인 전 `systemctl --user enable/start`, `loginctl enable-linger` 금지.
 - CI 격리 synthetic PostgreSQL 테스트 성공과 MiniPC 실 백업의 복원 성공을 혼동하지 않는다. 로그·GitHub·채팅에 DB/해시/백업 원본 전송 금지.
 - 상세 운영 절차: `docs/BACKUP_RESTORE_OPERATIONS.md`.
+
+## OPS-01 MiniPC 격리 복원 인수 결과 (2026-11-19)
+- GitHub `main@1a836304328f67c2603453f1d24a7965d626f759`을 사용자 MiniPC에 fast-forward 후, 최초 prepublish 백업을 네트워크 없는 임시 PostgreSQL로 복원·인증 스키마·소유자 1명 검사 PASS.
+- 사용자 출력: `FOLIOSENTRY_ISOLATED_RESTORE_TEST_PASS`, `FOLIOSENTRY_OPS01_RESTORE_PROBE_PASS`. 운영 DB/컨테이너 변경 없음. 정리 결과는 `ON_EXIT` 메커니즘이며 실제 임시 컨테이너 잔존 여부는 별도 확인 필요.
+- 다음 단계는 **일일 백업 1건만 신규 생성하는 수동 검증**. 기존 백업을 삭제하는 `run-daily-backup.sh` 대신 `scripts/backup-db.sh --confirm-daily-backup`를 사용하여 보존 정책 적용과 분리한다.
+- systemd 사용자 타이머는 아직 MiniPC에 등록/활성화되지 않았으며, 해당 설정 변경에는 별도 승인 필요.

@@ -3,7 +3,7 @@
 ## 현재 상태
 
 - 운영 FolioSentry는 기존 `foliosentry-prod`의 PostgreSQL·Backend·Frontend로 정상 서비스 중. **이번 PR은 MiniPC Docker/DB를 변경하지 않는다.**
-- 2026-11-19 최초 HTTPS 배포 때 `pg_dump` Custom Format + SHA256 + archive stream read PASS 확인. **운영 백업의 실제 restore 실행은 미확인**.
+- 2026-11-19 최초 HTTPS 배포 때 `pg_dump` Custom Format + SHA256 + archive stream read PASS 확인. **2026-11-19 MiniPC 실제 백업을 격리 PostgreSQL에 복원하고 인증 스키마·소유자 1명 조회 PASS**.
 - 신규 `scripts/verify-backup-restore.sh`는 **검증된 단일 백업**을 별도 PostgreSQL 17 컨테이너의 임시 tmpfs에 복원해 auth schema/owner를 검사. `--network none`, host port 없음, 운영 DB 연결 없음, 실행 종료 시 임시 컨테이너만 정리.
 - `scripts/run-daily-backup.sh`는 운영 DB를 **읽기 전용 pg_dump**해 일일 Custom Format 백업 생성, SHA256 및 아카이브 검증 후 **14일보다 오래된 일일 백업 중 검증 가능한 쌍만** 정리. `prepublish-` 백업과 미확인 파일은 자동 삭제 금지.
 - GitHub CI의 격리 synthetic 데이터베이스에서 생성→복원→일일 보관 정책을 자동 시험한다. CI PASS가 실제 MiniPC 복원 PASS를 대체하지 않는다.
@@ -35,6 +35,27 @@ FOLIOSENTRY_ISOLATED_RESTORE_TEST_PASS
 ```
 
 복원 성공은 이번 인증 스키마/소유자 데이터 복원이 가능함을 확인한 것으로, 전체 장비 복구·다른 PostgreSQL 버전·계정 로그인/비밀번호 복구 시험까지 증명하지 않는다. 복원용 임시 DB에는 실제 비밀번호 *해시*가 들어가므로 네트워크 격리·출력 최소화·종료 시 자동 삭제가 필수다.
+
+### MiniPC 실제 복원 인수 결과 (2026-11-19)
+
+실행 대상: 최초 운영 배포에서 생성한 `prepublish-20261119T052831Z.Mo0rXRKV.pgdump`. 실제 백업 파일·SHA256·비밀번호 해시·DB 레코드는 공개하지 않음.
+
+```text
+FOLIOSENTRY_RESTORE_SOURCE=CHECKSUM_VERIFIED
+FOLIOSENTRY_RESTORE_MODE=ISOLATED_EPHEMERAL_NO_NETWORK
+FOLIOSENTRY_RESTORE_SCHEMA_AND_OWNER_PASS
+PRODUCTION_DB_READ_ONLY=YES
+PRODUCTION_CONTAINERS_MODIFIED=NO
+EPHEMERAL_POSTGRES_CLEANUP=ON_EXIT
+FOLIOSENTRY_ISOLATED_RESTORE_TEST_PASS
+FOLIOSENTRY_OPS01_RESTORE_PROBE_PASS
+```
+
+이는 **복원과 인증 스키마/소유자 건수 조회 성공**을 입증한다. 스크립트는 `EXIT` 시 임시 컨테이너를 중지하도록 되어 있지만, 출력된 `CLEANUP=ON_EXIT` 메시지는 실제 삭제를 별도 확인했다는 뜻은 아니다. 외부 장비 복구·복원 후 로그인·장기 보존/암호화는 여전히 미검증이다.
+
+### 다음 운영 단계 (아직 실행하지 않음)
+
+실제 운영 DB를 추가로 변경하지 않고 **새 daily 백업 1건 생성 및 무결성 검증**을 먼저 실행한다. `scripts/backup-db.sh --confirm-daily-backup`는 새로운 백업 쌍만 만들며, 이전 백업 삭제를 수행하지 않는다. 완료 후 시스템 타이머 등록 여부를 별도로 결정한다.
 
 ## 2. 정기 백업 동작 (아직 운영 자동 등록 안 함)
 
