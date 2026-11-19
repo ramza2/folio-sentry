@@ -142,11 +142,29 @@ for cid in ids:
                 raise SystemExit("ERROR: Traefik hostname is already used by a running router")
 print("TRAEFIK_EXISTING_HOST_ROUTE=NO_COLLISION_SEEN")
 PY
-  if getent ahostsv4 "$FOLIOSENTRY_DOMAIN" >/dev/null 2>&1; then
-    say "DUCKDNS_DNS_RESOLUTION=PASS_NOT_CERTIFICATE_VALIDATION"
-  else
-    fatal "DuckDNS DNS lookup failed; check domain/wildcard before publishing"
-  fi
+  # Observed MiniPC resolver: TLS-ALPN-01 with host 443 published.
+  # This is preflight metadata only; external forwarding/certificate issuance
+  # cannot be proven before the approved router is brought online.
+  local acme_summary
+  acme_summary=$(python3 "$ROOT/scripts/inspect-traefik-acme.py") ||
+    fatal "Existing Traefik ACME metadata is unavailable"
+  printf '%s\n' "$acme_summary"
+  grep -Fqx "TRAEFIK_ACME_CHALLENGE=TLS_ALPN_01" <<< "$acme_summary" ||
+    fatal "Expected myresolver TLS-ALPN-01 setting not confirmed"
+  grep -Fqx "DOCKER_HOST_PORT_443=PUBLISHED_BY_DOCKER_NOT_EXTERNAL_VERIFIED" <<< "$acme_summary" ||
+    fatal "Traefik Docker 443 binding not confirmed"
+  grep -Fqx "ACME_STORAGE_MOUNT=MOUNT_PRESENT_NOT_BACKUP_VERIFIED" <<< "$acme_summary" ||
+    fatal "Persistent ACME certificate storage mount not confirmed"
+  say "TRAEFIK_ACME_PREFLIGHT=PASS_NOT_EXTERNAL_REACHABILITY"
+  # A syntactically resolvable domain may still point to the wrong WAN IP.
+  # Compare the candidate against the already-working PickNext DNS mapping.
+  local dns_summary
+  dns_summary=$(bash "$ROOT/scripts/check-duckdns-route.sh" "$FOLIOSENTRY_DOMAIN") ||
+    fatal "DuckDNS candidate must match existing PickNext IPv4 mapping"
+  printf '%s\n' "$dns_summary"
+  grep -Fqx "FOLIOSENTRY_DUCKDNS_READONLY_CHECK_PASS" <<< "$dns_summary" ||
+    fatal "DuckDNS comparison did not confirm the candidate mapping"
+  say "DUCKDNS_DNS_MAPPING=PASS_NOT_CERTIFICATE_VALIDATION"
 
   "${EDGE[@]}" config -q || fatal "Production + Traefik Compose config invalid"
   # Verify that the API and DB have no host-exposed ports; only frontend
