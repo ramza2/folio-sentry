@@ -40,7 +40,7 @@ def error(status: int, code: str, message: str) -> JSONResponse:
 
 
 class StrictInput(BaseModel):
-    model_config = ConfigDict(extra="forbid", strict=True)
+    model_config = ConfigDict(extra="forbid")
 
 
 class InstrumentCreate(StrictInput):
