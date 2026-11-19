@@ -224,4 +224,5 @@ jobs:
         run: |
           bash -n scripts/backup-db.sh
           bash -n scripts/test-backup-ci.sh
+          bash -n scripts/verify-backup-restore.sh
           bash scripts/test-backup-ci.sh
