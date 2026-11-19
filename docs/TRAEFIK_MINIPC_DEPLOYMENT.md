@@ -126,6 +126,33 @@ python3 /tmp/foliosentry-existing-tls-check.py
 - LAN에서 공유기 공인 주소로 되돌아오는 hairpin NAT를 지원하지 않으면 기존 TLS 검사가 연결 오류를 낼 수 있다. 이 경우 인증서 자체 오류로 단정하지 말고 다른 승인된 네트워크에서 재검증한다.
 - 실 인증서 발급/새 호스트 접속 검증은 **후보 Router 생성 이후에만** 가능할 수 있으므로, 라우터 공개 전에 미리 성공했다고 보고하지 않는다.
 
+## 기존 인증서 점검 결과 (2026-11-19 MiniPC 실측)
+
+```text
+PICKNEXT_TLS_TRUST_AND_HOSTNAME=PASS
+PICKNEXT_TLS_DAYS_REMAINING=31
+CANDIDATE_COVERED_BY_EXISTING_CERT=NO
+TRAEFIK_NEW_ROUTER_OR_CERTIFICATE_REQUESTED=NO
+FOLIOSENTRY_EXISTING_TLS_READONLY_CHECK_PASS
+```
+
+- 기존 PickNext 인증서의 신뢰성과 호스트명 검증은 성공했고, 검사일 기준 31일 남았다. **새 FolioSentry 주소는 이 인증서에 포함되어 있지 않다.**
+- 운영용 Traefik `myresolver`가 신규 호스트 인증서를 새로 발급하도록 해야 한다. 기존 31일은 PickNext의 인증서 만료까지 남은 시간이지 FolioSentry 인증서 유효기간이 아니다.
+- Traefik 공식 문서에 따르면 HTTP-01은 외부에서 포트 80 도달, TLS-ALPN-01은 포트 443 도달이 필요하다. DNS-01은 별도의 DNS provider 자격이 필요할 수 있다.
+- **인증서 발급 방식 및 도달성은 아직 미검증**이다. 포트 공개, Docker 재시작, Traefik 갱신 없이 설정의 존재 여부만 조회한다.
+
+### 다음 MiniPC 읽기 전용 ACME 설정 점검
+
+```bash
+cd ~/folio-sentry
+git fetch origin feat/deploy01-traefik-wizard-20261119
+git show FETCH_HEAD:scripts/inspect-traefik-acme.py > /tmp/foliosentry-traefik-acme.py
+python3 /tmp/foliosentry-traefik-acme.py --self-test
+python3 /tmp/foliosentry-traefik-acme.py
+```
+
+이 검사는 Traefik 컨테이너의 **Docker 메타데이터만** 확인하며 환경변수 값, 설정 파일, 인증서 저장소(`acme.json`) 및 개인 자격증명에 접근하지 않는다. 플래그에 직접 지정된 경우에만 `HTTP_01`/`TLS_ALPN_01`/`DNS_01` 여부를 표시한다. YAML/TOML 설정 파일에 선언된 항목은 `NOT_VISIBLE_IN_COMMAND_FLAGS`로 표시하며, **미설정이라고 단정하면 안 된다**. Docker 포트 매핑은 ipTIME 외부 도달성의 증명이 아니다.
+
 ## 필수 승인/검증 게이트
 - 저장소 PR #1~#7과 본 PR 검토, 병합 순서 확인. 실 개인용 계정·자산 데이터 투입 전 보안 테스트.
 - 기존 Traefik 연결값(`proxy`/`websecure`/`myresolver`) 확인 완료, 신규 DuckDNS A 매핑 일치 확인 완료. TLS 인증서/공개 라우터/충돌 및 원격접속 보안은 아직 별도 검사해야 함.
