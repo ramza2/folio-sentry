@@ -104,3 +104,12 @@ loginctl show-user "$USER" -p Linger
 - 데이터 변경 없음. 이번 **daily 아카이브 자체의 독립 복원 시험은 미실행**이며, 앞선 `prepublish` 아카이브의 격리 복원은 PASS.
 - 여전히 운영 타이머 미설치·미활성화. 다음은 systemd 사용자 서비스 연결 상태, `Linger`, 서버 시간대, 중복 유닛 존재 여부 **읽기 전용**으로 점검한다.
 - systemd 활성화 시 `Persistent=true`이므로 과거 03:30 실행 시각이 지나 있었다면 서비스가 즉시 한번 실행될 수 있다. 타이머 설치·enable·start는 사용자 별도 승인 후.
+
+## OPS-01 자동 백업 타이머 활성화 인수 결과 — 2026-11-19
+
+- MiniPC 점검: `Timezone=Asia/Seoul`, `systemctl --user` active, `Linger=yes`, 동일 이름의 기존 사용자 유닛 없음.
+- `ops/systemd/foliosentry-backup.service`와 `.timer`를 사용자 유닛으로 설치. `systemctl --user enable --now foliosentry-backup.timer` 성공, `FOLIOSENTRY_DAILY_TIMER_ACTIVATION_PASS` 출력 확인.
+- 최초 예정 시간: **2026-11-20 03:30 KST** (`systemctl --user list-timers` 표시). 사용자가 pager에서 `q`를 눌러 종료한 뒤 최종 마커를 확인함.
+- 타이머는 03:30 `scripts/run-daily-backup.sh --confirm-daily-backup`를 호출하도록 구성. 새 백업 성공 후 검증된 14일 초과 `daily-` 백업 쌍만 정리, `prepublish-` 백업 보존.
+- **자동 예약이 정상 활성화됐다는 뜻이지 첫 자동 백업 실행 성공을 의미하지 않음.** 2026-11-20 03:30 이후 `systemctl --user show ...` 및 `journalctl --user -u foliosentry-backup.service`로 실제 실행 결과와 새 daily 아카이브를 확인해야 함.
+- 이메일/모바일 실패 알림, 오프사이트/암호화 백업, ACME 저장소 백업은 미구현. 기존 FolioSentry API/DB/Traefik/PickNext는 변경하지 않음.
