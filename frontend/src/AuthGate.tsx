@@ -12,6 +12,7 @@ type AuthState =
 
 interface OwnerAuthContextValue {
   username: string;
+  csrfToken: string;
   logout: () => Promise<void>;
 }
 const OwnerAuthContext = createContext<OwnerAuthContextValue | null>(null);
@@ -145,7 +146,7 @@ export default function AuthGate({ children }: { children: ReactNode }) {
   }
   if (state.status === "unauthenticated") return <LoginView onLogin={login} error={state.error} />;
   return (
-    <OwnerAuthContext.Provider value={{ username: state.session.username, logout }}>
+    <OwnerAuthContext.Provider value={{ username: state.session.username, csrfToken: state.session.csrf_token, logout }}>
       {children}
     </OwnerAuthContext.Provider>
   );
