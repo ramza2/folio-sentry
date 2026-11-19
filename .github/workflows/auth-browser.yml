@@ -80,6 +80,13 @@ jobs:
           done
           echo "CI local services did not become ready"
           exit 1
+      - name: Install Korean font for real UI screenshot validation
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends fonts-noto-cjk
+          fc-cache -f
+          fc-list :lang=ko family | grep -q .
+          echo "FOLIOSENTRY_E2E_KOREAN_FONT_READY"
       - name: Real Chromium browser acceptance
         working-directory: frontend
         run: node e2e/auth-browser-smoke.mjs
