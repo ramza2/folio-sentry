@@ -38,3 +38,11 @@
 
 ## 첫 작업
 API 공급원의 실제 지원 범위·한도를 확인한 후, **모의 데이터**만 사용하는 FastAPI/React/PostgreSQL 최소 구조를 구축합니다.
+
+## MiniPC 기존 Traefik + DuckDNS 배포 (개발 준비 단계)
+- 기존 공개 서비스 사례: `https://picknext.ramza.duckdns.org`.
+- 향후 `scripts/deploy.sh`가 DuckDNS 도메인, Traefik 네트워크/인증서 resolver 설정과 Docker Secret 생성을 안내합니다.
+- `bash scripts/deploy.sh inspect`는 기존 Traefik 라우팅 단서를 **읽기 전용으로만** 보여줍니다.
+- `configure`/`check`는 배포 없이 설정과 사전검사만, `db-init`/`publish`는 별도 명시적 승인 후 실행합니다.
+- 자세한 가이드: [DEPLOY-01](docs/TRAEFIK_MINIPC_DEPLOYMENT.md).
+- 현재는 Draft PR 단계이며 MiniPC의 DB·Traefik·Docker 배포는 수행하지 않았습니다.
