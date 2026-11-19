@@ -12,7 +12,7 @@ const password = process.env.FOLIOSENTRY_E2E_PASSWORD;
 if (!password) throw new Error("CI synthetic E2E password was not provided");
 
 await mkdir("e2e/screenshots", { recursive: true });
-const browser = await chromium.launch({ headless: true });
+const browser = await chromium.launch({ headless: true, channel: "chrome" });
 const api = await request.newContext({ baseURL: origin });
 const pageErrors = [];
 const check = (label) => console.log("PASS:", label);
