@@ -27,6 +27,7 @@ def test_pre_auth_routes_are_protected_and_openapi_closed():
     assert client.get("/api/v1/demo/overview").status_code == 401
     assert client.get("/api/v1/demo/instruments").status_code == 401
     assert client.get("/api/v1/auth/me").status_code == 401
+    assert client.get("/api/v2/any-new-private-route").status_code == 401
     assert client.get("/openapi.json").status_code == 404
     assert client.get("/docs").status_code == 404
     assert client.get("/api/health/live").status_code == 200
