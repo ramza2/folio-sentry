@@ -154,3 +154,9 @@
 - 사용자 출력: `FOLIOSENTRY_ISOLATED_RESTORE_TEST_PASS`, `FOLIOSENTRY_OPS01_RESTORE_PROBE_PASS`. 운영 DB/컨테이너 변경 없음. 정리 결과는 `ON_EXIT` 메커니즘이며 실제 임시 컨테이너 잔존 여부는 별도 확인 필요.
 - 다음 단계는 **일일 백업 1건만 신규 생성하는 수동 검증**. 기존 백업을 삭제하는 `run-daily-backup.sh` 대신 `scripts/backup-db.sh --confirm-daily-backup`를 사용하여 보존 정책 적용과 분리한다.
 - systemd 사용자 타이머는 아직 MiniPC에 등록/활성화되지 않았으며, 해당 설정 변경에는 별도 승인 필요.
+
+## OPS-01 수동 Daily 백업 인수 결과 (2026-11-19)
+- MiniPC `main@d65ff72b98b775096a560293386c49813ed7074c`에서 임시 복원 컨테이너 잔존 없음 PASS.
+- 사용자 수동 `scripts/backup-db.sh --confirm-daily-backup` 실행: `FOLIOSENTRY_DAILY_BACKUP_VERIFY_PASS`, `BACKUP_SHA256_CHECK=PASS`, `FOLIOSENTRY_DAILY_BACKUP_MANUAL_PASS`. 운영 DB 데이터·기존 백업 불변.
+- **이번 daily 백업에 대한 실 복원 시험은 미실행**(이전 prepublish 백업 복원 PASS와 구분).
+- 사용자 systemd 타이머 03:30 및 14일 보존 코드는 GitHub에만 존재, 운영에 설치/활성화되지 않음. `Persistent=true`로 타이머 enable시 놓친 실행분이 즉시 실행될 가능성 있으니 명시 승인/사전검사 필요.
