@@ -12,6 +12,12 @@
 - 이메일 알림(MVP), Android FCM 알림(이후)
 - AI 뉴스 요약·설명(이후); **AI가 매매 신호를 임의 생성하지 않음**
 
+## 개인 인증
+- 개인용 **소유자 계정 1개**. 회원가입은 제공하지 않습니다.
+- Backend의 모든 `/api/v1/*` 개인 데이터 API는 로그인 전 거부합니다.
+- 운영에서는 HTTPS + 안전한 HttpOnly 쿠키를 사용하며, 비밀번호는 Argon2id 해시로 저장합니다.
+- 개발용 데모 UI 인증 구현은 `docs/AUTH_DESIGN.md`를 참고하세요. **현재 운영 배포·소유자 초기화는 미실행**입니다.
+
 ## 기술 방향
 - Backend: Python / FastAPI / PostgreSQL
 - Frontend: React / TypeScript
