@@ -266,8 +266,10 @@ publish() {
 
   say "Starting ONLY FolioSentry HTTPS frontend on existing Traefik"
   if ! "${EDGE[@]}" up -d --build --no-deps frontend; then
-    "${EDGE[@]}" stop frontend >/dev/null 2>&1 || :
-    fatal "Frontend failed to start; attempted to stop ONLY FolioSentry frontend"
+    if ! "${EDGE[@]}" stop frontend; then
+      fatal "FRONTEND_START_FAILED_AND_STOP_FAILED_MANUAL_ACTION_REQUIRED"
+    fi
+    fatal "Frontend failed to start; own frontend was stopped"
   fi
   if ! python3 "$ROOT/scripts/verify-public-https.py"; then
     say "FOLIOSENTRY_HTTPS_VERIFY=FAIL_STOPPING_OWN_FRONTEND"
