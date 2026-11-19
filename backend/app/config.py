@@ -1,7 +1,8 @@
 """Typed configuration; secrets come only from environment variables."""
 from functools import lru_cache
+from pathlib import Path
 
-from pydantic import model_validator
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -12,7 +13,8 @@ class Settings(BaseSettings):
     db_port: int = 5432
     db_user: str = "folio"
     db_name: str = "folio"
-    db_password: str = ""
+    db_password: str = Field(default="", repr=False)
+    db_password_file: str = ""
 
     auth_allowed_origins: str = ""
     auth_cookie_secure: bool = True
@@ -20,6 +22,14 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def secure_auth_configuration(self):
+        if self.db_password_file:
+            if self.db_password:
+                raise ValueError("Use either DB_PASSWORD or DB_PASSWORD_FILE, not both")
+            # Compose secret path is never returned to the frontend or logged.
+            # Do not read it until an explicit settings object is constructed.
+            self.db_password = Path(self.db_password_file).read_text(encoding="utf-8").strip()
+            if not self.db_password:
+                raise ValueError("DB password secret must not be empty")
         if not self.auth_cookie_secure:
             if not self.allow_http_dev:
                 raise ValueError("HTTP authentication must be explicitly enabled for local development")
