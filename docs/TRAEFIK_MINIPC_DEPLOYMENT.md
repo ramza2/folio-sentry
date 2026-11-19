@@ -10,7 +10,9 @@
 - GitHub SSH remote 정상, 로컬은 `feat/ui01-figma-import-20261118` / `69fc8a0`.
 - 홈 네트워크에는 **기존 Traefik + DuckDNS + ipTIME 공유기 포트포워딩** 구성 존재.
 - 기존 다른 서비스의 성공 사례: `https://picknext.ramza.duckdns.org`.
-- 기존 Traefik 컨테이너 이름, Docker 네트워크, HTTPS entrypoint 및 TLS certresolver **미확인**. 사용자 호스트 점검 후 확인 필요.
+- **2026-11-19 MiniPC 실측 완료**: 기존 Traefik Docker 네트워크 `proxy`, HTTPS entrypoint `websecure`, TLS certresolver `myresolver`.
+- 기존 PickNext가 실제로 위 네트워크와 라우터를 사용하며, Traefik 컨테이너도 `proxy` 네트워크에 연결된 것을 읽기 전용 점검으로 확인했다.
+- `https://foliosentry.ramza.duckdns.org`는 새 서비스의 **후보 주소**일 뿐 DNS/TLS/인증서 상태는 미확인이다. 기존 PickNext 정상 접속이 새 호스트 인증서 발급을 보장하지 않는다.
 
 ## 적용할 배포 방식
 별도 공개 포트 추가 없이 기존 HTTPS(443) Traefik 라우터를 재사용한다.
@@ -32,6 +34,17 @@ Internet / Home LAN
 - 로그인은 기존 AUTH-01 소유자 1명, Argon2id, HttpOnly/Secure/SameSite=Strict 쿠키. 공개 Origin은 정확히 `https://<도메인>` 하나만 허용.
 - RAM 상한(초기값): PostgreSQL 768MB, Backend 512MB, Frontend 192MB. 실제 모니터링 후 조정.
 - LLM/ModelOps Gateway 및 실 보유 종목 입력은 이 배포 단계에 포함하지 않음.
+
+## 실제 MiniPC에서 확인한 Traefik 기본값
+```dotenv
+# 운영용 설정 마법사가 Enter 입력 시 사용하는 실측 기본값
+FOLIOSENTRY_TRAEFIK_NETWORK=proxy
+FOLIOSENTRY_TRAEFIK_ENTRYPOINT=websecure
+FOLIOSENTRY_TRAEFIK_CERTRESOLVER=myresolver
+# 다음 값은 확정되지 않은 후보이므로 DNS/TLS 검증 후에만 사용
+FOLIOSENTRY_DOMAIN=foliosentry.ramza.duckdns.org
+```
+주소 후보는 다른 서비스와 중복 사용하지 않는다. 현재 사용자의 `picknext.ramza.duckdns.org`는 그대로 유지한다.
 
 ## 스크립트 사용 (이번 단계에서 실행하지 말 것)
 실제 배포는 GitHub stacked PR 병합/승인과 Traefik 설정 점검을 마친 뒤 진행한다.
@@ -60,7 +73,7 @@ bash scripts/deploy.sh publish --confirm-public-https
 ## DuckDNS / HTTPS 확인
 DuckDNS 공식 명세는 서브-서브도메인의 DNS 응답을 지원하지만 `foliosentry.ramza.duckdns.org`가 실제로 HTTPS 인증서를 발급받았다는 뜻은 아니다. 기존 PickNext URL 성공만으로 **새 hostname에 유효한 TLS 인증서가 존재한다고 추정하지 않는다**.
 
-1. `scripts/deploy.sh inspect`에서 PickNext에 사용 중인 Traefik Docker 네트워크, entrypoint, certresolver를 **민감한 설정 없이** 확인한다.
+1. `scripts/inspect-traefik.sh`의 MiniPC 실행 결과로 `proxy`, `websecure`, `myresolver`를 **확인 완료**했다. 설정 시 이 세 값을 기본값으로 안내하되, 기존 서비스 설정 자체는 변경하지 않는다.
 2. 새 hostname이 MiniPC의 공유기 공인 IP로 조회되는지 검증한다. 도메인/HTTPS 인증서는 실제 배포 전 확인한다.
 3. 기존 인증서 발급 설정(HTTP-01/TLS-ALPN-01/DNS-01)과 새 도메인 사용 가능 여부를 검증하고, 공개 적용 후 인증서 SAN/발급·갱신 상태 확인한다.
 4. **기존 PickNext 라우터와 Traefik 설정은 수정하지 않는다.**
@@ -69,7 +82,7 @@ DuckDNS 공식 명세는 서브-서브도메인의 DNS 응답을 지원하지만
 
 ## 필수 승인/검증 게이트
 - 저장소 PR #1~#7과 본 PR 검토, 병합 순서 확인. 실 개인용 계정·자산 데이터 투입 전 보안 테스트.
-- 기존 Traefik 연결 정보를 사용자가 서버에서 직접 확인할 것. 무확인 변수 이름/인증서 resolver 값 추정 금지.
+- 기존 Traefik 연결값(`proxy`/`websecure`/`myresolver`)은 사용자 MiniPC에서 확인 완료. 호스트명 DNS, TLS 인증서, 중복 라우터 여부는 아직 별도 검사해야 함.
 - `docker compose config -q`, frontend production build 및 backend secret-file 테스트 PASS.
 - 집 MiniPC에서 `inspect`(읽기 전용) 출력 확인 후 안전한 `configure`/`check` 수행.
 - **실제 DB 마이그레이션·소유자 최초 생성·공개 HTTPS 연결은 각각 사용자의 명시적 승인** 후 진행.
