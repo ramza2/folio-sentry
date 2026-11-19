@@ -68,3 +68,27 @@ HOME="$scratch" bash scripts/verify-backup-restore.sh \
 
 echo "FOLIOSENTRY_DEPLOY02_SYNTHETIC_BACKUP_E2E_PASS"
 echo "FOLIOSENTRY_OPS01_SYNTHETIC_ISOLATED_RESTORE_PASS"
+
+# Daily backup uses the same validated archive mechanism, without touching prepublish.
+HOME="$scratch" bash scripts/run-daily-backup.sh --confirm-daily-backup
+dailies=("$scratch"/.local/share/folio-sentry/backups/daily-*.pgdump)
+[[ "${#dailies[@]}" -eq 1 ]] || { echo "ERROR=CI_DAILY_ARCHIVE_COUNT" >&2; exit 1; }
+HOME="$scratch" bash scripts/verify-backup-restore.sh \
+  --confirm-isolated-restore "${dailies[0]}"
+
+# A verified synthetic daily copy over 14 days old must be pruned; the
+# original immutable prepublish archive must remain untouched.
+old="$scratch/.local/share/folio-sentry/backups/daily-20260101T000000Z.TESTOLD1.pgdump"
+cp -- "${dailies[0]}" "$old"
+old_hash="$(sha256sum "$old" | awk '{print $1}')"
+printf '%s  %s\n' "$old_hash" "$(basename "$old")" > "$old.sha256"
+chmod 600 "$old" "$old.sha256"
+touch -d "20 days ago" "$old" "$old.sha256"
+HOME="$scratch" bash scripts/run-daily-backup.sh --confirm-daily-backup
+[[ ! -e "$old" && ! -e "$old.sha256" ]] || {
+  echo "ERROR=CI_OLD_DAILY_BACKUP_NOT_PRUNED" >&2; exit 1;
+}
+[[ -s "${archives[0]}" && -f "${archives[0]}.sha256" ]] || {
+  echo "ERROR=CI_PREPUBLISH_BACKUP_CHANGED" >&2; exit 1;
+}
+echo "FOLIOSENTRY_OPS01_DAILY_RETENTION_E2E_PASS"
