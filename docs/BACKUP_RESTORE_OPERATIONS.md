@@ -1,0 +1,77 @@
+# OPS-01 — 독립 DB 복원 검증 및 정기 백업 (준비 단계)
+
+## 현재 상태
+
+- 운영 FolioSentry는 기존 `foliosentry-prod`의 PostgreSQL·Backend·Frontend로 정상 서비스 중. **이번 PR은 MiniPC Docker/DB를 변경하지 않는다.**
+- 2026-11-19 최초 HTTPS 배포 때 `pg_dump` Custom Format + SHA256 + archive stream read PASS 확인. **운영 백업의 실제 restore 실행은 미확인**.
+- 신규 `scripts/verify-backup-restore.sh`는 **검증된 단일 백업**을 별도 PostgreSQL 17 컨테이너의 임시 tmpfs에 복원해 auth schema/owner를 검사. `--network none`, host port 없음, 운영 DB 연결 없음, 실행 종료 시 임시 컨테이너만 정리.
+- `scripts/run-daily-backup.sh`는 운영 DB를 **읽기 전용 pg_dump**해 일일 Custom Format 백업 생성, SHA256 및 아카이브 검증 후 **14일보다 오래된 일일 백업 중 검증 가능한 쌍만** 정리. `prepublish-` 백업과 미확인 파일은 자동 삭제 금지.
+- GitHub CI의 격리 synthetic 데이터베이스에서 생성→복원→일일 보관 정책을 자동 시험한다. CI PASS가 실제 MiniPC 복원 PASS를 대체하지 않는다.
+
+## 1. 실제 MiniPC 복원 시험 (별도 승인된 실행 단계)
+
+먼저 저장소 `main` HEAD와 CI를 확인한 뒤, MiniPC에서 복원 전용 명령만 실행한다.
+
+```bash
+cd ~/folio-sentry
+# OPS-01 PR이 검토·병합되고 로컬 main 동기화된 상태에서
+bash -n scripts/verify-backup-restore.sh
+
+ARCHIVE="$HOME/.local/share/folio-sentry/backups/<실제-prepublish-백업명>.pgdump"
+bash scripts/verify-backup-restore.sh --confirm-isolated-restore "$ARCHIVE"
+```
+
+**공개된 DB/Backend/Frontend를 중지·변경하지 않음.** 검증 작업은 새 임시 PostgreSQL 컨테이너 하나를 생성하므로 엄밀한 의미의 읽기 전용 Docker 작업은 아니다. 사용자 승인 없이 실행하지 않는다.
+
+기대 결과:
+
+```text
+FOLIOSENTRY_RESTORE_SOURCE=CHECKSUM_VERIFIED
+FOLIOSENTRY_RESTORE_MODE=ISOLATED_EPHEMERAL_NO_NETWORK
+FOLIOSENTRY_RESTORE_SCHEMA_AND_OWNER_PASS
+PRODUCTION_DB_READ_ONLY=YES
+PRODUCTION_CONTAINERS_MODIFIED=NO
+FOLIOSENTRY_ISOLATED_RESTORE_TEST_PASS
+```
+
+복원 성공은 이번 인증 스키마/소유자 데이터 복원이 가능함을 확인한 것으로, 전체 장비 복구·다른 PostgreSQL 버전·계정 로그인/비밀번호 복구 시험까지 증명하지 않는다. 복원용 임시 DB에는 실제 비밀번호 *해시*가 들어가므로 네트워크 격리·출력 최소화·종료 시 자동 삭제가 필수다.
+
+## 2. 정기 백업 동작 (아직 운영 자동 등록 안 함)
+
+- 기본 주기 제안: **매일 03:30 MiniPC 로컬 시간**. `ops/systemd/foliosentry-backup.timer`은 파일만 추가했으며 **설치·enable·start는 아직 하지 않음**.
+- 경로: `~/.local/share/folio-sentry/backups/daily-YYYYMMDDTHHMMSSZ.<임의8자>.pgdump`
+- 매일 새 아카이브·SHA256 성공 → 검증된 이전 daily 쌍만 14일 보관 정책에 따라 제거
+- `prepublish-`, `manual-`, 파일명 규칙이 다른 파일, 손상된 검증파일은 삭제하지 않음
+- 스크립트 시작에 `flock`을 획득하여 겹치는 일일 백업 실행 거부. 사용자 계정 및 사용자 전용 `0700` 폴더/파일 `0600` 사용
+- 별도 원격 저장소·암호화·백업 복원 정기 점검·알림은 아직 미구현. 서버 디스크 장애 시 로컬 백업도 손실될 수 있다
+
+별도 승인 후 수동 1회 동작 확인(이 명령은 **실제 운영 DB로부터 새 백업을 생성**하며 오래된 일일 백업을 삭제할 수 있음):
+
+```bash
+bash scripts/run-daily-backup.sh --confirm-daily-backup
+```
+
+## 3. systemd 사용자 타이머 등록 (추후 명시적 승인 후)
+
+```bash
+# 아래는 운영 자동화 설정을 변경하므로 사용자 승인 이전에는 실행 금지.
+install -d -m 700 "$HOME/.config/systemd/user"
+install -m 644 ops/systemd/foliosentry-backup.service "$HOME/.config/systemd/user/"
+install -m 644 ops/systemd/foliosentry-backup.timer "$HOME/.config/systemd/user/"
+systemctl --user daemon-reload
+systemctl --user enable --now foliosentry-backup.timer
+
+# 확인 (비밀정보 출력 금지)
+systemctl --user is-enabled foliosentry-backup.timer
+systemctl --user list-timers foliosentry-backup.timer
+loginctl show-user "$USER" -p Linger
+```
+
+`Linger=no`이면 사용자가 로그아웃한 상태에서 user systemd timer가 실행되지 않을 수 있다. 이 작업에서는 `loginctl enable-linger`를 자동 호출하지 않는다. 사용자 재승인 및 다른 사용자 서비스 영향 검토 후 결정한다.
+
+## 4. 절대 금지 및 후속
+
+- `docker compose down -v`, `docker volume rm`, 운영 DB `pg_restore`, 기존 Traefik·PickNext·공유기 재설정 금지
+- 백업 파일, SHA256 원문, 로그인 해시, 원본 데이터, DB secret, `acme.json`을 GitHub·채팅에 올리지 않는다
+- 정상 운영 중 `deploy.sh publish` 재실행 금지. OPS-01 검증은 독립적으로 진행
+- 외부 저장소의 암호화 백업·복원 절차, 실패 알림 및 ACME 저장소 백업은 별도 계획
