@@ -49,6 +49,16 @@ jobs:
         env:
           FOLIOSENTRY_DB_PASSWORD: ci-placeholder-not-a-real-secret
         run: docker compose -f compose.yaml config -q
+      - name: MiniPC preflight syntax and read-only smoke
+        run: |
+          bash -n scripts/minipc-auth-preflight.sh
+          output="$(bash scripts/minipc-auth-preflight.sh "$PWD")"
+          printf '%s\n' "$output"
+          grep -Fq 'FOLIOSENTRY_MINIPC_PREFLIGHT_READONLY_COMPLETE' <<< "$output"
+          grep -Fq 'CONTAINERS_MODIFIED=NO' <<< "$output"
+          grep -Fq 'DATABASE_MODIFIED=NO' <<< "$output"
+          grep -Fq 'PORTS_CHANGED=NO' <<< "$output"
+          grep -Fq 'CREDENTIALS_REQUESTED=NO' <<< "$output"
 
   auth-db-migration:
     runs-on: ubuntu-latest
