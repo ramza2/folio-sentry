@@ -13,7 +13,7 @@
 - Docker 29.6.2, Docker Compose 5.3.1, FolioSentry 프로젝트/볼륨 발견되지 않음.
 - 18901, 18902 포트 미점유. 단, 운영은 추가 포트 노출 대신 기존 Traefik 443에 연결.
 - 사용자 제공 운영 구성: Traefik + DuckDNS + ipTIME 포트포워딩. 기존 운영 사례: https://picknext.ramza.duckdns.org
-- 기존 Traefik의 Docker network/entrypoint/certresolver는 미확인. 정확한 값 확인 전 배포 금지.
+- 기존 Traefik 세부 설정은 MiniPC 읽기 전용 검사로 확인 완료: Docker 네트워크 `proxy`, HTTPS entrypoint `websecure`, certresolver `myresolver`. 새 FolioSentry 호스트명 DNS/TLS 및 라우터 충돌 여부는 미확인. 운영 배포 전 별도 검증.
 - 배포용 별도 파일: `compose.production.yml`, `compose.traefik.yml`, `scripts/deploy.sh`. 자세한 구성: `docs/TRAEFIK_MINIPC_DEPLOYMENT.md`.
 
 ## 개인 인증 사전 게이트 (2026-11-19 추가)
