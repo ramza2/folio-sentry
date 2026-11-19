@@ -5,10 +5,21 @@
 ## Phase 0 — 검증과 초기 구조
 - [ ] 국내·해외 일봉 시세 API 자격/호출량/지연/수정주가 검증
 - [ ] 국내·미국 뉴스 API 요금/약관/기사 메타데이터 검증
-- [ ] 서버 포트·배포 경로·도메인/인증 방식 결정
+- [x] 최종 배포 대상으로 집의 개인 MiniPC 선정 (서버 구성/포트/인증 방법은 미확정)
+- [ ] MiniPC OS/사양/기존 서비스/포트·배포 경로·접속/인증 방식 확인
 - [ ] FastAPI + React + PostgreSQL 최소 골격 및 Docker Compose
 - [ ] 테스트/린트/typecheck/build 기본 CI
 - **게이트**: 샘플 데이터로 API/DB/Frontend 연결, 실 API 키 커밋 없음
+
+## Phase 1A — 데이터 모델·API 계약·Figma 연계
+- [x] 시장·종목·보유/관심·시세·뉴스·신호 논리 모델 설계 (`docs/DATA_MODEL.md`)
+- [x] REST API 및 Decimal/시간대/가용성 계약 (`docs/API_CONTRACT.md`)
+- [x] 가상 KR/US 종목·뉴스·신호 디자인 미리보기 API (`/api/v1/demo/overview`)
+- [x] Figma Make 디자인 의뢰 브리프 (`docs/FIGMA_MAKE_BRIEF.md`)
+- [x] Figma Make React 소스 수신·구조 검토 (`docs/FIGMA_SOURCE_REVIEW.md`)
+- [ ] 디자인 최종 검토 및 UI 이식 브랜치/PR 생성
+- [ ] 디자인 기반 실제 UI·API 연동은 별도 단계로 분리
+- **게이트**: 모의 데이터 API 테스트·CI 성공, 실 API/DB/운영 배포 변경 없음
 
 ## Phase 1 — Watchlist와 시세
 - [ ] Instrument 검색/매핑 (시장+거래소+심볼)
@@ -33,7 +44,8 @@
 
 ## Phase 4 — 모바일과 AI
 - [ ] Android FCM 수신, 종목 상세 연결
-- [ ] 뉴스 요약·사실/해석 분리, AI 비활성화 시 기본 기능 유지
+- [ ] 선택형 외부 ModelOps Gateway API adapter (사용 허용 여부/연결 보안/토큰/호출량 검증 뒤)
+- [ ] 뉴스 요약·사실/해석 분리, Gateway 비활성화/장애 시 기본 기능 유지
 - [ ] 중요 뉴스 이벤트 감지 및 선택적 즉시 알림
 - **게이트**: 원문 추적 가능, AI 허위 수치/기사 생성 방지 확인
 
@@ -43,5 +55,13 @@
 - [ ] 개인용 전략 설정 및 신호 신뢰도 분석
 - **게이트**: 백테스트의 미래 참조·과최적화·선택편향 문서화
 
-## 첫 Cursor 작업 (추후 지시)
-`AGENTS.md`, `docs/PRD.md`, `docs/ARCHITECTURE.md`, `docs/ROADMAP.md`를 준수해 Phase 0의 최소 골격만 구현한다. 공급자 실 API 연결, 주문 기능, AI, 알림, 배포는 이번 작업 범위에서 제외한다.
+## MiniPC 배포 준비 (기능 완성 및 명시적 승인 후)
+- [ ] 실제 MiniPC 리소스·기존 Compose 프로젝트·포트·디스크/백업 위치 확인
+- [ ] 개인 전용 인증/VPN 등 외부 접속 안전 방안 확정
+- [ ] Compose 리소스 격리, 환경변수·비밀관리, PostgreSQL 백업/복원 테스트
+- [ ] 실제 운영 데이터 수집·알림 점검; 개인 자산/토큰 로그 유출 검사
+- [ ] 필요 시 ModelOps Gateway 연결 실증 (승인·최소 데이터·장애 fallback)
+- **게이트**: 배포 승인 전에는 MiniPC/회사 서버 어떤 환경에도 배포하지 않음
+
+## 다음 Cursor 작업 (필요할 때만)
+Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 참조하여 **확정된 단일 화면**의 UI 연결 작업을 지시한다. 별도 DB/시세 수집은 각각 독립 PR로 분리한다.

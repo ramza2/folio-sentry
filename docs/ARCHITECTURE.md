@@ -1,7 +1,7 @@
 # FolioSentry 아키텍처 (초기 초안)
 
 ## 원칙
-개인용 단일 배포·모노레포·최소 인프라. 확장성을 위해 데이터 공급자와 신호 알고리즘을 분리하되, 추상화를 과도하게 늘리지 않는다.
+집의 개인 MiniPC에 단일 배포·모노레포·최소 인프라. 확장성을 위해 데이터 공급자와 신호 알고리즘을 분리하되, 추상화를 과도하게 늘리지 않는다.
 
 ## 구성
 ```text
@@ -12,7 +12,8 @@ News Provider Adapter┘          │                    │
                                ├── Alert Outbox ── Email (MVP) / FCM (later)
                                └── Read API ── React UI
 
-AI News Explainer (later): 저장된 출처 기반 사실 요약만 제공
+AI News Explainer (later): optional external ModelOps Gateway API
+  └── Gateway 미연결/장애 시 단순 뉴스 원문과 규칙 신호는 정상 제공
 ```
 
 - `backend/`: FastAPI, SQLAlchemy, Alembic, 수집/스케줄링, 분석, 알림
@@ -21,6 +22,10 @@ AI News Explainer (later): 저장된 출처 기반 사실 요약만 제공
 - `docs/`: 요구사항, 설계, 작업 순서
 - PostgreSQL 하나로 MVP 데이터와 alert outbox를 관리; Redis 등 별도 브로커 보류
 - 스케줄러는 단일 프로세스만 활성화하며 중복 실행 방지 잠금 사용
+- 운영 실행 위치는 **개인 가정용 MiniPC**. 회사 GPU 서버에 이 서비스/DB를 올리지 않는다.
+- 실제 LLM 추론은 필요 시 **외부 ModelOps Gateway API**로 호출. 개인 MiniPC에는 LLM 모델/GPU 의존성을 배치하지 않는다.
+- Gateway는 adapter+timeout+제한적 재시도+호출량 예산+비활성화 스위치로 격리. AI 해설 실패가 규칙 신호·뉴스 원문 표시를 막아서는 안 된다.
+- ModelOps Gateway가 회사 운영 자산인 경우 개인 사용 권한·개인정보/기사 전송 가능 여부를 반드시 사전 확인한다.
 
 ## 주요 엔티티 (개념)
 - `instrument`: id, market, exchange, symbol, currency, name, active
@@ -65,8 +70,17 @@ AI News Explainer (later): 저장된 출처 기반 사실 요약만 제공
 - 배포/마이그레이션 전 DB 백업·복구 확인.
 - 뉴스/시세 이용약관 위반이 없도록 사용량과 출처를 기록.
 
+## 가정 MiniPC 운영 설계
+- Docker Compose 별도 프로젝트/볼륨/네트워크; 다른 홈 서비스와 리소스와 포트가 충돌하지 않도록 확인.
+- API/웹 포트는 개발 단계와 마찬가지로 loopback에만 바인딩. 원격 접속은 VPN(예: Tailscale) 또는 인증된 프록시를 별도 검토한 뒤 개방.
+- DB는 외부 포트로 노출하지 않음. API 비밀정보, 개인 보유 내역 및 Gateway 키를 로그/이미지/저장소에 저장하지 않음.
+- PostgreSQL 백업·복원 점검, 컨테이너 재시작/헬스체크, 디스크 보존 정책, 간단한 자원 제한과 모니터링 도입.
+- 가정용 MiniPC 사양·OS·기존 서비스·스토리지·접속 방식·사용 포트는 미확정이므로 **실제 배포 및 운영 파라미터 결정 전 확인**.
+- 상세: `docs/DEPLOYMENT_TARGET.md`.
+
 ## 검증 및 결정 필요
 - API 공급자 조사 이후 adapter 계약과 수집 주기 결정
-- 실제 배포 장비/포트/접속 방식/알림 수신 채널 결정
+- MiniPC 사양/OS/공존 서비스·실제 포트/접속 방식/알림 수신 채널 결정
+- ModelOps Gateway의 개인 사용 허용 여부, endpoint/API 인증/데이터 전송 범위 및 장애시 fallback 검증
 - 신호 평가 기준(단일 전략 vs 복수 전략) 및 가상 데이터 fixture 정의
 - 사용자 로그인/접근 제어 방식 확정
