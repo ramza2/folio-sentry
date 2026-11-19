@@ -127,3 +127,41 @@ def test_ready_fails_if_session_schema_was_not_created():
     auth.AuthSession.__table__.drop(auth.get_engine())
     assert client.get("/api/health/ready").status_code == 503
     assert client.get("/api/health/ready").json()["auth"] == "unavailable"
+
+
+def test_secure_production_cookie_attributes(monkeypatch):
+    from types import SimpleNamespace
+    monkeypatch.setattr(auth, "get_settings", lambda: SimpleNamespace(
+        auth_cookie_secure=True,
+        auth_allowed_origins="https://folio.example",
+        allow_http_dev=False,
+    ))
+    response = client.post("/api/v1/auth/login", json={
+        "username": TEST_USERNAME, "password": TEST_PASSWORD,
+    }, headers={"Origin": "https://folio.example"})
+    assert response.status_code == 200
+    header = response.headers["set-cookie"]
+    assert "__Host-foliosentry_session=" in header
+    assert "secure" in header.lower()
+    assert "httponly" in header.lower()
+    assert "samesite=strict" in header.lower()
+
+
+def test_private_mutations_require_origin_and_csrf_even_before_route_exists():
+    token = login().json()["csrf_token"]
+    assert client.post("/api/v1/some-future-write-api", headers={
+        "Origin": "http://testserver",
+    }).status_code == 403
+    assert client.post("/api/v1/some-future-write-api", headers={
+        "Origin": "http://testserver", "X-CSRF-Token": "wrong",
+    }).status_code == 403
+    assert client.post("/api/v1/some-future-write-api", headers={
+        "Origin": "http://testserver", "X-CSRF-Token": token,
+    }).status_code == 404
+
+
+def test_idle_session_timeout(monkeypatch):
+    login()
+    future = auth._now() + auth.IDLE_SECONDS + 1
+    monkeypatch.setattr(auth, "_now", lambda: future)
+    assert client.get("/api/v1/auth/me").status_code == 401
