@@ -27,7 +27,11 @@ class Settings(BaseSettings):
                 raise ValueError("Use either DB_PASSWORD or DB_PASSWORD_FILE, not both")
             # Compose secret path is never returned to the frontend or logged.
             # Do not read it until an explicit settings object is constructed.
-            self.db_password = Path(self.db_password_file).read_text(encoding="utf-8").strip()
+            try:
+                self.db_password = Path(self.db_password_file).read_text(encoding="utf-8").strip()
+            except OSError:
+                # Do not expose a private filesystem path in validation errors.
+                raise ValueError("PostgreSQL secret file unavailable") from None
             if not self.db_password:
                 raise ValueError("DB password secret must not be empty")
         if not self.auth_cookie_secure:
