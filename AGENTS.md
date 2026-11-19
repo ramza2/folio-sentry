@@ -160,3 +160,9 @@
 - 사용자 수동 `scripts/backup-db.sh --confirm-daily-backup` 실행: `FOLIOSENTRY_DAILY_BACKUP_VERIFY_PASS`, `BACKUP_SHA256_CHECK=PASS`, `FOLIOSENTRY_DAILY_BACKUP_MANUAL_PASS`. 운영 DB 데이터·기존 백업 불변.
 - **이번 daily 백업에 대한 실 복원 시험은 미실행**(이전 prepublish 백업 복원 PASS와 구분).
 - 사용자 systemd 타이머 03:30 및 14일 보존 코드는 GitHub에만 존재, 운영에 설치/활성화되지 않음. `Persistent=true`로 타이머 enable시 놓친 실행분이 즉시 실행될 가능성 있으니 명시 승인/사전검사 필요.
+
+## OPS-01 자동 백업 타이머 활성화 (2026-11-19)
+- 사용자가 MiniPC `main@394c60ab07361fa0af1fda7ec81f4495ec984595`에서 사용자 systemd 타이머 설치·enable --now를 실행하고 `FOLIOSENTRY_DAILY_TIMER_ACTIVATION_PASS` 확인.
+- 서버 `Asia/Seoul`, user systemd active, `Linger=yes`, 기존 유닛 충돌 없음. 첫 예정 실행 2026-11-20 03:30 KST.
+- 이 사실은 **타이머 활성화 PASS**이지 **첫 예약 백업 실행 PASS가 아님**. 첫 실행 후 서비스 상태, journal 성공 마커, 신규 daily 파일 SHA256 및 가독성 검증 확인 필요.
+- 재설치, 재활성화, `systemctl --user start foliosentry-backup.service` 수동 중복 실행은 검증 필요 없이 하지 않는다. 기존 FolioSentry/PickNext/Traefik 변경 금지.
