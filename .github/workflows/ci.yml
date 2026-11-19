@@ -126,6 +126,20 @@ jobs:
           bash -n scripts/deploy.sh
           bash -n scripts/inspect-traefik.sh
           bash -n scripts/check-duckdns-route.sh
+          bash -n scripts/backup-db.sh
+          python3 -m py_compile scripts/verify-public-https.py
+          python3 scripts/verify-public-https.py --self-test
+          grep -Fq "FOLIOSENTRY_PREPUBLISH_BACKUP_VERIFY_PASS" scripts/backup-db.sh
+          grep -Fq "FOLIOSENTRY_HTTPS_VERIFY=FAIL_STOPPING_OWN_FRONTEND" scripts/deploy.sh
+          grep -Fq "scripts/backup-db.sh" scripts/deploy.sh
+          if bash scripts/backup-db.sh >/dev/null 2>&1; then
+            echo "Backup guard without confirmation unexpectedly succeeded"
+            exit 1
+          fi
+          if bash scripts/deploy.sh unpublish >/dev/null 2>&1; then
+            echo "Unpublish guard without confirmation unexpectedly succeeded"
+            exit 1
+          fi
           python3 scripts/check-existing-tls.py --self-test
           python3 scripts/inspect-traefik-acme.py --self-test
           grep -Fq "TRAEFIK_ACME_PREFLIGHT=PASS_NOT_EXTERNAL_REACHABILITY" scripts/deploy.sh
