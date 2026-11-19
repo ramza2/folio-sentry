@@ -225,4 +225,6 @@ jobs:
           bash -n scripts/backup-db.sh
           bash -n scripts/test-backup-ci.sh
           bash -n scripts/verify-backup-restore.sh
+          bash -n scripts/run-daily-backup.sh
+          grep -Fq "PREPUBLISH_BACKUPS_PRESERVED=YES" scripts/run-daily-backup.sh
           bash scripts/test-backup-ci.sh
