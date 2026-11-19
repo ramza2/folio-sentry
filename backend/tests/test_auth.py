@@ -165,3 +165,37 @@ def test_idle_session_timeout(monkeypatch):
     future = auth._now() + auth.IDLE_SECONDS + 1
     monkeypatch.setattr(auth, "_now", lambda: future)
     assert client.get("/api/v1/auth/me").status_code == 401
+
+
+@pytest.mark.parametrize(
+    ("candidate", "accepted"),
+    [
+        ("short7!", False),
+        ("longer8!", True),
+        ("12345678", True),  # Length rule only; length alone does not imply strong security.
+        ("x" * 128, True),
+        ("x" * 129, False),
+    ],
+)
+def test_owner_password_length_policy(candidate, accepted):
+    if accepted:
+        auth.password_policy(candidate)
+    else:
+        with pytest.raises(ValueError, match="8~128"):
+            auth.password_policy(candidate)
+
+
+def test_eight_character_owner_bootstrap_authenticates():
+    # Test on the isolated in-memory database only; the real MiniPC is untouched.
+    with Session(auth.get_engine()) as db:
+        db.query(Owner).delete()
+        db.commit()
+
+    auth.bootstrap_owner("owner", "aB3!kL9z")
+    response = login(password="aB3!kL9z")
+    assert response.status_code == 200
+
+    with Session(auth.get_engine()) as db:
+        owner = db.get(Owner, 1)
+        assert owner.password_hash.startswith("$argon2id$")
+        assert "aB3!kL9z" not in owner.password_hash
