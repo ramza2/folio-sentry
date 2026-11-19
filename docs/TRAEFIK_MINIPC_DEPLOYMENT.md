@@ -180,3 +180,39 @@ FOLIOSENTRY_TRAEFIK_ACME_READONLY_INSPECTION_COMPLETE
 - **실제 DB 마이그레이션·소유자 최초 생성·공개 HTTPS 연결은 각각 사용자의 명시적 승인** 후 진행.
 - 로그인 전 API 401, login/me/logout, CSRF/Origin 거부, 백업/복원, TLS 인증서 검증, 브라우저 데스크톱/모바일 확인.
 - 실 보유 종목 데이터는 인증·백업·외부 접근 제한 완료 이전에는 입력하지 않는다.
+
+## DEPLOY-02 — 승인 후 HTTPS 공개 전 백업 및 실패 시 전용 Frontend 중단 (2026-11-19)
+
+사용자가 FolioSentry **전용 DB 초기화 및 HTTPS 공개를 별도 승인**한 상태다. MiniPC 현황: 기존 별도 `foliosentry-prod-db-1` healthy, `auth_owner` 1명, `alembic_version=20261119_auth01`, 8자 이상 비밀번호 정책 적용. 서비스 공개는 아직 진행하지 않았다.
+
+### 단일 공개 명령
+```bash
+cd ~/folio-sentry
+# 승인받은 최신 main으로 fast-forward, 깨끗한 Git 상태 및 최종 CI 확인
+bash scripts/deploy.sh publish --confirm-public-https
+```
+
+내부 단계: 검토된 `main` HEAD/GitHub 동기화 및 읽기 전용 사전검사 → 단일 FolioSentry DB·소유자 인증 준비 확인 → `scripts/backup-db.sh --confirm-prepublish-backup` 자동 호출 → Backend Health=healthy 확인 → FolioSentry Frontend만 기존 `proxy` 네트워크에 연결 → `scripts/verify-public-https.py`로 신규 TLS·정적 Frontend·Ready·익명 API 401·Origin 누락 로그인 403·기존 PickNext TLS 검사. **HTTPS 검증 실패 시 FolioSentry Frontend만 정지**하고 결과 실패 처리. 기존 Traefik, PickNext, 공유기, DB, Backend 중지/삭제 금지.
+
+### DB 백업 의미와 한계
+- 사전 백업은 `~/.local/share/folio-sentry/backups`의 사용자 소유 `0700` 디렉터리로 압축 Custom Format `pg_dump`를 저장한다(`0600`).
+- 아카이브 목록에 `auth_owner`와 `auth_session` 데이터가 있는지 확인하고, `pg_restore`로 모든 내용을 SQL로 스트리밍하여 파일 가독성만 검사한다. SHA256 검증 파일도 별도 생성.
+- 백업에는 **비밀번호의 Argon2id 해시와 세션 토큰 해시 등이 포함될 수 있으므로 외부에 업로드하거나 채팅에 공유하지 않는다.**
+- **복원 실험, 다른 장비로의 백업, 외부 저장소/암호화, 인증서 저장소(`acme.json`)의 백업은 아직 검증하지 않았다.** 백업 파일 생성만으로 재해 복구 가능하다고 선언하지 않는다.
+
+### 배포 후 수동 브라우저 검사
+1. `https://foliosentry.ramza.duckdns.org`의 주소창 인증서/호스트명 유효 및 로그인 화면 표시.
+2. 비로그인 `/api/v1/demo/overview` 요청은 401; 로그인 후 DEMO 화면 확인, 로그아웃하면 다시 차단.
+3. 새 세션 유지·모바일 렌더링, 콘솔/네트워크 오류 확인.
+4. `https://picknext.ramza.duckdns.org`의 기존 기능 정상 유지.
+5. 사내/외 네트워크 접근 검증은 필요 시 다른 네트워크에서 별도 실시. MiniPC 내부 테스트 통과만으로 공인 인터넷 접근·ACME 자동 갱신을 확정하지 않는다.
+6. **개인 실 보유 종목·매입 단가 등록은 추가 보호와 백업/복원 확인 이후** 진행한다.
+
+### 배포 실패 시 전용 서비스만 중단
+```bash
+# Frontend만 중단하여 HTTPS 라우트를 비활성화
+bash scripts/deploy.sh unpublish --confirm-stop-frontend-only
+```
+
+이 명령은 `foliosentry-prod` Frontend만 stop하고 PostgreSQL·Backend·다른 서비스를 보존한다. 어떠한 `down -v`, `prune`, 공유기/Traefik 설정 조작도 수행하지 않는다.
+
