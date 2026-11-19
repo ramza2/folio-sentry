@@ -1,14 +1,19 @@
 #!/usr/bin/env bash
-# Approved, limited mutation: write ONE private pre-publication PostgreSQL dump.
+# Approved, limited mutation: write ONE private PostgreSQL backup archive.
 # Never restarts Docker, changes Postgres data, reads login passwords, or writes
 # inside the repository. A complete archive is required before HTTPS publication.
 set -Eeuo pipefail
 umask 077
 
-[[ "${1:-}" == "--confirm-prepublish-backup" && "$#" -eq 1 ]] || {
-  echo "Usage: bash scripts/backup-db.sh --confirm-prepublish-backup" >&2
+[[ "$#" -eq 1 ]] || {
+  echo "Usage: bash scripts/backup-db.sh --confirm-prepublish-backup|--confirm-daily-backup" >&2
   exit 2
 }
+case "$1" in
+  --confirm-prepublish-backup) kind=prepublish ;;
+  --confirm-daily-backup) kind=daily ;;
+  *) echo "ERROR=EXPLICIT_BACKUP_CONFIRMATION_REQUIRED" >&2; exit 2 ;;
+esac
 
 command -v docker >/dev/null || { echo "ERROR=DOCKER_MISSING" >&2; exit 1; }
 command -v sha256sum >/dev/null || { echo "ERROR=SHA256SUM_MISSING" >&2; exit 1; }
@@ -57,11 +62,11 @@ free_mib="$(df -Pm "$backup_dir" | awk 'NR==2 {print $4}')"
   echo "ERROR=BACKUP_DISK_FREE_LT_256_MIB" >&2; exit 1;
 }
 
-tmp="$(mktemp "$backup_dir/prepublish-$(date -u +%Y%m%dT%H%M%SZ).XXXXXXXX")"
+tmp="$(mktemp "$backup_dir/${kind}-$(date -u +%Y%m%dT%H%M%SZ).XXXXXXXX")"
 cleanup() { [[ ! -f "$tmp" ]] || rm -f -- "$tmp"; }
 trap cleanup EXIT
 
-echo "FOLIOSENTRY_PREPUBLISH_BACKUP_STARTED"
+echo "FOLIOSENTRY_${kind^^}_BACKUP_STARTED"
 # pg_dump is read-only on the isolated FolioSentry DB; the archive may contain
 # authentication hashes, so the local private file must NEVER be shared.
 docker exec -i "$cid" pg_dump \
@@ -96,7 +101,7 @@ chmod 600 "$backup.sha256"
   echo "ERROR=BACKUP_CHECKSUM_INVALID" >&2; exit 1;
 }
 
-echo "FOLIOSENTRY_PREPUBLISH_BACKUP_VERIFY_PASS"
+echo "FOLIOSENTRY_${kind^^}_BACKUP_VERIFY_PASS"
 echo "BACKUP_PRIVATE_DIRECTORY=$backup_dir"
 echo "BACKUP_FILE_NAME=$name"
 echo "BACKUP_SHA256_CHECK=PASS"
