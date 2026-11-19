@@ -1,0 +1,14 @@
+[Unit]
+Description=FolioSentry private PostgreSQL daily backup (no service restarts)
+Documentation=man:systemd.service(5)
+ConditionPathIsDirectory=%h/folio-sentry
+
+[Service]
+Type=oneshot
+UMask=0077
+WorkingDirectory=%h/folio-sentry
+ExecStart=/bin/bash %h/folio-sentry/scripts/run-daily-backup.sh --confirm-daily-backup
+TimeoutStartSec=30min
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
