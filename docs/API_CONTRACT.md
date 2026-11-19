@@ -12,7 +12,9 @@
 - `GET /api/v1/demo/instruments` (Phase 0)
 - `GET /api/v1/demo/overview` (Phase 1A: 시각화/디자인용 고정 가상 데이터)
 
-정식 `/api/v1/dashboard`, `/api/v1/instruments` 등의 응답은 향후 구현 예정이다.
+**Phase 1 P1 GitHub 구현(운영 미적용)**: `POST/GET /api/v1/instruments`, `GET /api/v1/instruments/{id}`, `GET/POST /api/v1/tracked`, `PATCH/DELETE /api/v1/tracked/{id}` (직접 입력한 수동 종목 메타데이터, 전용 DB 마이그레이션은 미승인·미실행).
+
+정식 `/api/v1/dashboard` 및 실 거래소 자동 종목 검색/시세 조회는 여전히 미구현이다. 상세: `docs/PHASE1_PORTFOLIO_CRUD.md`.
 
 ## 공통 규칙
 - REST JSON; 경로 `/api/v1`; ISO 8601 UTC timestamp와 거래소 현지 `YYYY-MM-DD` 세션 날짜.
@@ -87,3 +89,10 @@
 5. 모든 뉴스에는 출처/발행 시각/원문 URL.
 6. 모든 신호에는 근거/평가시각/전략 버전, 순수 조건 규칙과 AI 해설 분리.
 7. 후속 구현 PR에서 OpenAPI 스키마·테스트를 이 문서에 맞추고 위반 시 변경 이유를 기록.
+
+## Phase 1 P1 보충 계약 (2026-11-19, 구현/운영 분리)
+- `POST /api/v1/instruments`: `market` KR/US, `exchange_mic` 수동 지정, `symbol`, `name`, `asset_type` 필요. `source="MANUAL_UNVERIFIED"`. 통화/시간대 서버 결정. 중복 MIC+심볼 409.
+- `GET /api/v1/instruments`는 **자체 수동 카탈로그 검색**이며 거래소/브로커 종목 자동 검색이 아니다.
+- `GET /api/v1/tracked`: 연결된 실제 가격 원천이 없어 모든 실 등록 종목의 `quote.status=UNAVAILABLE`, `market_value/unrealized_pnl=null`. DEMO 값 사용 금지.
+- `POST/PATCH /api/v1/tracked`: 수량/평균 단가 JSON 문자열, 소수 최대 8자리. 응답 문자열 소수 8자리. `WATCH`로 변경 시 수량·평균단가 제거. `alerts_enabled`는 알림 전송 기능이 아닌 **희망 설정 저장**에 그침.
+- 이 구현은 GitHub PR·격리 CI 단계이며 운영 DB에 `20261119_portfolio01` 마이그레이션을 자동 적용하지 않는다.

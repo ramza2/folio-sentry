@@ -11,6 +11,7 @@ from app.contract import DemoOverviewDTO
 from app.database import check_database
 from app.demo_data import DEMO_INSTRUMENTS, DemoInstrument
 from app.demo_overview import get_demo_overview
+from app.portfolio_api import router as portfolio_router
 
 app = FastAPI(
     title="FolioSentry API", version="0.1.0",
@@ -132,3 +133,7 @@ def demo_instruments() -> dict[str, str | list[DemoInstrument]]:
 def demo_overview() -> DemoOverviewDTO:
     """Visual design fixture. No live quotes, holdings or signals."""
     return get_demo_overview()
+
+
+# All routes inherit the existing global Origin/CSRF/session middleware.
+app.include_router(portfolio_router)

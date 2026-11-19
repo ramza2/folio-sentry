@@ -5,7 +5,7 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
 
-from app import auth
+from app import auth, portfolio_api, portfolio_models  # noqa: F401
 from app.auth_models import AuthBase
 
 TEST_USERNAME = "owner"
@@ -21,6 +21,7 @@ def isolated_auth(request, monkeypatch):
     )
     AuthBase.metadata.create_all(engine)
     monkeypatch.setattr(auth, "get_engine", lambda: engine)
+    monkeypatch.setattr(portfolio_api, "get_engine", lambda: engine)
     monkeypatch.setattr(auth, "get_settings", lambda: SimpleNamespace(
         auth_cookie_secure=False,
         auth_allowed_origins="http://testserver",

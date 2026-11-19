@@ -166,3 +166,14 @@
 - 서버 `Asia/Seoul`, user systemd active, `Linger=yes`, 기존 유닛 충돌 없음. 첫 예정 실행 2026-11-20 03:30 KST.
 - 이 사실은 **타이머 활성화 PASS**이지 **첫 예약 백업 실행 PASS가 아님**. 첫 실행 후 서비스 상태, journal 성공 마커, 신규 daily 파일 SHA256 및 가독성 검증 확인 필요.
 - 재설치, 재활성화, `systemctl --user start foliosentry-backup.service` 수동 중복 실행은 검증 필요 없이 하지 않는다. 기존 FolioSentry/PickNext/Traefik 변경 금지.
+
+## 사용자 선택: 자동 백업 중지 및 기능 개발 우선 (2026-11-19)
+- 사용자가 `systemctl --user disable --now foliosentry-backup.timer` 실행했고 `ActiveState=inactive`, `UnitFileState=disabled`를 최종 확인했다. 기존 백업 보존.
+- 사전 승인 없이 백업 타이머 재활성화/백업 기능 확장/매 작업마다 백업 강제 권고 금지. 운영 데이터 손실 위험에 비례한 검증만 제안. 다음 개발 우선순위는 사용자가 체감하는 포트폴리오·시세 기능.
+
+## Phase 1 P1 수동 종목/보유 관리 API — 개발 규칙
+- 새 `portfolio_models.py`, `portfolio_api.py`, `20261119_portfolio01`은 **GitHub 코드 및 격리 CI에만 존재**, 운영 DB 스키마·서비스는 기존 AUTH revision 상태. 사용자 명시적 승인 없이 alembic upgrade, DB DDL, Backend/Frontend 재배포 금지.
+- 종목을 수동으로 등록해도 공급자 검증을 거친 실제 상장 목록이 아님: `source=MANUAL_UNVERIFIED`. 외부 시세 없이 가격/평가액/손익은 항상 null·UNAVAILABLE. DEMO 수치를 실제 등록 내역에 섞지 않는다.
+- 인증은 글로벌 Origin·CSRF·쿠키 미들웨어를 우회하지 않고, 금액/수량을 **문자열 Decimal·DB NUMERIC**으로 유지. Watch에는 수량/평균단가 저장 금지.
+- 테스트는 격리 SQLite와 GitHub Actions 별도 PostgreSQL만 사용. 실 자산정보·인증정보·증권 API 토큰을 테스트/로그에 사용하지 않는다.
+- API 및 배포 계약: `docs/PHASE1_PORTFOLIO_CRUD.md`. 다음 작업은 UI-03 연결, 이후 공급자 선정/시세. 기존 PickNext/Traefik/HTTPS/Auto-backup 설정 유지.
