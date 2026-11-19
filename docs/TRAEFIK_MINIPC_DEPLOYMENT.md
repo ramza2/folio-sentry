@@ -12,7 +12,7 @@
 - 기존 다른 서비스의 성공 사례: `https://picknext.ramza.duckdns.org`.
 - **2026-11-19 MiniPC 실측 완료**: 기존 Traefik Docker 네트워크 `proxy`, HTTPS entrypoint `websecure`, TLS certresolver `myresolver`.
 - 기존 PickNext가 실제로 위 네트워크와 라우터를 사용하며, Traefik 컨테이너도 `proxy` 네트워크에 연결된 것을 읽기 전용 점검으로 확인했다.
-- `https://foliosentry.ramza.duckdns.org`는 새 서비스의 **후보 주소**일 뿐 DNS/TLS/인증서 상태는 미확인이다. 기존 PickNext 정상 접속이 새 호스트 인증서 발급을 보장하지 않는다.
+- `https://foliosentry.ramza.duckdns.org`는 아직 **후보 주소**다. 2026-11-19 MiniPC에서 기존 PickNext와 신규 주소의 DNS IPv4 매핑이 동일함을 확인했다. **새 호스트의 TLS 인증서 발급·유효성은 미검증**이며 PickNext 성공만으로 보장되지 않는다.
 
 ## 적용할 배포 방식
 별도 공개 포트 추가 없이 기존 HTTPS(443) Traefik 라우터를 재사용한다.
@@ -94,9 +94,41 @@ bash /tmp/foliosentry-dns-check.sh foliosentry.ramza.duckdns.org
 
 성공 결과의 `FOLIOSENTRY_DUCKDNS_READONLY_CHECK_PASS`는 **DNS IPv4 매핑 일치만 의미**한다. HTTPS 인증서 유효, Traefik 공개 라우터 작동, 개인계정 보안이 확보됐다는 뜻이 아니다. 미일치나 해석 실패는 `REVIEW_*`로 출력하며 공유기·DuckDNS 설정을 자동 변경하지 않는다.
 
+## DNS 검사 실측 결과 (2026-11-19)
+
+MiniPC에서 `scripts/check-duckdns-route.sh foliosentry.ramza.duckdns.org` 실행 결과:
+
+```text
+DNS_CHECK_MODE=READ_ONLY
+DUCKDNS_IPV4_MAPPING=PASS_SAME_AS_PICKNEXT
+IP_VALUES_PRINTED=NO
+TLS_CERTIFICATE_VERIFIED=NO
+FOLIOSENTRY_DUCKDNS_READONLY_CHECK_PASS
+```
+
+기존 PickNext와 신규 도메인의 **A 레코드 응답 일치**만 확인했다. 공유기·Traefik·인증서 발급·개인 정보 보호 수준이 검증된 것은 아니다.
+
+## 기존 PickNext 인증서 확인 (다음 읽기 전용 단계)
+
+```bash
+cd ~/folio-sentry
+git fetch origin feat/deploy01-traefik-wizard-20261119
+git show FETCH_HEAD:scripts/check-existing-tls.py > /tmp/foliosentry-existing-tls-check.py
+python3 /tmp/foliosentry-existing-tls-check.py --self-test
+python3 /tmp/foliosentry-existing-tls-check.py
+```
+
+기존 `picknext.ramza.duckdns.org:443`에만 TLS handshake를 수행한다. 신뢰 체인, 기존 호스트명, 인증서 남은 일수, 기존 인증서 SAN이 신규 후보 도메인까지 커버하는지만 **YES/NO**로 출력하며 IP, SAN 전체, 인증서, 토큰은 출력하지 않는다.
+
+- `PICKNEXT_TLS_TRUST_AND_HOSTNAME=PASS`는 *기존* 호스트 인증서가 정상이라는 뜻이다.
+- `CANDIDATE_COVERED_BY_EXISTING_CERT=YES`라도 해당 호스트의 실제 라우터·보안·HTTPS 접속 검증은 별도 수행해야 한다.
+- `CANDIDATE_COVERED_BY_EXISTING_CERT=NO`는 정상적으로 발생할 수 있다. 신규 Router가 등록된 뒤 `myresolver`로 새 인증서를 발급할 가능성이 있지만 아직 확인되지 않았다.
+- LAN에서 공유기 공인 주소로 되돌아오는 hairpin NAT를 지원하지 않으면 기존 TLS 검사가 연결 오류를 낼 수 있다. 이 경우 인증서 자체 오류로 단정하지 말고 다른 승인된 네트워크에서 재검증한다.
+- 실 인증서 발급/새 호스트 접속 검증은 **후보 Router 생성 이후에만** 가능할 수 있으므로, 라우터 공개 전에 미리 성공했다고 보고하지 않는다.
+
 ## 필수 승인/검증 게이트
 - 저장소 PR #1~#7과 본 PR 검토, 병합 순서 확인. 실 개인용 계정·자산 데이터 투입 전 보안 테스트.
-- 기존 Traefik 연결값(`proxy`/`websecure`/`myresolver`)은 사용자 MiniPC에서 확인 완료. 호스트명 DNS, TLS 인증서, 중복 라우터 여부는 아직 별도 검사해야 함.
+- 기존 Traefik 연결값(`proxy`/`websecure`/`myresolver`) 확인 완료, 신규 DuckDNS A 매핑 일치 확인 완료. TLS 인증서/공개 라우터/충돌 및 원격접속 보안은 아직 별도 검사해야 함.
 - `docker compose config -q`, frontend production build 및 backend secret-file 테스트 PASS.
 - 집 MiniPC에서 `inspect`(읽기 전용) 출력 확인 후 안전한 `configure`/`check` 수행.
 - **실제 DB 마이그레이션·소유자 최초 생성·공개 HTTPS 연결은 각각 사용자의 명시적 승인** 후 진행.
