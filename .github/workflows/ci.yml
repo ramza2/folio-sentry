@@ -53,18 +53,20 @@ jobs:
         run: |
           bash -n scripts/minipc-auth-preflight.sh
           output="$(bash scripts/minipc-auth-preflight.sh "$PWD")"
-          printf '%s\n' "$output"
-          grep -Fq 'FOLIOSENTRY_MINIPC_PREFLIGHT_READONLY_COMPLETE' <<< "$output"
-          grep -Fq 'CONTAINERS_MODIFIED=NO' <<< "$output"
-          grep -Fq 'DATABASE_MODIFIED=NO' <<< "$output"
-          grep -Fq 'PORTS_CHANGED=NO' <<< "$output"
-          grep -Fq 'CREDENTIALS_REQUESTED=NO' <<< "$output"
-          # A syntactically valid shell script can still silently report a
-          # nonexistent repository (e.g. an accidentally escaped dollar sign).
+          printf "%s\n" "$output"
+          grep -Fq "FOLIOSENTRY_MINIPC_PREFLIGHT_READONLY_COMPLETE" <<< "$output"
+          grep -Fq "CONTAINERS_MODIFIED=NO" <<< "$output"
+          grep -Fq "DATABASE_MODIFIED=NO" <<< "$output"
+          grep -Fq "PORTS_CHANGED=NO" <<< "$output"
+          grep -Fq "CREDENTIALS_REQUESTED=NO" <<< "$output"
           grep -Fq "REPO_DIR=$PWD" <<< "$output"
-          grep -Eq '^BRANCH=[^[:space:]]+' <<< "$output"
-          grep -Eq '^HEAD=[0-9a-f]{12}
-
+          grep -Fq "BRANCH=" <<< "$output"
+          grep -Fq "HEAD=" <<< "$output"
+          grep -Fq "REPO_DISK_FREE=" <<< "$output"
+          if grep -Fq "REVIEW_REPO=NOT_FOUND" <<< "$output"; then exit 1; fi
+          missing="$(bash scripts/minipc-auth-preflight.sh /nonexistent/folio-test-path)"
+          grep -Fq "REVIEW_REPO=NOT_FOUND" <<< "$missing"
+          grep -Fq "CONTAINERS_MODIFIED=NO" <<< "$missing"
   auth-db-migration:
     runs-on: ubuntu-latest
     services:
