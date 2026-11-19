@@ -2,7 +2,7 @@
 
 국내·해외 주식/ETF를 등록하고 차트·뉴스를 모니터링하며, **규칙 기반 매매 검토 신호**를 이메일·모바일 알림으로 전달하는 **개인용** 투자 도구입니다.
 
-> 현재 상태: 기획/설계 단계. 구현 및 실제 시세·알림 연동은 아직 시작하지 않았습니다. 투자 조언이나 자동매매를 제공하지 않습니다.
+> 현재 상태: FastAPI·React 기반 및 단일 소유자 인증, DEMO 화면 구현 완료. 실 시세·알림 연동은 아직 시작하지 않았습니다. 투자 조언이나 자동매매를 제공하지 않습니다.
 
 ## 주요 기능(계획)
 - 국내(KOSPI/KOSDAQ) 및 미국(NYSE/NASDAQ 등) 보유/관심 종목 관리
@@ -46,4 +46,5 @@ API 공급원의 실제 지원 범위·한도를 확인한 후, **모의 데이�
 - `bash scripts/deploy.sh inspect`는 기존 Traefik 라우팅 단서를 **읽기 전용으로만** 보여줍니다.
 - `configure`/`check`는 배포 없이 설정과 사전검사만, `db-init`/`publish`는 별도 명시적 승인 후 실행합니다.
 - 자세한 가이드: [DEPLOY-01](docs/TRAEFIK_MINIPC_DEPLOYMENT.md).
-- 현재는 Draft PR 단계이며 MiniPC의 DB·Traefik·Docker 배포는 수행하지 않았습니다.
+- GitHub 코드 병합 완료. MiniPC FolioSentry 전용 PostgreSQL 생성·인증 스키마·소유자 1명 등록까지 완료. **Frontend·HTTPS 운영 공개는 승인 후 별도 게이트로 진행**하며, 기존 PickNext·Traefik 자체 설정은 변경하지 않습니다.
+- 공개 명령 `scripts/deploy.sh publish --confirm-public-https`는 사용자 전용 PostgreSQL 백업·무결성 검사, 익명 HTTPS/API 보안 검사 및 실패 시 FolioSentry Frontend 중단 기능을 포함합니다. 외부 접속·TLS 갱신·백업 복원 검증은 추가 필요합니다.
