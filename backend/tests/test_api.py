@@ -25,11 +25,11 @@ def test_ready_database_up(monkeypatch) -> None:
     monkeypatch.setattr(main, "check_database", lambda: True)
     response = client.get("/api/health/ready")
     assert response.status_code == 200
-    assert response.json() == {"status": "ready", "database": "ok"}
+    assert response.json() == {"status": "ready", "database": "ok", "auth": "ready"}
 
 
 def test_ready_database_down(monkeypatch) -> None:
     monkeypatch.setattr(main, "check_database", lambda: False)
     response = client.get("/api/health/ready")
     assert response.status_code == 503
-    assert response.json() == {"status": "unavailable", "database": "unavailable"}
+    assert response.json() == {"status": "unavailable", "database": "unavailable", "auth": "unavailable"}

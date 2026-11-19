@@ -53,7 +53,9 @@ def test_unavailable_quote_rejects_prices() -> None:
 
 
 def test_contract_openapi_is_exposed() -> None:
-    openapi = client.get("/openapi.json").json()
+    # Public schema endpoint is deliberately disabled; in-process schema remains testable.
+    assert client.get("/openapi.json").status_code == 404
+    openapi = app.openapi()
     assert "/api/v1/demo/overview" in openapi["paths"]
     assert "DemoOverviewDTO" in openapi["components"]["schemas"]
 

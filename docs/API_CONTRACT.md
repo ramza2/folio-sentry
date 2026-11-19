@@ -4,6 +4,10 @@
 이 문서는 **Phase 1 이후 구현할 정식 API 경로를 설계**한 계약이다. 실제 코드로 구현된 경로와 혼동하지 않는다.
 
 **현재 구현된 경로**:
+- `POST /api/v1/auth/login`: 소유자 비밀번호 확인, HttpOnly 세션 쿠키 발급 (Origin 필요)
+- `GET /api/v1/auth/me`: 유효한 세션/CSRF 토큰 상태 확인
+- `POST /api/v1/auth/logout`: Origin 및 X-CSRF-Token 검사 후 세션 폐기
+- `/api/v1/*`는 **로그인 API 외 모두 인증 필수**, 데모 데이터 포함. 자동 OpenAPI/Swagger 외부 경로 비활성화.
 - `GET /api/health/live`, `GET /api/health/ready`
 - `GET /api/v1/demo/instruments` (Phase 0)
 - `GET /api/v1/demo/overview` (Phase 1A: 시각화/디자인용 고정 가상 데이터)
@@ -15,6 +19,8 @@
 - 금액·수량·%는 손실 없는 **10진 문자열**(`"125000.00"`)로 반환. 프론트에서 통화별 형식화.
 - 데이터 가용성은 `CURRENT / STALE / UNAVAILABLE / DEMO`로 분리. `as_of`, `source` 별도 제공.
 - API는 개인 접근 통제 뒤에만 제공. 정식 개인 정보/보유 정보 엔드포인트의 비인증 노출 금지.
+- 인증 완료 전 모든 개인 데이터 요청 차단; POST/PATCH/DELETE는 허용 출처 Origin + X-CSRF-Token 검사.
+- 세션은 8시간 절대 만료·30분 미활동 만료. 네트워크/세션 오류 시 이전 수치로 자동 대체 금지.
 - 목록 응답은 `items`와 `next_cursor`(없을 경우 null). 기본 20개/최대 100개. 신호·뉴스 시간 역순.
 - 오류 응답: `{"error":{"code":"...","message":"...","request_id":"..."}}`; 대표 상태 400/401/403/404/409/422/429/503.
 - `DELETE`는 데이터 파괴를 수반하는 작업은 요청하지 않으며, 대상 사용자 등록 레코드만 제거.
