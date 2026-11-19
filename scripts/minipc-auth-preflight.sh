@@ -4,14 +4,14 @@
 # Usage: bash scripts/minipc-auth-preflight.sh [repo_dir]
 set -uo pipefail
 
-ROOT="\${1:-$PWD}"
+ROOT="${1:-$PWD}"
 FLAGS=0
 say()  { printf '%s=%s\n' "$1" "$2"; }
 flag() { say "REVIEW_$1" "$2"; FLAGS=$((FLAGS + 1)); }
 has()  { command -v "$1" >/dev/null 2>&1; }
 section() { printf '\n===== %s =====\n' "$1"; }
 
-if [[ $# -gt 1 || \${1:-} == "--help" ]]; then
+if [[ $# -gt 1 || ${1:-} == "--help" ]]; then
   echo 'Usage: bash scripts/minipc-auth-preflight.sh [repo_dir]'
   exit 0
 fi
