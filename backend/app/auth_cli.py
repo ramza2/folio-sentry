@@ -13,7 +13,7 @@ def main() -> int:
         return 2
     try:
         username = input("소유자 로그인 아이디: ").strip()
-        password = getpass.getpass("새 비밀번호 (12자 이상): ")
+        password = getpass.getpass("새 비밀번호 (8자 이상): ")
         repeat = getpass.getpass("비밀번호 확인: ")
         if password != repeat:
             print("비밀번호가 일치하지 않습니다.", file=sys.stderr)
