@@ -67,7 +67,7 @@
 ## AUTH-01 절대 준수사항 (2026-11-19)
 - 실제 개인 보유 종목/수량/매수가 등록과 외부 네트워크 공개는 **로그인/세션/Backend API 차단 검증 이후**에만 허용.
 - `/api/v1/*`는 로그인 API 하나를 제외하고 기본 거부. 새 API는 인증 미들웨어를 우회하지 않는다.
-- 소유자 계정은 CLI로 단 한 번만 생성. 초기 비밀번호/비밀번호 재설정 링크/무인 가입 엔드포인트 작성 금지.
+- 소유자 계정은 CLI로 단 한 번만 생성. **비밀번호 허용 길이 8~128자(사용자 요청 2026-11-19)**. Argon2id 해시, 5회 로그인 실패/15분 잠금, CSRF·Origin 검사, Secure 쿠키 규칙 유지. 초기 비밀번호/비밀번호 재설정 링크/무인 가입 엔드포인트 작성 금지.
 - Argon2id 해시, DB에는 세션 ID hash만 저장. HttpOnly + SameSite=Strict 쿠키 유지. 운영 Secure=true/HTTPS 필수.
 - 모든 상태 변경은 정확한 Origin 허용목록 및 CSRF 헤더 검사. CORS 와일드카드, auth 우회 플래그, JWT localStorage 금지.
 - HTTP 개발 쿠키는 loopback 전용이며 `ALLOW_HTTP_DEV=true`가 명시된 경우에만 예외 허용.
