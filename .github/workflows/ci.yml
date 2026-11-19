@@ -53,12 +53,12 @@ jobs:
         run: |
           bash -n scripts/minipc-auth-preflight.sh
           output="$(bash scripts/minipc-auth-preflight.sh "$PWD")"
-          printf "%s\n" "$output"
-          grep -Fq "FOLIOSENTRY_MINIPC_PREFLIGHT_READONLY_COMPLETE" <<< "$output"
-          grep -Fq "CONTAINERS_MODIFIED=NO" <<< "$output"
-          grep -Fq "DATABASE_MODIFIED=NO" <<< "$output"
-          grep -Fq "PORTS_CHANGED=NO" <<< "$output"
-          grep -Fq "CREDENTIALS_REQUESTED=NO" <<< "$output"
+          printf '%s\n' "$output"
+          grep -Fq 'FOLIOSENTRY_MINIPC_PREFLIGHT_READONLY_COMPLETE' <<< "$output"
+          grep -Fq 'CONTAINERS_MODIFIED=NO' <<< "$output"
+          grep -Fq 'DATABASE_MODIFIED=NO' <<< "$output"
+          grep -Fq 'PORTS_CHANGED=NO' <<< "$output"
+          grep -Fq 'CREDENTIALS_REQUESTED=NO' <<< "$output"
           grep -Fq "REPO_DIR=$PWD" <<< "$output"
           grep -Fq "BRANCH=" <<< "$output"
           grep -Fq "HEAD=" <<< "$output"
@@ -67,61 +67,6 @@ jobs:
           missing="$(bash scripts/minipc-auth-preflight.sh /nonexistent/folio-test-path)"
           grep -Fq "REVIEW_REPO=NOT_FOUND" <<< "$missing"
           grep -Fq "CONTAINERS_MODIFIED=NO" <<< "$missing"
-  auth-db-migration:
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:17-alpine
-        env:
-          POSTGRES_DB: folio_ci
-          POSTGRES_USER: folio_ci
-          POSTGRES_PASSWORD: ci-only-not-a-real-secret
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U folio_ci -d folio_ci"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-    defaults:
-      run:
-        working-directory: backend
-    env:
-      FOLIOSENTRY_DB_HOST: 127.0.0.1
-      FOLIOSENTRY_DB_PORT: "5432"
-      FOLIOSENTRY_DB_USER: folio_ci
-      FOLIOSENTRY_DB_NAME: folio_ci
-      FOLIOSENTRY_DB_PASSWORD: ci-only-not-a-real-secret
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - name: Install backend
-        run: python -m pip install -e .
-      - name: Apply ONLY isolated CI authentication migration
-        run: alembic upgrade head
-      - name: Verify single owner bootstrap and authenticated readiness
-        run: |
-          python - <<'PY'
-          from app.auth import bootstrap_owner, auth_ready
-          from app.auth_models import AuthSession, Owner
-          from app.database import get_engine
-          from sqlalchemy import inspect
-          assert not auth_ready()
-          bootstrap_owner("ci-owner", "ci-only-synthetic-password-123!")
-          assert auth_ready()
-          tables = set(inspect(get_engine()).get_table_names())
-          assert {"auth_owner", "auth_session", "alembic_version"}.issubset(tables)
-          print("FOLIOSENTRY_AUTH01_ISOLATED_MIGRATION_PASS")
-          PY
- <<< "$output"
-          grep -Eq '^REPO_DISK_FREE=[^[:space:]]+' <<< "$output"
-          ! grep -Fq 'REVIEW_REPO=NOT_FOUND' <<< "$output"
-          # Missing path should raise a review flag but must never mutate.
-          missing="$(bash scripts/minipc-auth-preflight.sh /nonexistent/folio-test-path)"
-          grep -Fq 'REVIEW_REPO=NOT_FOUND' <<< "$missing"
-          grep -Fq 'CONTAINERS_MODIFIED=NO' <<< "$missing"
 
   auth-db-migration:
     runs-on: ubuntu-latest
