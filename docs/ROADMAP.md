@@ -9,7 +9,8 @@
 - [x] MiniPC OS·사양·Docker/Compose·포트 점검 (2026-11-19, REVIEW_FLAGS=0)
 - [x] 기존 PickNext/Traefik 네트워크 `proxy`, entrypoint `websecure`, resolver `myresolver` 확인 (2026-11-19)
 - [x] FolioSentry 신규 DuckDNS 후보 주소와 PickNext의 IPv4 매핑 일치 확인 (2026-11-19)
-- [ ] 기존 PickNext TLS 인증서 신뢰성·만료·와일드카드 커버리지 확인 (읽기 전용)
+- [x] 기존 PickNext TLS 신뢰 검증 PASS, 31일 잔여, FolioSentry 후보 SAN 미포함 확인 (2026-11-19)
+- [ ] 기존 Traefik myresolver ACME 인증서 발급 방식 및 외부 도달성 확인 (읽기 전용)
 - [ ] FolioSentry 새 HTTPS 라우터 발급 인증서 실검증 (공개 승인 및 라우터 생성 이후)
 - [ ] FastAPI + React + PostgreSQL 최소 골격 및 Docker Compose
 - [ ] 테스트/린트/typecheck/build 기본 CI
