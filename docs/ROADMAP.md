@@ -69,6 +69,7 @@
 - **게이트**: 백테스트의 미래 참조·과최적화·선택편향 문서화
 
 ## MiniPC 배포 준비 (기능 완성 및 명시적 승인 후)
+- [x] 안전 사전점검 스크립트/기준 문서 준비 (`scripts/minipc-auth-preflight.sh`, `docs/MINIPC_AUTH_PREVIEW_PLAN.md`)
 - [ ] 실제 MiniPC 리소스·기존 Compose 프로젝트·포트·디스크/백업 위치 확인
 - [ ] 개인 전용 인증/VPN 등 외부 접속 안전 방안 확정
 - [ ] Compose 리소스 격리, 환경변수·비밀관리, PostgreSQL 백업/복원 테스트
