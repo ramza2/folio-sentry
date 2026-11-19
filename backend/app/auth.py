@@ -63,8 +63,11 @@ def bootstrap_owner(username: str, password: str) -> None:
 
 
 def auth_ready() -> bool:
+    """Readiness requires both auth schema tables and an initialized owner."""
     with Session(get_engine()) as db:
-        return db.scalar(select(Owner.id).limit(1)) == 1
+        owner_id = db.scalar(select(Owner.id).limit(1))
+        db.scalar(select(AuthSession.id_hash).limit(1))
+        return owner_id == 1
 
 
 def authenticate(username: str, password: str) -> tuple[str, str, str]:
