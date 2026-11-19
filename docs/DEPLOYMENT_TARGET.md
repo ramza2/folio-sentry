@@ -8,6 +8,14 @@
 - 매수·매도 주문 API는 사용하지 않는다.
 - LLM은 선택적 뉴스 요약/설명 기능에만 사용하며 **필요 시 기존 ModelOps Gateway API를 원격 호출**한다. MiniPC에 자체 LLM 모델 설치는 기본 범위가 아니다.
 
+## MiniPC 실제 환경 확인 (2026-11-19 읽기 전용 점검)
+- OS Ubuntu 26.04 LTS, 논리 CPU 8, RAM 14GiB(당시 12GiB 여유), 디스크 98GB(39GB 여유).
+- Docker 29.6.2, Docker Compose 5.3.1, FolioSentry 프로젝트/볼륨 발견되지 않음.
+- 18901, 18902 포트 미점유. 단, 운영은 추가 포트 노출 대신 기존 Traefik 443에 연결.
+- 사용자 제공 운영 구성: Traefik + DuckDNS + ipTIME 포트포워딩. 기존 운영 사례: https://picknext.ramza.duckdns.org
+- 기존 Traefik의 Docker network/entrypoint/certresolver는 미확인. 정확한 값 확인 전 배포 금지.
+- 배포용 별도 파일: `compose.production.yml`, `compose.traefik.yml`, `scripts/deploy.sh`. 자세한 구성: `docs/TRAEFIK_MINIPC_DEPLOYMENT.md`.
+
 ## 개인 인증 사전 게이트 (2026-11-19 추가)
 - 개인 보유/평균 매수가 등록 전에 AUTH-01 서버 세션 인증과 클라이언트 로그인 화면을 반드시 검증한다.
 - 집 MiniPC 배포 시 안전한 HTTPS + 인증된 개인 원격접속 경로를 별도로 확정한다. 기존 HTTP Vite 개발 서버를 그대로 인터넷에 열지 않는다.
