@@ -80,6 +80,20 @@ DuckDNS 공식 명세는 서브-서브도메인의 DNS 응답을 지원하지만
 5. 단일 비밀번호 보호 앱의 443 포워딩 공개는 인터넷 공격면을 만든다. 운영 전 VPN 추가 보호 또는 Traefik 인증/접근 제한, 2FA, 백업과 복구를 검토해야 한다.
 6. 기존 공유기의 포트포워딩 규칙을 변경하지 않는다. DB/Backend/새 Frontend 포트를 별도로 포워딩하지 않는다.
 
+## 실제 MiniPC에서 다음에 실행할 읽기 전용 DNS 검사
+
+현재 **후보 도메인**은 `foliosentry.ramza.duckdns.org`이며 실사용 승인이 되지 않았다. 기존 PickNext와 후보 도메인의 DNS IPv4 응답을 비교하되 실제 IP 값은 출력하지 않는다.
+
+```bash
+cd ~/folio-sentry
+git fetch origin feat/deploy01-traefik-wizard-20261119
+git show FETCH_HEAD:scripts/check-duckdns-route.sh > /tmp/foliosentry-dns-check.sh
+bash -n /tmp/foliosentry-dns-check.sh
+bash /tmp/foliosentry-dns-check.sh foliosentry.ramza.duckdns.org
+```
+
+성공 결과의 `FOLIOSENTRY_DUCKDNS_READONLY_CHECK_PASS`는 **DNS IPv4 매핑 일치만 의미**한다. HTTPS 인증서 유효, Traefik 공개 라우터 작동, 개인계정 보안이 확보됐다는 뜻이 아니다. 미일치나 해석 실패는 `REVIEW_*`로 출력하며 공유기·DuckDNS 설정을 자동 변경하지 않는다.
+
 ## 필수 승인/검증 게이트
 - 저장소 PR #1~#7과 본 PR 검토, 병합 순서 확인. 실 개인용 계정·자산 데이터 투입 전 보안 테스트.
 - 기존 Traefik 연결값(`proxy`/`websecure`/`myresolver`)은 사용자 MiniPC에서 확인 완료. 호스트명 DNS, TLS 인증서, 중복 라우터 여부는 아직 별도 검사해야 함.
