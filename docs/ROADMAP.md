@@ -10,7 +10,9 @@
 - [x] 기존 PickNext/Traefik 네트워크 `proxy`, entrypoint `websecure`, resolver `myresolver` 확인 (2026-11-19)
 - [x] FolioSentry 신규 DuckDNS 후보 주소와 PickNext의 IPv4 매핑 일치 확인 (2026-11-19)
 - [x] 기존 PickNext TLS 신뢰 검증 PASS, 31일 잔여, FolioSentry 후보 SAN 미포함 확인 (2026-11-19)
-- [ ] 기존 Traefik myresolver ACME 인증서 발급 방식 및 외부 도달성 확인 (읽기 전용)
+- [x] Traefik myresolver **TLS-ALPN-01**, Docker 443 publish, ACME 저장소 마운트 확인 (2026-11-19)
+- [ ] 외부 네트워크의 443 도달성·실제 신규 도메인 TLS 발급 확인 (라우터 등록 이후)
+- [ ] 기존 ACME 저장소 백업·복구 방법 확인
 - [ ] FolioSentry 새 HTTPS 라우터 발급 인증서 실검증 (공개 승인 및 라우터 생성 이후)
 - [ ] FastAPI + React + PostgreSQL 최소 골격 및 Docker Compose
 - [ ] 테스트/린트/typecheck/build 기본 CI
