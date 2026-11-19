@@ -215,3 +215,13 @@ jobs:
         run: |
           docker build --file frontend/Dockerfile.prod --tag foliosentry-prod-ci:local frontend
           docker image inspect foliosentry-prod-ci:local >/dev/null
+
+  deploy02-backup-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test pre-publication PostgreSQL backup on isolated synthetic container
+        run: |
+          bash -n scripts/backup-db.sh
+          bash -n scripts/test-backup-ci.sh
+          bash scripts/test-backup-ci.sh
