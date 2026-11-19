@@ -177,3 +177,11 @@
 - 인증은 글로벌 Origin·CSRF·쿠키 미들웨어를 우회하지 않고, 금액/수량을 **문자열 Decimal·DB NUMERIC**으로 유지. Watch에는 수량/평균단가 저장 금지.
 - 테스트는 격리 SQLite와 GitHub Actions 별도 PostgreSQL만 사용. 실 자산정보·인증정보·증권 API 토큰을 테스트/로그에 사용하지 않는다.
 - API 및 배포 계약: `docs/PHASE1_PORTFOLIO_CRUD.md`. 다음 작업은 UI-03 연결, 이후 공급자 선정/시세. 기존 PickNext/Traefik/HTTPS/Auto-backup 설정 유지.
+
+## UI-03 실제 종목 관리 Frontend — 운영 배포 금지 게이트 (2026-11-19)
+- `RealPortfolioPage.tsx`, `realPortfolioApi.ts`는 GitHub 소스에만 작성된 **실제 수동 등록 종목 API 클라이언트**. 사이드바에 `실제 종목 관리` 메뉴를 추가하고 기존 `내 종목 (DEMO)`와 완전히 분리한다.
+- 사용자 수동 종목 심볼은 `MANUAL_UNVERIFIED`. 외부 시세 연결 전 실제 등록 목록의 모든 quote/손익은 `UNAVAILABLE`/null이며 가짜 숫자 fallback 금지. DEMO와 실 수치를 같은 목록·통계로 혼합 금지.
+- 프론트 Mutation은 AuthGate 내부 세션 CSRF로만 처리하고 `credentials=same-origin` 유지. 실 데이터·토큰을 브라우저 로컬 저장소 및 로그에 기록하지 않는다.
+- **운영 DB의 기존 AUTH-only 스키마에 신규 Backend/Frontend를 그대로 배포하면 실패할 수 있으므로 배포 금지.** 운영 DB revision 확인, additive 마이그레이션, Backend/Frontend 차례 배포는 반드시 개별 사용자 승인 및 운영 안전 점검 후.
+- 사용자가 자동 백업 timer를 `inactive/disabled`로 유지하길 선택함. 이 작업에서 백업 활성화·설정 변경 금지.
+- 브라우저 인수는 합성 종목/금액으로 시행. 실제 계좌/매수가 정보를 인수검사용으로 사용하지 않음. 상세 `docs/UI03_REAL_PORTFOLIO.md`.
