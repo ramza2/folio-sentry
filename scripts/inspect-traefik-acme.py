@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Read-only MiniPC Traefik ACME configuration inspection.
 
-Reads only the running Traefik container's Docker metadata. Never executes
-inside the container, reads .env/acme.json/config files, or prints raw
-arguments, environment variables, mount locations, IP addresses or secrets.
+Reads only selected metadata fields of the existing Traefik container. Never
+executes inside containers, inspects unrelated services, reads .env/acme.json/
+config files, or requests environment variables, host mount source paths,
+credentials, or raw Docker configurations.
 """
 from __future__ import annotations
 
@@ -124,51 +125,76 @@ def self_test() -> None:
     print("FOLIOSENTRY_TRAEFIK_ACME_INSPECT_SELFTEST_PASS")
 
 
-def docker_json(command: list[str]) -> object:
-    result = subprocess.run(
-        ["docker", *command],
+def docker_field(container_id: str, field: str) -> object:
+    """Ask Docker for one field, never request the whole Env/config object."""
+    out = subprocess.run(
+        ["docker", "inspect", "--format", "{{json " + field + "}}", container_id],
         check=True, capture_output=True, text=True, timeout=10,
-    )
-    return json.loads(result.stdout)
+    ).stdout
+    return json.loads(out)
 
 
 def inspect() -> int:
-    print("TRAEFIK_ACME_INSPECT_MODE=READ_ONLY_DOCKER_METADATA")
+    print("TRAEFIK_ACME_INSPECT_MODE=READ_ONLY_SELECTED_DOCKER_FIELDS")
     try:
+        # Find Traefik by name/image without inspecting unrelated containers.
         result = subprocess.run(
-            ["docker", "ps", "--format", "{{.ID}}"],
+            ["docker", "ps", "--format", "{{.ID}}|{{.Image}}|{{.Names}}"],
             check=True, capture_output=True, text=True, timeout=10,
         )
-        matches: list[dict] = []
-        for container_id in result.stdout.splitlines():
-            raw = docker_json(["inspect", container_id])
-            if not isinstance(raw, list) or len(raw) != 1:
+        ids: list[str] = []
+        for line in result.stdout.splitlines():
+            parts = line.split("|", 2)
+            if len(parts) != 3:
                 continue
-            obj = raw[0]
-            if not isinstance(obj, dict):
-                continue
-            cfg = obj.get("Config") or {}
-            name = str(obj.get("Name") or "").lower()
-            image = str(cfg.get("Image") or "").lower()
-            if "traefik" in name or image.startswith("traefik:"):
-                matches.append(obj)
+            cid, image, name = parts
+            image_name = image.casefold().split("/")[-1]
+            if "traefik" in name.casefold() or image_name.startswith("traefik:"):
+                ids.append(cid)
+        if len(ids) != 1:
+            print("REVIEW_TRAEFIK_CONTAINER=" +
+                  ("NOT_FOUND" if not ids else "MULTIPLE_CANDIDATES"))
+            return 2
+
+        cid = ids[0]
+        cmd = docker_field(cid, ".Config.Cmd") or []
+        entry = docker_field(cid, ".Config.Entrypoint") or []
+        args = docker_field(cid, ".Args") or []
+        ports = docker_field(cid, ".NetworkSettings.Ports") or {}
+        bindings = docker_field(cid, ".HostConfig.PortBindings") or {}
+        network_mode = docker_field(cid, ".HostConfig.NetworkMode") or ""
+        # Mount destinations/types only: source host paths and secret values
+        # are never requested from the Docker daemon.
+        mounts_out = subprocess.run(
+            ["docker", "inspect", "--format",
+             '{{range .Mounts}}{{.Type}}|{{.Destination}}{{println}}{{end}}', cid],
+            check=True, capture_output=True, text=True, timeout=10,
+        ).stdout
+        mounts = []
+        for line in mounts_out.splitlines():
+            kind, sep, dest = line.partition("|")
+            if sep:
+                mounts.append({"Type": kind, "Destination": dest})
+        obj = {
+            "Config": {"Cmd": cmd, "Entrypoint": entry},
+            "Args": args,
+            "NetworkSettings": {"Ports": ports},
+            "HostConfig": {"PortBindings": bindings, "NetworkMode": network_mode},
+            "Mounts": mounts,
+        }
+        summary = interpret(obj)
     except (OSError, subprocess.SubprocessError, ValueError, TypeError):
         print("REVIEW_TRAEFIK_DOCKER=UNAVAILABLE")
         return 2
-    if len(matches) != 1:
-        print("REVIEW_TRAEFIK_CONTAINER=" +
-              ("NOT_FOUND" if not matches else "MULTIPLE_CANDIDATES"))
-        return 2
-    for key, value in interpret(matches[0]).items():
+    for key, value in summary.items():
         print(key + "=" + value)
     print("TRAEFIK_CONFIG_FILES_READ=NO")
-    print("TRAEFIK_ENV_OR_SECRET_VALUES_PRINTED=NO")
+    print("TRAEFIK_ENV_OR_SECRET_VALUES_REQUESTED=NO")
     print("TRAEFIK_CONTAINERS_MODIFIED=NO")
     print("ROUTER_OR_CERTIFICATE_CREATED=NO")
     print("NOTE=DOCKER_PORT_MAPPING_DOES_NOT_PROVE_IPTIME_FORWARDING_OR_ACME_REACHABILITY")
     print("FOLIOSENTRY_TRAEFIK_ACME_READONLY_INSPECTION_COMPLETE")
     return 0
-
 
 if __name__ == "__main__":
     if sys.argv[1:] == ["--self-test"]:
