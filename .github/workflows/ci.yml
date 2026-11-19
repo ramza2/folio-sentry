@@ -116,3 +116,64 @@ jobs:
           assert {"auth_owner", "auth_session", "alembic_version"}.issubset(tables)
           print("FOLIOSENTRY_AUTH01_ISOLATED_MIGRATION_PASS")
           PY
+
+  deploy01-production-config:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate deployment scripts are syntactically sound
+        run: |
+          bash -n scripts/deploy.sh
+          bash -n scripts/inspect-traefik.sh
+          bash scripts/deploy.sh --help
+          if bash scripts/deploy.sh db-init >/dev/null 2>&1; then
+            echo "db-init missing-confirmation unexpectedly succeeded"
+            exit 1
+          fi
+          if bash scripts/deploy.sh publish >/dev/null 2>&1; then
+            echo "publish missing-confirmation unexpectedly succeeded"
+            exit 1
+          fi
+          echo "FOLIOSENTRY_DEPLOY01_MUTATION_GUARDS_PASS"
+      - name: Validate independent production and Traefik overrides
+        run: |
+          secret="$RUNNER_TEMP/folio-ci-db-secret"
+          printf '%s\n' 'synthetic-ci-only-not-a-real-password' > "$secret"
+          chmod 600 "$secret"
+          envfile="$RUNNER_TEMP/folio-ci.env"
+          {
+            echo "FOLIOSENTRY_DOMAIN=foliosentry.example.duckdns.org"
+            echo "FOLIOSENTRY_TRAEFIK_NETWORK=foliosentry-ci-edge"
+            echo "FOLIOSENTRY_TRAEFIK_ENTRYPOINT=websecure"
+            echo "FOLIOSENTRY_TRAEFIK_CERTRESOLVER=ci-resolver"
+            echo "FOLIOSENTRY_DB_SECRET_FILE=$secret"
+          } > "$envfile"
+          chmod 600 "$envfile"
+          dc=(docker compose -p foliosentry-prod --env-file "$envfile" -f compose.production.yml -f compose.traefik.yml)
+          "${dc[@]}" config -q
+          "${dc[@]}" config --format json > "$RUNNER_TEMP/folio-ci-compose.json"
+          python3 - "$RUNNER_TEMP/folio-ci-compose.json" <<'PY'
+          import json, sys
+          obj = json.load(open(sys.argv[1], encoding="utf-8"))
+          sv = obj["services"]
+          assert set(sv) == {"db", "backend", "frontend"}
+          assert all(not svc.get("ports") for svc in sv.values()), "host ports not allowed"
+          assert sv["db"]["labels"]["traefik.enable"] == "false"
+          assert sv["backend"]["labels"]["traefik.enable"] == "false"
+          labels = sv["frontend"]["labels"]
+          assert labels["traefik.enable"] == "true"
+          assert labels["traefik.docker.network"] == "foliosentry-ci-edge"
+          assert labels["traefik.http.routers.foliosentry-prod.tls"] == "true"
+          assert "foliosentry.example.duckdns.org" in labels["traefik.http.routers.foliosentry-prod.rule"]
+          assert "traefik_edge" in sv["frontend"]["networks"]
+          assert "traefik_edge" not in sv["backend"]["networks"]
+          assert "traefik_edge" not in sv["db"]["networks"]
+          assert "443" not in str([svc.get("ports") for svc in sv.values()])
+          assert sv["backend"]["environment"]["FOLIOSENTRY_AUTH_COOKIE_SECURE"] == "true"
+          assert sv["backend"]["environment"]["FOLIOSENTRY_ALLOW_HTTP_DEV"] == "false"
+          print("FOLIOSENTRY_DEPLOY01_PRIVATE_NETWORK_HTTPS_CONTRACT_PASS")
+          PY
+      - name: Build production frontend (Nginx, not Vite dev server)
+        run: |
+          docker build --file frontend/Dockerfile.prod --tag foliosentry-prod-ci:local frontend
+          docker image inspect foliosentry-prod-ci:local >/dev/null
