@@ -1,6 +1,9 @@
 """Phase 1 API tests use ONLY ephemeral SQLite with synthetic input."""
 from fastapi.testclient import TestClient
 import pytest
+from decimal import Decimal
+from uuid import UUID, uuid4
+
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
@@ -221,13 +224,12 @@ def test_database_absent_fails_closed(monkeypatch):
 def test_model_constraints_not_only_api():
     inst = register(US)
     with Session(portfolio_api.get_engine()) as db:
-        assert db.scalar(select(Instrument)).id == inst["id"] or True
+        assert db.scalar(select(Instrument)).id == UUID(inst["id"])
         # A database CHECK must reject WATCH records with a holding quantity.
         from sqlalchemy.exc import IntegrityError
-        import uuid
         db.add(TrackedInstrument(
-            id=uuid.uuid4(), instrument_id=inst["id"],
-            kind="WATCH", quantity="1", average_cost=None, alerts_enabled=True,
+            id=uuid4(), instrument_id=UUID(inst["id"]),
+            kind="WATCH", quantity=Decimal("1"), average_cost=None, alerts_enabled=True,
         ))
         with pytest.raises(IntegrityError):
             db.commit()
