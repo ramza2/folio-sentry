@@ -129,7 +129,7 @@ jobs:
           bash -n scripts/backup-db.sh
           python3 -m py_compile scripts/verify-public-https.py
           python3 scripts/verify-public-https.py --self-test
-          grep -Fq "FOLIOSENTRY_PREPUBLISH_BACKUP_VERIFY_PASS" scripts/backup-db.sh
+          grep -Fq 'FOLIOSENTRY_${kind^^}_BACKUP_VERIFY_PASS' scripts/backup-db.sh
           grep -Fq "FOLIOSENTRY_HTTPS_VERIFY=FAIL_STOPPING_OWN_FRONTEND" scripts/deploy.sh
           grep -Fq "scripts/backup-db.sh" scripts/deploy.sh
           if bash scripts/backup-db.sh >/dev/null 2>&1; then
