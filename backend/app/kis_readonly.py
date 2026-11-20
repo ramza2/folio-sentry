@@ -154,14 +154,17 @@ class KisReadOnlyDailyProvider:
         # Conservative per-instance limit; not a cross-process scheduler.
         if self._requests_made >= 60:
             raise KisReadOnlyError("KIS_PROCESS_REQUEST_CAP")
-        if now - self._last_request < 1.0:
+        # The OAuth token and first quote can be sent in succession;
+        # enforce the quote-to-quote interval, not token-to-quote delay.
+        if not token and now - self._last_request < 1.0:
             raise KisReadOnlyError("KIS_RATE_LIMIT")
         if token and now - self._last_token_issued < 6 * 3600:
             raise KisReadOnlyError("KIS_TOKEN_REFRESH_TOO_SOON")
-        self._last_request = now
         self._requests_made += 1
         if token:
             self._last_token_issued = now
+        else:
+            self._last_request = now
 
     def _authorize(self) -> str:
         if self._access_token and self._clock() < self._token_valid_until:
@@ -203,8 +206,7 @@ class KisReadOnlyDailyProvider:
             raise KisReadOnlyError("KIS_LIVE_READ_DISABLED")
 
         token = self._authorize()
-        # An issued token is followed by a conservative 1s gap; no sleep,
-        # implicit retry or extra transport call is ever performed.
+        # Explicit single quote request, never auto-sleep or retry.
         self._guard_request(token=False)
         headers = {
             "authorization": "Bearer " + token,
