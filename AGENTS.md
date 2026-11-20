@@ -244,3 +244,8 @@
 ## Public 전환 전 READ-ONLY 이력 검사
 - `scripts/public-visibility-preflight.py`는 Git 이력의 비밀 패턴 및 홈 운영 주소 등을 분류하여 **건수만** 표시한다. 어떠한 원문 자격증명도 화면/CI/ChatGPT로 내보내지 않는다. MiniPC에서만 실행하며 해당 경로가 main 미병합 상태라면 임시 Git blob 추출로 실행한다.
 - 로컬 역사 검사는 GitHub 과거 Actions 로그·아티팩트·원격 전용 PR ref를 다 검사하지 못한다. 그래서 **출력 0건도 공개 승인 아님**. 운영 중 개인 MiniPC 정보가 포함된 문서/로그를 사람 눈으로 검토한 뒤에만 Visibility 변경.
+
+
+## CI01 오프라인 인수 기록 (2026-11-20)
+- 사용자 MiniPC에서 CI 경로선택·최종게이트·공개 전 진단 단위 테스트 21/21 PASS(`239f5c2`). 검사기 self-test PASS. GitHub CI는 월간 Actions 포함량 소진으로 실행/검증되지 않았으므로 PASS로 표시하지 말 것.
+- 결제·Public 전환·main 병합·운영 MiniPC 배포 및 실제 시세 요청 없이 진행. 별도 PR #26 Alembic 격리 CI 변경과 충돌 시 가격 DB 검증을 반드시 보존.

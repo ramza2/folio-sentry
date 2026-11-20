@@ -75,3 +75,10 @@
 - **잔여 미검증**: GitHub Actions 전체 과거 로그/아티팩트, 서버 전용 refs, repo history에 숨어 있는 비정형 인코딩 키, 외부 출판에 적합한 네트워크/인증 설계 공개 범위.
 - **결론: FolioSentry는 Private 그대로 유지. Public로 바로 바꾸지 않는다.** 공개가 개발 비용상 꼭 필요하면 운영 코드·역사·Actions 로그를 노출하지 않는 **새 Public 저장소(새 Git 이력, 샘플 도메인·샘플 구성만)**를 별도로 설계·검수. 그렇지 않으면 Private 경량 CI를 먼저 활성화하는 방향.
 - CI 최적화 브랜치 `ci/usage-control-20261120`는 단일 branch SHA 코드로만 보관, CI 실행 0회; PR/main 병합이나 visibility 변경은 미승인·미수행.
+
+
+## 2026-11-20 로컬 CI 단위 테스트 재실행 PASS
+- MiniPC에서 사용자 직접 실행: `TARGET=239f5c2716f3866b2072c6d5dad22ea8382ed15e`, `git archive scripts/ci scripts/public-visibility-preflight.py`로 임시 디렉터리에 코드 추출, `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s scripts/ci -p 'test_*.py'` 실행.
+- **Ran 21 tests / OK**, `FOLIOSENTRY_PREPUBLIC_SCANNER_SYNTHETIC_SELFTEST_PASS`, `FOLIOSENTRY_CI_LOCAL_UNIT_TESTS_PASS`.
+- 이전 커밋의 가짜 Git 함수명 오류(`fake` → `fake_git`)는 해당 커밋에서 고쳤다. GitHub Actions 6개 job/최종 gate의 hosted runner 실제 실행은 **아직 검증되지 않았고 PASS로 주장하면 안 된다**.
+- 남은 게이트: YAML/Actions 구문 별도 검사와 정상 GitHub hosted 실행 가능해진 후 실제 job/PR 게이트 확인. `main` 병합·운영 배포·Public 전환은 별도 승인 절차.

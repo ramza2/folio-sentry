@@ -172,6 +172,13 @@ Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 �
 - [x] 현재 main 트리 내 홈 MiniPC/DuckDNS/Traefik 구성·운영 문서 노출 가능성 확인
 - [x] Git 과거 객체의 민감한 파일명·자격증명 패턴·운영 주소를 값 노출 없이 분류하는 읽기 전용 로컬 감사 스크립트 작성
 - [x] 공개 전 감사 도구 자체의 합성 unittest 추가(워크플로 경로 테스트와 함께 실행)
-- [ ] MiniPC에서 실제 로컬 이력 감사 및 사용자 결과 확인 (아직 미실행)
+- [x] MiniPC 실제 로컬 이력 감사 및 사용자 결과 확인 (운영 흔적 79 Git blob 버전/12경로, 개인키 헤더 2건은 합성 코드 문자열; Actions 로그는 미검사)
 - [ ] GitHub Actions 전체 과거 로그·아티팩트와 원격 전용 PR refs 추가 확인
 - [ ] 사용자가 공개 노출 범위를 확인하고 최종 Public 선택 (변경 실행 전까지 Private 유지)
+
+
+## OPS-CI01 사용자 MiniPC 로컬 재검증 (2026-11-20)
+- [x] 커밋 `239f5c2716f3866b2072c6d5dad22ea8382ed15e`에서 `scripts/ci` Python 단위 테스트 **21/21 PASS**, `FOLIOSENTRY_CI_LOCAL_UNIT_TESTS_PASS` (사용자 제공 MiniPC 실행 로그)
+- [x] `scripts/public-visibility-preflight.py --self-test` PASS, `FOLIOSENTRY_PREPUBLIC_SCANNER_SYNTHETIC_SELFTEST_PASS`
+- [ ] Actions Runner 기반 실 CI는 무료 포함량 소진으로 아직 실행 검증되지 않음. YAML 자체의 별도 파싱/체크 및 GitHub Actions CI-gate 실동작 확인 필요
+- [ ] 무료 할당량 회복/사용자 승인 전 PR 생성·반복 CI 재실행 금지. 기존 main/운영 서비스/키/DB 영향 없음
