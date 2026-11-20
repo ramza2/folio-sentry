@@ -84,3 +84,13 @@ python3 scripts/verify-public-https.py
 - 마이그레이션 후 DB revision 및 익명 API 401, 로그인/세션 유효성 확인
 - 브라우저 수동 인수, 기존 PickNext 동작 확인
 - 자동 백업 타이머는 **계속 비활성화** (백업 정책을 임의로 선행 조건으로 만들지 않음)
+
+## 2026-11-20 Phase 1 마이그레이션 PASS / 운영 배포 준비
+
+- MiniPC 실 검증: `FOLIOSENTRY_PHASE1_DB_MIGRATION_PASS`, `DB_RESULT=PHASE1_DB_SCHEMA_PASS`, 인증 계정/세션 보존, 두 신규 테이블 0건. DB 재마이그레이션 금지.
+- 준비된 Backend/Frontend 신규 이미지 빌드 PASS, 현재 운영 실행 중인 것은 계속 기존 이미지. 기존 롤백 태그 보존.
+- 최초 운영 앱 배포 커맨드는 `app.routes`를 평면 목록으로 전제해 새 API가 누락됐다고 판단하여 사전검사 단계에서 AssertionError로 중단. 실 배포는 일어나지 않음.
+- 원인: FastAPI 0.137+는 `include_router()`를 `_IncludedRouter`로 중첩 등록. `app.routes` 직접 평면 순회는 잘못된 검사. 해당 라우트는 Backend 소스 및 이미지의 `portfolio.router.routes=7`에 정상 등록.
+- 수정된 GitHub 배포 스크립트 `scripts/phase1-app-deploy.sh`는 FastAPI 제공 `get_openapi(title, version, routes=app.routes)`로 중첩 경로를 검증하고, 기존 운영 이미지·DB Revision·자동 백업 비활성 상태 확인 후 Backend → Frontend만 교체한다.
+- 2026-11-19의 사전 검사 스크립트 `phase1-live-preflight.sh`는 AUTH01 전용이므로 **마이그레이션 완료 후에는 재실행하면 실패하는 것이 정상**. 이제 앱 전환 전용 스크립트를 사용한다.
+- 사용자가 직접 실행: `bash scripts/phase1-app-deploy.sh --confirm-phase1-app-deploy`. 실행 전 main 동기화 필요. 사전검사 실패면 컨테이너 변경 없음; 교체 이후 오류면 기존 이미지 롤백 시도. DB downgrade/backup timer enable/Traefik 변경 없음.

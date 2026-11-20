@@ -193,3 +193,11 @@
 - 새 migration `20261119_portfolio01` 및 Backend/Frontend 이미지 교체는 사용자 명시 승인 없이는 금지. 다운그레이드·볼륨 삭제·기존 PickNext/Traefik 변경 금지.
 - Frontend Nginx가 `backend`를 시작 시 정적 해석하므로 Backend 교체 후 Frontend 교체 전 일시적 502 가능. 무중단을 장담하지 말고 전환/복구 순서를 문서로 확인.
 - 사용자가 자동 백업을 선택적으로 끄기로 확정함. `foliosentry-backup.timer`를 임의로 enable/start하지 않는다. 상세: `docs/PHASE1_LIVE_CUTOVER.md`.
+
+## FastAPI 0.137+ 중첩 라우터 진단 및 Phase 1 배포 (2026-11-20)
+- MiniPC 생산 이미지의 `app.main`/`app.portfolio_api` SHA256이 호스트 소스와 일치. `portfolio.router.routes=7`, `app.routes=8` 중 마지막 객체는 경로 속성이 없는 `_IncludedRouter`. 이는 FastAPI 0.137부터의 정상 중첩 라우팅 방식이며 라우트 누락이 아님.
+- 릴리스 검사에서 `for route in app.routes: route.path`처럼 최상위 평면 라우트라고 가정하지 않는다. FastAPI 자체 `get_openapi(..., routes=app.routes)` 또는 실제 HTTP TestClient로 검사한다. 운영 외부 OpenAPI/docs는 계속 비활성.
+- 사용자 MiniPC에서 2026-11-20 `20261119_portfolio01` 운영 DB 마이그레이션 PASS. 기존 계정 1명, 인증 세션 테이블 보존, 신규 종목/추적 테이블 0건. 운영 Backend/Frontend는 아직 기존 이미지로 정상 실행.
+- 기존 롤백 이미지 SHA256은 보존돼 있고 새 Backend 이미지 SHA256은 `e2be1807608a1a9c5692df7fe20b506e43c7d338a6a2824fddc9a63a82cf4797`. 새 Backend/Frontend 빌드 완료; **이미지를 다시 빌드할 이유 없음.**
+- 사용자가 이미 Backend·Frontend 운영 배포를 승인했으나 2026-11-20 평면 라우트 검사 AssertionError로 배포 전 중단됨. 수정된 `scripts/phase1-app-deploy.sh`는 운영 DB를 재마이그레이션하지 않고 기존 롤백 이미지를 보존하며 Backend→Frontend 순차 전환한다. MiniPC에서 사용자 명시 실행 전 컨테이너 변경 금지.
+- 비인가 `/api/v1/instruments`, `/api/v1/tracked`는 401이어야 하며 로그인/세션/기존 DEMO/HTTPS·PickNext 검증 필요. 자동 백업 타이머 inactive/disabled 유지. `docs/PHASE1_LIVE_CUTOVER.md` 참조.
