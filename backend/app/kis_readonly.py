@@ -71,6 +71,14 @@ class Transport(Protocol):
     ) -> Mapping[str, object]: ...
 
 
+class SharedQuoteGate(Protocol):
+    def call_quote(
+        self, credentials: KisCredentials, transport: Transport, *,
+        path: str, tr_id: str, params: Mapping[str, str],
+        live_enabled: bool = False, allow_new_token: bool = False,
+    ) -> Mapping[str, object]: ...
+
+
 class _RejectRedirect(HTTPRedirectHandler):
     def redirect_request(self, request, fp, code, msg, headers, newurl):
         raise KisReadOnlyError("KIS_REDIRECT_REJECTED")
@@ -133,9 +141,15 @@ class KisReadOnlyDailyProvider:
         transport: Transport | None = None,
         monotonic: Callable[[], float] = time.monotonic,
         utcnow: Callable[[], datetime] = lambda: datetime.now(timezone.utc),
+        shared_state: SharedQuoteGate | None = None,
+        allow_shared_token_issue: bool = False,
     ):
         if not isinstance(credentials, KisCredentials):
             raise KisReadOnlyError("INVALID_KIS_CREDENTIALS")
+        if allow_shared_token_issue and shared_state is None:
+            raise KisReadOnlyError("KIS_SHARED_STATE_REQUIRED")
+        self._shared_state = shared_state
+        self._allow_shared_token_issue = allow_shared_token_issue
         self._credentials = credentials
         self._enabled = live_enabled
         self._transport = transport if transport is not None else KisHttpsTransport()
@@ -205,15 +219,9 @@ class KisReadOnlyDailyProvider:
         if not self._enabled:
             raise KisReadOnlyError("KIS_LIVE_READ_DISABLED")
 
-        token = self._authorize()
-        # Explicit single quote request, never auto-sleep or retry.
-        self._guard_request(token=False)
-        headers = {
-            "authorization": "Bearer " + token,
-            "appkey": self._credentials.appkey,
-            "appsecret": self._credentials.appsecret,
-            "content-type": "application/json",
-        }
+        # Shared-state mode never falls through to the in-memory token logic.
+        # It persists the issuance/quote attempt BEFORE each outbound call.
+        headers = {"content-type": "application/json"}
         if identity.market == "KR":
             path = KR_DAILY_PATH
             headers["tr_id"] = "FHKST03010100"
@@ -234,7 +242,23 @@ class KisReadOnlyDailyProvider:
                 "BYMD": end.strftime("%Y%m%d"),
                 "MODP": "0" if price_basis == "RAW" else "1",
             }
-        response = self._transport("GET", path, headers, params=params)
+        if self._shared_state is not None:
+            response = self._shared_state.call_quote(
+                self._credentials, self._transport, path=path,
+                tr_id=headers["tr_id"], params=params,
+                live_enabled=self._enabled,
+                allow_new_token=self._allow_shared_token_issue,
+            )
+        else:
+            token = self._authorize()
+            # Original single-process opt-in mode; NEVER attach a scheduler.
+            self._guard_request(token=False)
+            headers.update({
+                "authorization": "Bearer " + token,
+                "appkey": self._credentials.appkey,
+                "appsecret": self._credentials.appsecret,
+            })
+            response = self._transport("GET", path, headers, params=params)
         batch = normalize_kis_daily_response(
             response, identity=identity, price_basis=price_basis, fetched_at=self._utcnow(),
         )
