@@ -29,6 +29,15 @@ class PublicVisibilityAuditUnit(unittest.TestCase):
                 "operational_endpoint_exposure"], 1,
         )
 
+
+    def test_location_mode_uses_safe_path_allowlist_and_no_values(self):
+        import inspect
+        implementation = inspect.getsource(subject.locate_private_key_headers)
+        self.assertIn("KEY_HEADER_VALUES_PRINTED=NO", implementation)
+        self.assertIn("KEY_HEADER_BLOB_SHA=", implementation)
+        self.assertNotIn("print(data)", implementation)
+        self.assertNotIn("print(match.group", implementation)
+
     def test_hidden_secret_paths_flagged(self):
         self.assertTrue(subject.SENSITIVE_PATH.search(".env.production"))
         self.assertTrue(subject.SENSITIVE_PATH.search("keys/id_rsa"))

@@ -52,3 +52,7 @@
 - 사용법: MiniPC에서 `cd ~/folio-sentry` 후 올바른 스크립트를 가져와 `python3 scripts/public-visibility-preflight.py --self-test`, 이후 `python3 scripts/public-visibility-preflight.py` 실행. 단 이번 브랜치는 아직 main 미병합이므로 **git show로 스크립트를 임시 추출**해야 한다. 기존 운영 서비스/DB/KIS API 호출 없음.
 - 완전성을 위해 검사 직전 원격 모든 브랜치 및 PR 참조를 안전하게 가져왔는지 확인해야 한다. 이 스크립트는 GitHub 서버에만 있는 과거·닫힌 PR ref, GitHub Actions 로그·아티팩트, LFS, 키의 비표준 인코딩/암호화 내역을 **검증하지 못한다**. 결과에 문제 0건이라고 표시되어도 Public 승인 마커가 아니다.
 - 오류나 의심 발견 시 **키 값/매칭 문자열은 절대 채팅에 공유하지 말고**, 의심 항목의 건수·유형만 사용해 안전하게 판단한다.
+
+## 개인키 헤더 2건의 상세 위치 확인 (사용자 검사 후 추가)
+- 이전 감사에서 `PRIVATE_KEY_HEADER=2`가 나왔으며 실제 키인지 아직 확인하지 않았다. `scripts/public-visibility-preflight.py --locate-key-headers`는 Git 객체 SHA·파일 경로·해당 행·끝 마커 존재 여부만 출력하고 **키/PEM 원문은 출력하지 않는다**.
+- 검사 후 이 메타데이터만 공유한다. `.pem` 파일 내용, 인증키, 토큰 원문을 채팅에 붙여넣지 않는다. 단순 문자열 패턴(가짜 테스트 데이터 포함)인지 실제 키인지는 후속 별도 검토.

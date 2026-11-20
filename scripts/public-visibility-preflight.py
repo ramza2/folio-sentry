@@ -92,6 +92,59 @@ def self_test():
     print("FOLIOSENTRY_PREPUBLIC_SCANNER_SYNTHETIC_SELFTEST_PASS")
 
 
+def locate_private_key_headers():
+    """Print only matching Git object IDs/path/line, never any blob content."""
+    if _git("rev-parse", "--is-shallow-repository").strip() == b"true":
+        raise AuditError("SHALLOW_HISTORY_INCOMPLETE")
+    rows = _git("rev-list", "--objects", "--all").splitlines()
+    if len(rows) > MAX_OBJECTS:
+        raise AuditError("HISTORY_TOO_LARGE_FOR_SCANNER")
+    objects = {}
+    for row in rows:
+        raw_sha, _, raw_path = row.partition(b" ")
+        if not re.fullmatch(rb"[0-9a-f]{40,64}", raw_sha):
+            raise AuditError("INVALID_GIT_OBJECT_LIST")
+        objects.setdefault(raw_sha.decode("ascii"), raw_path.decode("utf-8", "replace"))
+    info = _git(
+        "cat-file", "--batch-check=%(objectname) %(objecttype) %(objectsize)",
+        input_data=("\n".join(objects) + "\n").encode("ascii"),
+    ).splitlines()
+    found = 0
+    scanned_bytes = 0
+    for record in info:
+        parts = record.split()
+        if len(parts) != 3:
+            raise AuditError("INVALID_GIT_OBJECT_METADATA")
+        sha_raw, kind, length = parts
+        if kind != b"blob":
+            continue
+        size = int(length)
+        if size > MAX_BLOB or scanned_bytes + size > MAX_TOTAL_BYTES:
+            raise AuditError("KEY_HEADER_AUDIT_INCOMPLETE_LARGE_OBJECT")
+        scanned_bytes += size
+        sha = sha_raw.decode("ascii")
+        data = _git("cat-file", "blob", sha)
+        if len(data) != size:
+            raise AuditError("GIT_BLOB_SIZE_MISMATCH")
+        if b"\0" in data[:8192]:
+            continue
+        for match in PATTERNS["private_key_header"].finditer(data):
+            found += 1
+            path = objects.get(sha, "")
+            # Strict ASCII path allowlist prevents log/control character injection.
+            if not re.fullmatch(r"[A-Za-z0-9_./-]{1,300}", path):
+                path = "PATH_REDACTED"
+            footer = match.group(0).replace(b"BEGIN", b"END", 1)
+            has_footer = footer in data[match.end():match.end() + 8192]
+            print("FOLIOSENTRY_KEY_HEADER_BLOB_SHA=" + sha)
+            print("FOLIOSENTRY_KEY_HEADER_PATH=" + path)
+            print("FOLIOSENTRY_KEY_HEADER_LINE=" + str(data.count(b"\n", 0, match.start()) + 1))
+            print("FOLIOSENTRY_KEY_HEADER_FOOTER_WITHIN_8K=" + ("YES" if has_footer else "NO"))
+    print("FOLIOSENTRY_KEY_HEADER_MATCHES=" + str(found))
+    print("FOLIOSENTRY_KEY_HEADER_VALUES_PRINTED=NO")
+    print("FOLIOSENTRY_PREPUBLIC_VISIBILITY_APPROVAL=MANUAL_REVIEW_REQUIRED")
+
+
 def audit():
     if not Path(".git").exists():
         try:
@@ -161,9 +214,15 @@ def audit():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--self-test", action="store_true")
+    parser.add_argument("--locate-key-headers", action="store_true")
     args = parser.parse_args()
     try:
-        self_test() if args.self_test else audit()
+        if args.self_test:
+            self_test()
+        elif args.locate_key_headers:
+            locate_private_key_headers()
+        else:
+            audit()
     except AuditError as exc:
         print("FOLIOSENTRY_PREPUBLIC_AUDIT_INCOMPLETE=" + str(exc))
         sys.exit(2)
