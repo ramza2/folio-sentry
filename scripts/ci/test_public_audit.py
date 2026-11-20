@@ -55,7 +55,7 @@ class PublicVisibilityAuditUnit(unittest.TestCase):
                 return content
             raise AssertionError("Unexpected Git request")
         out = StringIO()
-        with patch.object(subject, "_git", side_effect=fake):
+        with patch.object(subject, "_git", side_effect=fake_git):
             with contextlib.redirect_stdout(out):
                 subject.locate_operational_paths()
         report = out.getvalue()
