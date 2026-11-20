@@ -209,3 +209,10 @@
 - 브라우저 검증 PASS/FAIL/N/A는 서버 배포·CI의 PASS와 별도 결과로 보고. Work에서 DevTools나 모바일 에뮬레이션을 제공하지 않는 경우 검증했다고 주장하지 말고 N/A로 처리한다.
 - 운영 계정 인증정보·쿠키·CSRF 토큰·개인 종목·수량/평균단가는 보고서·로그·스크린샷에 노출하지 않는다. Work의 사용자 제어 로그인 절차를 우선한다. 기존 로컬 Chrome 탭은 건드리지 않는다.
 - 2026-11-20 MiniPC 실 배포: `main 84e94cf`, `FOLIOSENTRY_PHASE1_APP_DEPLOY_PASS`, `FOLIOSENTRY_PUBLIC_HTTPS_ACCEPTANCE_PASS`, `FOLIOSENTRY_PHASE1_ANONYMOUS_API_DENY_PASS`. DB 재마이그레이션 없음, PostgreSQL/Traefik/PickNext 변경 없음, backup timer inactive/disabled. **서버 배포 완료와 브라우저 인수검사 완료는 구분**한다.
+
+## Phase 1 읽기 전용 Chrome 인수검사 완료 (2026-11-20)
+- 사용자가 운영 공개 HTTPS에 로그인된 세션으로 읽기 전용 UI 검사를 완료: **PASS 7, FAIL 0, N/A 2**. 신규 실제 종목 관리 메뉴/빈 목록/KR·US 폼, DEMO 분리·시세 미연동 안내, 콘솔 오류 0건·390×844 모바일 가로 넘침 없음 확인.
+- N/A: 실제 종목 행이 없어 시세·손익 개별 표시 미확인, Network 요청별 HTTP 상태 미확인. N/A를 자동 PASS로 바꾸지 않는다.
+- 사용자는 종목 등록·수정·삭제나 DB/서버 변경을 하지 않음. 이후 운영 CRUD E2E 테스트는 합성 데이터와 별도 명시적 승인 필요.
+- Phase 1 **운영 DB 마이그레이션·Backend/Frontend 배포·읽기 전용 Chrome 인수 완료**. 과거 문서의 '운영 미배포' 표현은 과거 시점 이력으로만 간주한다. 자동 백업 타이머 비활성 유지.
+- 다음 기능 개발 우선순위는 KR/US 종목 식별자 검증과 시세 공급자 연동 설계. 인증정보·개인 보유 데이터 사용 금지. Work 독립 클라우드 브라우저 우선.
