@@ -216,3 +216,10 @@
 - 사용자는 종목 등록·수정·삭제나 DB/서버 변경을 하지 않음. 이후 운영 CRUD E2E 테스트는 합성 데이터와 별도 명시적 승인 필요.
 - Phase 1 **운영 DB 마이그레이션·Backend/Frontend 배포·읽기 전용 Chrome 인수 완료**. 과거 문서의 '운영 미배포' 표현은 과거 시점 이력으로만 간주한다. 자동 백업 타이머 비활성 유지.
 - 다음 기능 개발 우선순위는 KR/US 종목 식별자 검증과 시세 공급자 연동 설계. 인증정보·개인 보유 데이터 사용 금지. Work 독립 클라우드 브라우저 우선.
+
+## MD-01 국내·미국 일봉 시세 공급자 조사 및 정규화 경계 (2026-11-20)
+- 공식 문서 기반 공급자 비교: KIS 개인 계좌 + APP Key/Secret 기반 KR/US 조회, Twelve Data 미국 Basic 무료(일 800 요청)·KR Pro 유료, Alpha Vantage 국내 커버리지 확정 불가. 자세한 출처/조건: `docs/PHASE1_MARKET_DATA_ADAPTER.md`.
+- MD-01 신규 파일 `backend/app/market_data.py`: 순수 비통신 KIS 국내/해외 일봉 OHLCV 파서와 공급자 Protocol. `backend/tests/test_market_data.py`: 합성 자료 전용. 실 KIS 계정·토큰·요청·DB 변경·시세 UI 연결은 **전혀 구현하지 않음**.
+- `market+exchange_mic+symbol+currency` 검증, 국내 6자리 선행 0, 해외 시세 거래소 EXCD mapping, Decimal 문자열/8자리 소수, OHLC 일관성/중복/미래 거래일/미국 타임존 검증. 실패 시 전체 배치 거부.
+- 수집시각 `fetched_at`을 공급자 갱신시각으로 위장하지 않고, 정규화 결과 `source_observed_at=None`, `is_final=False`, `availability=UNFINALIZED` 고정. 기존 운영 `quote.status=UNAVAILABLE` 유지, DEMO 수치 및 미확인 바를 실제 시세로 노출하지 않는다.
+- 후속 KIS 실제 호출은 사용자 계정·사용 조건이 충족된 후 별도 PR, 자격증명은 MiniPC 비공개 파일/Docker secret으로만 처리, 로그/커밋에 저장 금지. 주문·잔고 API 금지. DB 마이그레이션·시세 활성화·운영 배포 모두 별도 명시 승인. 자동 백업 timer 비활성화 유지.
