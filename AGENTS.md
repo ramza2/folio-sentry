@@ -201,3 +201,11 @@
 - 기존 롤백 이미지 SHA256은 보존돼 있고 새 Backend 이미지 SHA256은 `e2be1807608a1a9c5692df7fe20b506e43c7d338a6a2824fddc9a63a82cf4797`. 새 Backend/Frontend 빌드 완료; **이미지를 다시 빌드할 이유 없음.**
 - 사용자가 이미 Backend·Frontend 운영 배포를 승인했으나 2026-11-20 평면 라우트 검사 AssertionError로 배포 전 중단됨. 수정된 `scripts/phase1-app-deploy.sh`는 운영 DB를 재마이그레이션하지 않고 기존 롤백 이미지를 보존하며 Backend→Frontend 순차 전환한다. MiniPC에서 사용자 명시 실행 전 컨테이너 변경 금지.
 - 비인가 `/api/v1/instruments`, `/api/v1/tracked`는 401이어야 하며 로그인/세션/기존 DEMO/HTTPS·PickNext 검증 필요. 자동 백업 타이머 inactive/disabled 유지. `docs/PHASE1_LIVE_CUTOVER.md` 참조.
+
+## 운영 브라우저 인수검사 방식 — 프로젝트별 독립 Work 가상 데스크탑 우선 (2026-11-20)
+- 사용자의 선택: FolioSentry 운영 인수검사는 개인 PC에서 기존 실행 중인 로컬 Chrome/원격 디버깅 세션을 재사용하지 않는다. 다른 프로젝트(DQA·ALZI·MCPFlow 등) 테스트 및 로그인 상태와 충돌하지 않도록 **ChatGPT Work의 독립 클라우드 컴퓨터/브라우저**를 우선 이용한다.
+- 운영 대상: `https://foliosentry.ramza.duckdns.org` (인터넷 공개 HTTPS). Work 가상 브라우저에서 실제 URL 접근·로그인 가능 여부부터 확인한다. 클라우드 측 접속이 불가능하거나 사용자 인증/MFA가 필요하면 가능한 범위만 확인하고 N/A를 명시한다.
+- 인수검사 기본 범위는 **읽기 전용**: 로그인 후 최신 페이지, 기존 DEMO/메뉴, `실제 종목 관리` 메뉴, 빈 상태·수동 등록 폼·KR/US 선택, 실 시세 없음/손익 미계산, DEMO 데이터 분리, Network/JS 오류, 모바일 레이아웃. 운영 종목 등록/수정/삭제는 별도 사용자 승인 및 합성 테스트 데이터 범위가 확정될 때까지 금지.
+- 브라우저 검증 PASS/FAIL/N/A는 서버 배포·CI의 PASS와 별도 결과로 보고. Work에서 DevTools나 모바일 에뮬레이션을 제공하지 않는 경우 검증했다고 주장하지 말고 N/A로 처리한다.
+- 운영 계정 인증정보·쿠키·CSRF 토큰·개인 종목·수량/평균단가는 보고서·로그·스크린샷에 노출하지 않는다. Work의 사용자 제어 로그인 절차를 우선한다. 기존 로컬 Chrome 탭은 건드리지 않는다.
+- 2026-11-20 MiniPC 실 배포: `main 84e94cf`, `FOLIOSENTRY_PHASE1_APP_DEPLOY_PASS`, `FOLIOSENTRY_PUBLIC_HTTPS_ACCEPTANCE_PASS`, `FOLIOSENTRY_PHASE1_ANONYMOUS_API_DENY_PASS`. DB 재마이그레이션 없음, PostgreSQL/Traefik/PickNext 변경 없음, backup timer inactive/disabled. **서버 배포 완료와 브라우저 인수검사 완료는 구분**한다.
