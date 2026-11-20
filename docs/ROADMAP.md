@@ -192,3 +192,13 @@ Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 �
 - [ ] MiniPC 격리 임시 파일로 오프라인 CI 테스트 재검증(신규 계약 검사 포함), YAML 파서가 있다면 구조 파싱 추가.
 - [ ] Actions 무료 제공량 갱신 후 6/6 hosted 검증 및 사용자 승인에 따른 `main` 병합.
 - [ ] PR #24→#25→#26 통합 및 GitHub hosted 검증(실 KIS 재조회·운영 DB 업데이트·서비스 배포 별도 승인).
+
+
+## OPS-CI02 오프라인 최종 검사 완료 (2026-11-20)
+- [x] `11f6c508e712fd6f83fa73d25d2e69a86425b7ee` MiniPC 독립 임시 디렉터리 로컬 unittest **28/28 PASS**
+- [x] `FOLIOSENTRY_PREPUBLIC_SCANNER_SYNTHETIC_SELFTEST_PASS`
+- [x] `FOLIOSENTRY_YAML_PARSE_PASS` (사용자 MiniPC PyYAML 파싱)
+- [x] `FOLIOSENTRY_CI_OFFLINE_GATE_PASS`
+- [ ] GitHub Actions 무료 할당량 갱신 후 실제 PR CI 및 8개 작업의 선택 실행/최종 Gate 정상 동작 확인
+- [ ] 사용자의 명시적 승인 후 CI 최적화 브랜치 병합 및 PR #24→#25→#26 순차 리뷰/통합
+- [x] 저장소 Private 유지 — 사용자가 최종 확정

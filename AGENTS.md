@@ -256,3 +256,11 @@
 - 무료 Actions 포함량 소진 중에는 실 GitHub Actions 결과를 PASS라 주장하거나 무한 재실행하지 않는다. 문서/가벼운 보안 감사 코드는 최소 `changes` + `ci-gate`만 사용. CI YAML/라우터 변경은 전체 테스트로 fail-closed.
 - PR #26 MD-03 코드 병합 시 `20261120_pricebar01` Alembic, `price_bar` 불확정 저장 제한, `backend/scripts/test_price_bar_isolated_ci.py` 통합 검증을 유지해야 한다. 현재 최적화 워크플로에는 MD03 파일 감지 및 누락 시 fail-closed 게이트를 사전 구현했다.
 - 변경된 워크플로 정적 계약 테스트 `scripts/ci/test_workflow_contract.py`는 오프라인 테스트이고 실제 GitHub Actions/YAML 파서 검증의 대체물이 아니다.
+
+
+## OPS-CI02 오프라인 최종 인수 — 2026-11-20
+- 사용자 MiniPC의 임시 추출 경로에서 `11f6c508e712fd6f83fa73d25d2e69a86425b7ee` 대상 **unittest 28개 전부 PASS** (`Ran 28 tests ... OK`).
+- 사전 공개 감사기 합성 self-test PASS: `FOLIOSENTRY_PREPUBLIC_SCANNER_SYNTHETIC_SELFTEST_PASS`.
+- PyYAML YAML 파싱 PASS(`FOLIOSENTRY_YAML_PARSE_PASS`) 및 최종 `FOLIOSENTRY_CI_OFFLINE_GATE_PASS` 확인. 운영 Git 작업트리 변경/실 KIS 조회/DB 작업 없음.
+- 이번 PASS는 오프라인 계약·형식·경로 분기 검사에 한정. **GitHub-hosted CI 8개 job의 실제 실행 PASS는 아직 미확인**. Actions 무료 포함량 갱신/호스팅 Runner 정상화 후 검증, `main` 반영은 별도 승인.
+- FolioSentry 저장소 **Private 유지** 결정 지속. Public visibility 변경 금지.
