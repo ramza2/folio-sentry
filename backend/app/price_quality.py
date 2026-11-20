@@ -1,14 +1,17 @@
 """Strict quality gate for KIS daily candidates; no DB, network or calendar API.
 
 Regular close + 2h is only a *minimum observation delay*, NOT finality proof.
-Holidays, early closes, KRX special sessions and provider settlement policies
-are not reliably inferable here. Consequently every accepted bar remains
+Only a small set of explicitly attested sessions can pass the offline gate;
+all other days are denied. Provider finality still cannot be inferred.
+Consequently every accepted bar remains
 PARTIAL, source_observed_at=None and is_final=False.
 """
 from dataclasses import dataclass
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Literal
+
+from app.exchange_calendar import attested_session, ExchangeCalendarError
 
 from app.market_data import (
     DailyBarBatch, DailyBarCandidate, InstrumentIdentity, MarketDataContractError,
@@ -18,7 +21,6 @@ SOURCE = "KIS"
 MAX_FETCH_AGE = timedelta(hours=24)
 MAX_CLOCK_SKEW = timedelta(seconds=5)
 CLOSE_BUFFER = timedelta(hours=2)
-RAW_CLOSE = {"KR": time(15, 30), "US": time(16, 0)}
 DECIMAL_LIMIT = Decimal("10000000000000000")  # NUMERIC(24,8) maximum boundary
 VOLUME_LIMIT = 10**28
 
@@ -84,8 +86,12 @@ def validate_unverified_bar(
     # promote prices to final even when this coarse condition passes.
     if bar.session_date.weekday() >= 5:
         raise PriceBarQualityError("PRICE_WEEKEND_SESSION_UNVERIFIED")
+    try:
+        session = attested_session(identity, bar.session_date)
+    except ExchangeCalendarError as exc:
+        raise PriceBarQualityError(str(exc)) from None
     earliest = (
-        datetime.combine(bar.session_date, RAW_CLOSE[identity.market],
+        datetime.combine(bar.session_date, session.closes_at,
                          tzinfo=identity.exchange_timezone) + CLOSE_BUFFER
     ).astimezone(timezone.utc)
     if fetched_at < earliest:

@@ -36,3 +36,12 @@
 2. 휴장·조기 종료·KIS 원주가/수정주가/정산 확정 정책을 공식 데이터로 재검증
 3. 운영 DB 백업·별도 복원 검증 후 **사용자 명시 승인**으로 migration 및 배포
 4. 가격 실제 표시·손익·신호 개방은 별도 승인 + 확정 검증 데이터 공급 이후
+
+## MD-03B 거래일별 증빙 기반 일정 예외 — 2026-11-20
+- **기존 결함 보정:** 2026-11-19 KRX 정규장 시각은 평소 09:00~15:30이 아닌 **10:00~16:30 KST**. 한국거래소 KIND 시장운영 안내에 근거하며, 종전 하드코딩 15:30을 제거했다.
+  - KOSPI: https://kind.krx.co.kr/external/2026/11/05/000141/20261105000216/99303.htm
+  - KOSDAQ: https://kind.krx.co.kr/external/2026/11/05/000145/20261104001218/70780.htm
+- 미국 NYSE·Nasdaq 공식 일정에 따른 2026-11-26 Thanksgiving **휴장**, 2026-11-27·12-24 **13:00 ET 조기 종료**를 명시했다. NYSE: https://www.nyse.com/trade/hours-calendars / Nasdaq: https://www.nasdaq.com/market-activity/stock-market-holiday-schedule
+- `backend/app/exchange_calendar.py`는 **공식 자료로 개별 확인한 일부 날짜에 대한 좁은 화이트리스트**만 제공한다. 전체 2026 거래일 달력이 아니며, 모르는 날짜는 `PRICE_SESSION_CALENDAR_UNVERIFIED`로 차단한다. 주중이라고 자동 개장으로 간주하지 않는다.
+- 확인된 날짜도 장 종료 + 2h 뒤 수집이라는 최소 조건만 만족할 수 있다. KIS 최종 종가·원주가/수정주가·기업행동·출처 관측시간 증빙이 없어 `PARTIAL`만 유지한다. 휴장·조기종료 자료는 예고 없이 변경될 수 있으므로 운영시에는 증빙 갱신 정책이 필요하다.
+- 적용 범위는 **MD-03 Draft PR 코드와 오프라인 합성 테스트**뿐. KIS 실제 조회/토큰 재발급/운영 DB 배포/스케줄러 사용 없음.

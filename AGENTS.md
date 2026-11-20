@@ -240,3 +240,8 @@
 - `app.price_repository`: 기본 쓰기 거부(`allow_write=False`), SQLAlchemy Session 외부 주입, 명시적 isolated-only 테스트, 멱등 INSERT 충돌은 같은 값만 NOOP, 다른 OHLCV는 보류·검토. 내부 commit·실 API 호출 없음.
 - `analysis_eligible`은 항상 False. 부분 데이터로 포트폴리오 손익·실 시세·매매 신호·알림 노출 금지. 프론트 DEMO와 실 종목 가격 없음 표시 그대로 유지.
 - CI 합성 DB에는 `folio_ci` loopback 전용 가드, migration 전후 isolated transaction/rollback 검증. 운영 MiniPC에서 `alembic upgrade head` 금지. 참조: `docs/MD03_PRICE_BAR_STORAGE.md`.
+
+## MD-03B 공식 거래소 예외 일정 안전 기준
+- 2026-11-19 KRX KOSPI/KOSDAQ은 수능으로 10:00~16:30 KST(일반 15:30이 아님). 한국거래소 KIND 공식 자료를 `app.exchange_calendar`에 기록했다.
+- 미국 NYSE/Nasdaq 공식 자료: 2026-11-26 휴장, 2026-11-27 및 2026-12-24 13:00 ET 조기마감. 증빙 없는 날짜는 절대 개장/최종시세로 추정하지 않고 `PRICE_SESSION_CALENDAR_UNVERIFIED` 거부.
+- 현재 명시된 날짜는 소수의 확인된 세션만 포함한 목록으로 전체 시장 달력으로 오인하면 안 된다. `PARTIAL`/is_final=false 유지. 실제 KIS/DB/운영 재검증 없이 새 날짜를 자동 허용하지 않는다.
