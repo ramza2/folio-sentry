@@ -26,3 +26,8 @@
 - **R-02 (PR #26)**: 여러 가격 후보 저장 도중 뒤쪽 값 충돌로 예외가 발생하면 호출자가 잡은 뒤 외부 트랜잭션을 커밋할 가능성. 내부 SAVEPOINT로 각 배치를 원자화. 격리 PostgreSQL 합성 테스트에서 신규 ADJUSTED 후보 다음 기존 RAW 충돌 시 신규 후보가 롤백되는지 확인.
 - 수정 검증 범위는 PR #27의 CI와 각각의 PR #25/#26 CI뿐. 취약점 진단은 이번 개발 코드에 한정되며 운영 서버나 기존 사용자 데이터를 검사하지 않았다.
 - 수동 병합 계획: #24 먼저 리뷰·병합, #25·#26에는 main 최신을 반영하여 AGENTS/ROADMAP 중복 편집과 Alembic revision을 재검증. PR #27 자체는 리뷰 전용으로 **main에 병합하지 않는다**.
+
+
+## 후속 stdlib 단독 검증(2026-11-20)
+- GitHub Actions 차단 중에도 실제 계좌·실 DB에 접속하지 않는 `scripts/ci/md02_md03_offline_acceptance.py`(합성 KIS 응답→PARTIAL 검증, 10 tests) 작성. 검사 코드는 별도 review branch `review/md02-md03-stdlib-offline-gate-20261120`에만 추가, PR #27 자체는 변경하지 않는다.
+- 실제 MiniPC 테스트 결과는 아직 수신 전이며 통합 PASS로 기록하지 않는다. 자세한 절차 `docs/MD02_MD03_STDLIB_OFFLINE_GATE.md` 참조.

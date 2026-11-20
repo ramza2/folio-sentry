@@ -230,3 +230,12 @@ Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 �
 - [ ] PR #27 수정본 통합 CI 6/6 최종 확인
 - [ ] PR #24→#25→#26 개별 리뷰·병합 승인. AGENTS/ROADMAP 문서 충돌 조정 필요
 - [ ] 공식 거래소 전체 캘린더·가격 확정 정책 검증, 실 API/KIS/운영 DB/배포 별도 승인
+
+
+## MD02-MD03-STD01 — 합성 KIS→시세 게이트 독립 로컬 테스트 (2026-11-20)
+- [x] PR #27 통합 Draft를 기준으로 독립 오프라인 리뷰 브랜치 생성, 기존 PR #24/#25/#26·main 불변
+- [x] Python stdlib 10개 단위 테스트 소스 작성: LIVE 기본 거부, 합성 토큰·국내/미국 일봉·PARTIAL, 공유 할당량, 실패 시 예약, 캘린더 보수 정책, price_bar 저장/마이그레이션 계약
+- [ ] 사용자 MiniPC `git archive` 격리 임시 폴더에서 테스트 실행, 결과 PASS 확인 (현재 미실행)
+- [ ] 정상 GitHub Actions 갱신 후 PR #24→#25→#26 및 CI 최적화 브랜치의 결합 검증
+- [x] Private 유지, 실 KIS 호출/실 DB/Docker/운영 배포/시세 UI 연동 금지 유지
+- 자세한 계획·한계: `docs/MD02_MD03_STDLIB_OFFLINE_GATE.md`

@@ -282,3 +282,8 @@
 - PR #25: 공유 토큰 캐시 JSON이 유실된 뒤 기존 발급 이력이 사라지는 위험 수정. 별도 0600 `kis-ever-attempted-token.marker`를 토큰 요청 전에 영속화하고 상태 소실 시 `KIS_SHARED_STATE_LOST_AFTER_ISSUE`로 신규 요청 차단. 자동 복구/재발급 금지.
 - PR #26: 한 배치의 앞쪽 price_bar INSERT 후 뒤쪽 가격 충돌 시 부분 저장이 남을 위험 수정. 내부 `session.begin_nested()` SAVEPOINT로 해당 배치 전체를 원자적으로 롤백. 외부 트랜잭션 commit은 여전히 호출자 제어.
 - PR #27 합성 통합에서 두 위험의 추가 회귀 테스트를 함께 검증한다. 독립 Draft PR 병합과 운영 변경은 별도 승인. `docs/MD02_MD03_INTEGRATION_REVIEW.md` 참고.
+
+
+## MD-02/03 오프라인 통합 품질 게이트 (2026-11-20)
+- 검토 전용 PR #27 코드 스냅샷에서 분기한 `review/md02-md03-stdlib-offline-gate-20261120`에 `scripts/ci/md02_md03_offline_acceptance.py`를 작성했다. Python 3.12 표준 라이브러리만, 임시 파일 및 합성 키/transport만, socket.connect 차단. 실 계좌·KIS HTTP·운영 DB·Docker·로그인 API 접근 금지.
+- `docs/MD02_MD03_STDLIB_OFFLINE_GATE.md` 참고. 저장소는 Private 유지. **로컬 테스트 실행 PASS 전까지 완료로 단정하지 말 것**. GitHub Actions 실제 실행 PASS, Alembic/실 PostgreSQL 검증을 대체하지 않는다.
