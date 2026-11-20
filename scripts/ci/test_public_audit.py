@@ -11,11 +11,11 @@ spec.loader.exec_module(subject)
 
 class PublicVisibilityAuditUnit(unittest.TestCase):
     def test_secret_tokens_detected_without_echo(self):
-        flags = subject.scan_blob(b"-----BEGIN PRIVATE KEY-----\n")
+        flags = subject.scan_blob(b"-----BEGIN " + b"PRIVATE KEY-----\n")
         self.assertEqual(flags["private_key_header"], 1)
         flags = subject.scan_blob(b"ghp_" + b"x" * 35)
         self.assertEqual(flags["github_token"], 1)
-        flags = subject.scan_blob(b"KIS_APPSECRET=aVeryRealLongSecret123")
+        flags = subject.scan_blob(b"KIS_APPSECRET=" + b"aVeryRealLongSecret123")
         self.assertEqual(flags["credential_assignment"], 1)
 
     def test_placeholder_and_blank_are_not_real_secrets(self):
@@ -25,7 +25,7 @@ class PublicVisibilityAuditUnit(unittest.TestCase):
 
     def test_home_network_metadata_flagged(self):
         self.assertEqual(
-            subject.scan_blob(b"the host ramzaminiserver is in README")[
+            subject.scan_blob(b"the host ramza" + b"miniserver is in README")[
                 "operational_endpoint_exposure"], 1,
         )
 

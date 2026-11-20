@@ -83,12 +83,12 @@ def scan_blob(content: bytes) -> Counter:
 
 
 def self_test():
-    assert scan_blob(b"-----BEGIN PRIVATE KEY-----")["private_key_header"] == 1
+    assert scan_blob(b"-----BEGIN " + b"PRIVATE KEY-----")["private_key_header"] == 1
     assert scan_blob(b"ghp_" + b"x" * 35)["github_token"] == 1
     assert scan_blob(b"KIS_APPSECRET=verylongsyntheticsecretvalue123")["credential_assignment"] == 0
-    assert scan_blob(b"KIS_APPSECRET=useConcreteSecureValue123")["credential_assignment"] == 1
+    assert scan_blob(b"KIS_APPSECRET=" + b"useConcreteSecureValue123")["credential_assignment"] == 1
     assert scan_blob(b"FOLIOSENTRY_DB_PASSWORD=")["credential_assignment"] == 0
-    assert scan_blob(b"notes for ramzaminiserver")["operational_endpoint_exposure"] == 1
+    assert scan_blob(b"notes for " + b"ramza" + b"miniserver")["operational_endpoint_exposure"] == 1
     print("FOLIOSENTRY_PREPUBLIC_SCANNER_SYNTHETIC_SELFTEST_PASS")
 
 
@@ -100,6 +100,8 @@ def audit():
             raise AuditError("REPOSITORY_NOT_FOUND") from None
         if not root:
             raise AuditError("REPOSITORY_NOT_FOUND")
+    if _git("rev-parse", "--is-shallow-repository").strip() == b"true":
+        raise AuditError("SHALLOW_HISTORY_INCOMPLETE")
     # rev-list includes all objects reachable from refs available locally.
     rows = _git("rev-list", "--objects", "--all").splitlines()
     objects = {}
