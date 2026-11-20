@@ -61,3 +61,17 @@
 - MiniPC 읽기 전용 기존 감사에서 운영 엔드포인트 관련 패턴 `OPERATIONAL_ENDPOINT_EXPOSURE=76`건(중복 Git 버전 기준). 아직 Public 공개 범위 검토 미완료.
 - `scripts/public-visibility-preflight.py --locate-operational-paths`는 과거 Git 참조의 운영 호스트·내부 IP 패턴이 포함된 **파일 경로 및 Git Blob 버전 수만** 출력한다. IP/호스트명/행 내용/키/비밀번호를 출력하지 않음.
 - 원격 전체 ref나 과거 Actions 로그·아티팩트를 보장해서 검사하지는 못한다. 기존 운영 주소·Traefik 경로·개인 홈 구성 공개의 적정성은 사용자가 결정해야 한다.
+
+## 2026-11-20 MiniPC 공개 전 Git 이력 감사 결과 (사용자 제공 로그)
+- `python3 scripts/public-visibility-preflight.py --self-test`: `FOLIOSENTRY_PREPUBLIC_SCANNER_SYNTHETIC_SELFTEST_PASS`.
+- 전체 로컬 참조에서 첫 감사: reachable 객체 1,195, 텍스트 blob 339, 개인키 헤더 2, GitHub 토큰 패턴 0, AWS 키 패턴 0, Bearer 패턴 0, credential assignment 패턴 0, 민감 파일 경로 0, 운영 엔드포인트 패턴 포함 blob 버전 76.
+- **개인키 헤더 2건은 모두 검사기 합성 코드의 테스트 문자열로 확인**:
+  - `scripts/ci/test_public_audit.py` blob `086b21d168a7d1ccac213e52643b4703e1ec7a26` line 14.
+  - `scripts/public-visibility-preflight.py` blob `b5514b0ecf8bd35dd13a06b26bbb31621e6fa222` line 86.
+  - 종료 마커 없음, 각각 직접 GitHub blob 검토 및 테스트 코드 확인. 현재 검출된 2건은 실제 PEM 개인키로 판정하지 않음. 다만 모든 기록·Actions 로그에 비밀이 없다는 증명은 아니다.
+- 운영 위치 검사(추가 커밋 포함, 사용자 제공 로그): scanned blob 345, 운영 패턴 포함 blob 버전 **79**, 고유 파일 경로 **12**. 이 수치는 비밀번호 79개도 고유 URL 79개도 아니며 **서로 다른 Git blob 버전 수**.
+- 경로/버전 수: `AGENTS.md` 33, `.github/workflows/ci.yml` 14, `docs/TRAEFIK_MINIPC_DEPLOYMENT.md` 8, `scripts/deploy.sh` 8, `scripts/public-visibility-preflight.py` 4, `README.md` 3, `docs/DEPLOYMENT_TARGET.md` 3, `scripts/ci/test_public_audit.py` 2, `scripts/check-duckdns-route.sh` 1, `scripts/check-existing-tls.py` 1, `scripts/phase1-app-deploy.sh` 1, `scripts/verify-public-https.py` 1.
+- 검사기 코드 및 테스트 2개는 운영 주소 관련 패턴을 일부러 포함하여 경로 집계에 잡힌다. 나머지 운영 문서·배포·CI는 GitHub main에서도 운영 호스트명이나 라우팅 주소 등의 문구가 실제 확인된다. **해당 문자열의 존재가 곧 자격증명 유출은 아니다.**
+- **잔여 미검증**: GitHub Actions 전체 과거 로그/아티팩트, 서버 전용 refs, repo history에 숨어 있는 비정형 인코딩 키, 외부 출판에 적합한 네트워크/인증 설계 공개 범위.
+- **결론: FolioSentry는 Private 그대로 유지. Public로 바로 바꾸지 않는다.** 공개가 개발 비용상 꼭 필요하면 운영 코드·역사·Actions 로그를 노출하지 않는 **새 Public 저장소(새 Git 이력, 샘플 도메인·샘플 구성만)**를 별도로 설계·검수. 그렇지 않으면 Private 경량 CI를 먼저 활성화하는 방향.
+- CI 최적화 브랜치 `ci/usage-control-20261120`는 단일 branch SHA 코드로만 보관, CI 실행 0회; PR/main 병합이나 visibility 변경은 미승인·미수행.
