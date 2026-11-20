@@ -249,3 +249,10 @@
 ## CI01 오프라인 인수 기록 (2026-11-20)
 - 사용자 MiniPC에서 CI 경로선택·최종게이트·공개 전 진단 단위 테스트 21/21 PASS(`239f5c2`). 검사기 self-test PASS. GitHub CI는 월간 Actions 포함량 소진으로 실행/검증되지 않았으므로 PASS로 표시하지 말 것.
 - 결제·Public 전환·main 병합·운영 MiniPC 배포 및 실제 시세 요청 없이 진행. 별도 PR #26 Alembic 격리 CI 변경과 충돌 시 가격 DB 검증을 반드시 보존.
+
+
+## 2026-11-20 최종 저장소 공개 범위 결정
+- **사용자 확정: FolioSentry는 Private 유지.** 이후 Public으로 변경하거나 별도 Public 미러 저장소를 생성하지 않는다. 이전 Public 검토는 보안 감사 기록일 뿐 미결 액션이 아니다.
+- 무료 Actions 포함량 소진 중에는 실 GitHub Actions 결과를 PASS라 주장하거나 무한 재실행하지 않는다. 문서/가벼운 보안 감사 코드는 최소 `changes` + `ci-gate`만 사용. CI YAML/라우터 변경은 전체 테스트로 fail-closed.
+- PR #26 MD-03 코드 병합 시 `20261120_pricebar01` Alembic, `price_bar` 불확정 저장 제한, `backend/scripts/test_price_bar_isolated_ci.py` 통합 검증을 유지해야 한다. 현재 최적화 워크플로에는 MD03 파일 감지 및 누락 시 fail-closed 게이트를 사전 구현했다.
+- 변경된 워크플로 정적 계약 테스트 `scripts/ci/test_workflow_contract.py`는 오프라인 테스트이고 실제 GitHub Actions/YAML 파서 검증의 대체물이 아니다.

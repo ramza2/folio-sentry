@@ -18,6 +18,9 @@ class ImpactTests(unittest.TestCase):
         self.assert_only(["docs/ROADMAP.md", "AGENTS.md", "README.md"])
         self.assert_only(["backend/docs/policy.md"])
 
+    def test_audit_utility_only_uses_lightweight_gate(self):
+        self.assert_only(["scripts/public-visibility-preflight.py"])
+
     def test_backend_market_quote_only(self):
         self.assert_only(["backend/app/kis_shared_state.py"], "backend")
         self.assert_only(["backend/tests/test_kis_readonly.py"], "backend")

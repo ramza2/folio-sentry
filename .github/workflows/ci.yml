@@ -159,7 +159,15 @@ jobs:
           bootstrap_owner("ci-owner", "ci-only-synthetic-password-123!")
           assert auth_ready()
           tables = set(inspect(get_engine()).get_table_names())
-          assert {"auth_owner", "auth_session", "alembic_version", "instrument", "tracked_instrument"}.issubset(tables)
+          from pathlib import Path
+          md03_migration = Path("migrations/versions/20261120_pricebar01.py").is_file()
+          md03_test = Path("scripts/test_price_bar_isolated_ci.py").is_file()
+          assert md03_migration == md03_test, "MD03_PARTIAL_INTEGRATION_BLOCKED"
+          required_tables = {"auth_owner", "auth_session", "alembic_version",
+                             "instrument", "tracked_instrument"}
+          if md03_migration:
+              required_tables.add("price_bar")
+          assert required_tables.issubset(tables)
           from decimal import Decimal
           from sqlalchemy.orm import Session
           from sqlalchemy import text
@@ -180,12 +188,30 @@ jobs:
               db.rollback()
           with get_engine().connect() as conn:
               rev = conn.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-              assert rev == "20261119_portfolio01"
+              expected_revision = "20261120_pricebar01" if md03_migration else "20261119_portfolio01"
+              assert rev == expected_revision
               assert conn.execute(text("SELECT count(*) FROM instrument")).scalar_one() == 0
               assert conn.execute(text("SELECT count(*) FROM tracked_instrument")).scalar_one() == 0
+              if md03_migration:
+                  assert conn.execute(text("SELECT count(*) FROM price_bar")).scalar_one() == 0
           print("FOLIOSENTRY_AUTH01_ISOLATED_MIGRATION_PASS")
           print("FOLIOSENTRY_PHASE1_PORTFOLIO_MIGRATION_CI_PASS")
+          if md03_migration:
+              print("FOLIOSENTRY_MD03_ISOLATED_SCHEMA_CI_PASS")
           PY
+      - name: MD03 price-bar idempotency and finality guards (when schema exists)
+        env:
+          FOLIOSENTRY_MD03_ISOLATED_DB_TEST: "yes"
+        run: |
+          if test -f migrations/versions/20261120_pricebar01.py; then
+            test -f scripts/test_price_bar_isolated_ci.py
+            python scripts/test_price_bar_isolated_ci.py
+          elif test -e scripts/test_price_bar_isolated_ci.py; then
+            echo "MD03_PARTIAL_INTEGRATION_BLOCKED" >&2
+            exit 1
+          else
+            echo "FOLIOSENTRY_MD03_NOT_PRESENT_PRE_MERGE"
+          fi
 
   deploy01-production-config:
     needs: changes

@@ -82,3 +82,12 @@
 - **Ran 21 tests / OK**, `FOLIOSENTRY_PREPUBLIC_SCANNER_SYNTHETIC_SELFTEST_PASS`, `FOLIOSENTRY_CI_LOCAL_UNIT_TESTS_PASS`.
 - 이전 커밋의 가짜 Git 함수명 오류(`fake` → `fake_git`)는 해당 커밋에서 고쳤다. GitHub Actions 6개 job/최종 gate의 hosted runner 실제 실행은 **아직 검증되지 않았고 PASS로 주장하면 안 된다**.
 - 남은 게이트: YAML/Actions 구문 별도 검사와 정상 GitHub hosted 실행 가능해진 후 실제 job/PR 게이트 확인. `main` 병합·운영 배포·Public 전환은 별도 승인 절차.
+
+
+## Private 최종 결정 및 MD-03 CI 통합 계약 (2026-11-20)
+- 사용자가 **Private 유지**를 명시 확정. 기존 Public 전환 검토 자료는 기록 보관용으로만 유지한다. Public 미러 생성도 진행하지 않는다.
+- 최적화 CI는 현재 `20261119_portfolio01`만 있으면 종전 격리 PostgreSQL 검증을 수행한다. 추후 PR #26의 `20261120_pricebar01.py`가 포함되면 `price_bar` 존재와 개정판 migration revision을 자동 확인하고 `backend/scripts/test_price_bar_isolated_ci.py`를 격리 합성 DB에 실행한다.
+- **PR #26 일부만 병합된 경우 거부**: schema migration과 테스트 스크립트 존재 불일치 시 `MD03_PARTIAL_INTEGRATION_BLOCKED`. 검증에서 `quality_status=PARTIAL` / 최종 확정 금지 / 중복 삽입 처리 검사를 삭제하지 않는다.
+- `scripts/ci/test_workflow_contract.py`는 pure Python stdlib로 workflow 트리거·조건·최종 게이트·중요 단계·embedded Python heredoc 구문을 검사한다. **완전한 YAML 파서나 GitHub hosted workflow 검증을 대체하지 않는다.** 실제 Actions가 허용된 다음 CI 검증이 여전히 필요하다.
+- 변경 영역 검사기 `scripts/ci/impact.py`는 `scripts/public-visibility-preflight.py` 변경만으로 무거운 테스트를 실행하지 않고, `changes`의 보안 합성 unit test + `ci-gate`를 실행한다. 기타 알 수 없는 scripts 파일/CI 파일 변경은 여전히 전체 6종 검사다.
+- 변경 워크플로를 사용자 동의 없이 `main`에 병합하거나 운영 배포/시세 수집/토큰 재발급을 활성화하지 않는다.

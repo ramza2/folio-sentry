@@ -32,6 +32,10 @@ def classify(paths: Iterable[str]) -> frozenset[str]:
         # Deployment CI/workflow / routing changes require ALL checks.
         if path.startswith(".github/workflows/") or path.startswith("scripts/ci/"):
             return ALL
+        # This audit tool has no network/DB/Compose side effects, and its
+        # synthetic tests run in the mandatory lightweight changes job.
+        if path == "scripts/public-visibility-preflight.py":
+            continue
         if path in ("README.md", "AGENTS.md") or path.startswith("docs/") \
                 or path.endswith(".md"):
             continue

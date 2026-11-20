@@ -163,8 +163,8 @@ Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 �
 - [ ] 최적화 워크플로 로컬 YAML/라우팅/최종게이트 검사
 - [ ] 정상 GitHub Actions 실행 가능 시 최적화 CI 6 job + 안정 게이트 PASS
 - [ ] 사용자 병합 승인 이후 main 동기화 및 PR #26의 격리 DB migration CI 유지·재검증
-- [ ] Public 전환 검토: 저장소 전체 Git 커밋/과거 Actions 로그/운영 서버 구조의 민감 정보 점검. 키 원문 노출 위험이 있으면 Public 금지
-- [ ] (사용자 선택) 공개 전 안전 검증 완료 시 GitHub Visibility Public 전환; 변경 즉시 코드·과거 로그 공개 가능
+- [x] Public 전환 위험 검토 완료: 운영 정보가 과거 Git 이력에 남아 있고 Actions 로그는 미검사. **최종 결정은 Private 유지**
+- [x] 사용자가 FolioSentry 저장소 Private 유지 확정(2026-11-20). Public 전환·별도 Public 미러 생성 계획 없음
 - 세부: `docs/CI_USAGE_CONTROL.md`. **CI 코드 브랜치 작업만으로 실제 운영 MiniPC/서비스/KIS/DB 변경 없음.**
 
 
@@ -174,7 +174,7 @@ Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 �
 - [x] 공개 전 감사 도구 자체의 합성 unittest 추가(워크플로 경로 테스트와 함께 실행)
 - [x] MiniPC 실제 로컬 이력 감사 및 사용자 결과 확인 (운영 흔적 79 Git blob 버전/12경로, 개인키 헤더 2건은 합성 코드 문자열; Actions 로그는 미검사)
 - [ ] GitHub Actions 전체 과거 로그·아티팩트와 원격 전용 PR refs 추가 확인
-- [ ] 사용자가 공개 노출 범위를 확인하고 최종 Public 선택 (변경 실행 전까지 Private 유지)
+- [x] 사용자 최종 선택은 Private 유지. 추가 공개 검증은 현재 개발의 필수 경로 아님
 
 
 ## OPS-CI01 사용자 MiniPC 로컬 재검증 (2026-11-20)
@@ -182,3 +182,13 @@ Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 �
 - [x] `scripts/public-visibility-preflight.py --self-test` PASS, `FOLIOSENTRY_PREPUBLIC_SCANNER_SYNTHETIC_SELFTEST_PASS`
 - [ ] Actions Runner 기반 실 CI는 무료 포함량 소진으로 아직 실행 검증되지 않음. YAML 자체의 별도 파싱/체크 및 GitHub Actions CI-gate 실동작 확인 필요
 - [ ] 무료 할당량 회복/사용자 승인 전 PR 생성·반복 CI 재실행 금지. 기존 main/운영 서비스/키/DB 영향 없음
+
+
+## OPS-CI02 — Private 유지·MD-03 안전 통합 준비 (2026-11-20)
+- [x] 사용자가 저장소 Private 유지 결정. Public 전환 또는 Public 소스 미러 생성 작업 중단.
+- [x] CI 최적화 브랜치에 MD-03 마이그레이션 파일과 격리 테스트 동시 존재 여부 확인(한쪽만 있으면 fail-closed), 가격 테이블/마이그레이션 revision 조건부 검증, 합성 DB 전용 테스트 사전 연결.
+- [x] 오프라인 워크플로 계약 회귀 검사 작성: PR/push 트리거, 변경 영역별 조건, 모든 필수 작업, CI 최종 게이트, 보안상 중요한 PostgreSQL·배포·백업 검증 유지.
+- [x] 보안 감사 스크립트만 수정 시 `changes`·`ci-gate` 위주로 경량 실행(합성 보안 테스트는 `changes`에서 검사).
+- [ ] MiniPC 격리 임시 파일로 오프라인 CI 테스트 재검증(신규 계약 검사 포함), YAML 파서가 있다면 구조 파싱 추가.
+- [ ] Actions 무료 제공량 갱신 후 6/6 hosted 검증 및 사용자 승인에 따른 `main` 병합.
+- [ ] PR #24→#25→#26 통합 및 GitHub hosted 검증(실 KIS 재조회·운영 DB 업데이트·서비스 배포 별도 승인).
