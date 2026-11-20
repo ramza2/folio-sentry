@@ -159,7 +159,8 @@ Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 �
 - [x] 2026-11-20 최초 실전 KIS 토큰 POST 1회 및 KR/US 일봉 GET 각 1회 성공 기록(사용자 제공 PASS, 데이터 UNFINALIZED)
 - [x] 공유 상태 파일 모델과 프로세스간 flock, 24시간 토큰 발급 간격, 전역 일봉 간격 1.25초, 24시간 60회 내부 상한, crash-safe 선예약 코드 작성
 - [x] 기본 발급 거부 및 독립 optional shared_state 연계로 기존 운영 미변경, 진짜 토큰/호출 없음
-- [ ] 합성 CI PASS 및 코드 리뷰 후 PR 병합 승인
+- [x] PR #25 GitHub CI 6/6 PASS (2026-11-20, synthetic tests only)
+- [ ] PR #25 리뷰 및 병합 승인
 - [ ] 운영 MiniPC 공유 상태 디렉터리/보안/암호화 백업 검토(별도 승인)
 - [ ] KIS 최신 정책/실 사용량 외부 확인 후 토큰 발급/실 호출 별도 승인
 - [ ] MD-03 장마감 최종성·price_bar DB 모델/적재·스케줄러 승인
