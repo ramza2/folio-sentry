@@ -41,3 +41,33 @@ KIS 공식 [Open API 포털](https://apiportal.koreainvestment.com/apiservice), 
 ## 4. Phase 1 운영 인수 상태
 
 2026-11-20 사용자 제공 서버 배포 `FOLIOSENTRY_PHASE1_APP_DEPLOY_PASS`; 읽기 전용 Chrome 인수 **PASS 7 / FAIL 0 / N/A 2**. 실 종목 데이터 생성·수정·삭제 없음. 이번 MD-01은 이 배포에 아무 영향을 주지 않는다.
+
+## 5. MD-02: KIS 국내·미국 일봉 **조회 전용 HTTPS 어댑터** (2026-11-20)
+
+사용자가 **한국투자증권 계좌 보유를 확인**했다. 단, 계좌 보유만으로 Open API 서비스 신청/APP Key·Secret이 발급됐다는 뜻은 아니다. 실 API 호출 전 공식 [이용안내](https://apiportal.koreainvestment.com/about-howto)에서 서비스 신청·발급 상태 확인 필요.
+
+구현: `backend/app/kis_readonly.py`와 `backend/tests/test_kis_readonly.py`. 서비스 앱 라우터/자동 스케줄러/DB/Frontend 연결 없음. **명시적으로 `live_enabled=True`를 부여하지 않으면 절대 네트워크 연결 불가**, 그리고 자격증명 파일이 없으면 연결 불가. CI에서는 KIS 네트워크에 접속하지 않고 테스트 FakeTransport를 사용한다.
+
+### KIS 공식 예제와 대조된 실제 읽기 전용 호출 계약
+
+| 용도 | HTTP | 경로 | TR ID |
+|---|---|---|---|
+| 앱 접근 토큰 | POST | `/oauth2/tokenP` | 해당 없음 |
+| 국내 일봉 | GET | `/uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice` | `FHKST03010100` |
+| 해외 일봉 | GET | `/uapi/overseas-price/v1/quotations/dailyprice` | `HHDFS76240000` |
+
+KIS 공식 예제: [국내](https://github.com/koreainvestment/open-trading-api/blob/main/examples_llm/domestic_stock/inquire_daily_itemchartprice/inquire_daily_itemchartprice.py), [해외](https://github.com/koreainvestment/open-trading-api/blob/main/examples_llm/overseas_stock/dailyprice/dailyprice.py). 고정 도메인은 실전용 `https://openapi.koreainvestment.com:9443`이며 다른 주소나 주문/잔고 경로를 코드에서 허용하지 않는다.
+
+- 국내: `FID_COND_MRKT_DIV_CODE=J` (한국), `FID_INPUT_ISCD=6자리`, 시작/종료 일자, `FID_PERIOD_DIV_CODE=D`, `FID_ORG_ADJ_PRC=0` 수정주가 / `1` 원주가.
+- 해외: `AUTH=""`, `EXCD=NAS/NYS/AMS`, `SYMB`, `GUBN=0` 일봉, `BYMD=종료일자`, `MODP=1` 수정주가 / `0` 원주가.
+- 해외 API는 조회 종료일 기준 과거 데이터를 반환할 수 있어 요청 시작일 이전 데이터는 필터링. **반환 행 수가 적다고 휴장/정상 갱신/전체 기간 커버리지를 보장하지 않는다.** 응답 품질/장 마감 확정 정책이 미검증이므로 `is_final=False` 및 `source_observed_at=None` 고정.
+- 요청 1회 최대 100일 날짜 구간, 한 인스턴스당 총 최대 60 HTTP 요청(토큰 포함), 일봉 조회 사이 최소 1초, 자동 재시도 없음. OAuth 토큰은 객체 내 일시 메모리 캐시; 새 토큰 재발급은 단일 프로세스에서 최소 6시간 간격. **여러 프로세스/재시작 간 발급·초당 제한을 보장하지 못하므로 지금은 스케줄러를 연결하지 않는다.**
+- HTTP 요청 실패/리다이렉트/비JSON/너무 큰 본문/토큰 이상 시 짧은 비민감 오류 코드만 반환. TLS 검증은 Python 기본 신뢰 저장소. 주문·잔고/계좌 조회 API는 allowlist 밖.
+- App Key/Secret은 **사용자 MiniPC에 별도 보관한 같은 소유자·0600 권한 일반 파일**에서 명시적으로 읽고 심볼릭 링크는 거부. 비밀값을 GitHub·채팅·테스트 로그에 붙이지 않는다. 계좌번호는 설계상 필요 없다. 운영 Compose에 자격증명 주입/서버 설정 변경 없음.
+- 공급자 실제 첫 호출을 통한 실측, 실시간 지연·수정주가·상장종목 정합성, 생산 차트/시세 UI 연동은 모두 별도 게이트. 이번 PR의 CI PASS는 운영 KIS 연동 성공을 뜻하지 않는다.
+
+### 사용자 진행 순서 (비밀값 공유 불필요)
+
+1. [한국투자증권 KIS Developers 이용안내](https://apiportal.koreainvestment.com/about-howto)에서 Open API 사용 신청·APP Key/Secret 발급 가능 여부 확인.
+2. 계좌 보유 사실만 확인된 상태. **APP Key·Secret·토큰·계좌번호를 ChatGPT에 보내지 않는다.** 발급 상태는 “신청 완료/미신청”만 전달.
+3. 발급 완료 및 사용자 명시적 외부 시세 호출 승인 후에만 MiniPC 로컬 비밀 파일 설정/읽기 전용 최초 호출 절차 제시. 이후 가격·장마감·품질 검증 후 DB 모델/배포 단계 별도 승인.
