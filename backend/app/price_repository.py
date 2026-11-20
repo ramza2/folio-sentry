@@ -73,32 +73,36 @@ def insert_unverified_daily_batch(
 
     added = 0
     unchanged = 0
-    for bar in bars:
-        key = (
-            PriceBar.instrument_id == instrument_id,
-            PriceBar.timeframe == "1d",
-            PriceBar.session_date == bar.session_date,
-            PriceBar.price_basis == bar.price_basis,
-            PriceBar.source == "KIS",
-        )
-        statement = insert(PriceBar).values(
-            instrument_id=instrument_id,
-            timeframe="1d", session_date=bar.session_date,
-            price_basis=bar.price_basis,
-            open=bar.open, high=bar.high, low=bar.low, close=bar.close,
-            volume=bar.volume, source="KIS",
-            source_observed_at=None, fetched_at=bar.fetched_at,
-            is_final=False, quality_status="PARTIAL",
-        ).on_conflict_do_nothing(
-            constraint="uq_price_bar_identity_session_source",
-        ).returning(PriceBar.id)
-        new_id = session.execute(statement).scalar_one_or_none()
-        if new_id is not None:
-            added += 1
-        else:
-            existing = session.scalars(select(PriceBar).where(*key)).one_or_none()
-            if existing is None or not _same_values(existing, bar):
-                raise PriceBarStorageError("PRICE_BAR_CONFLICT_NEEDS_REVIEW")
-            unchanged += 1
+    # Enforce batch atomicity even if a caller catches a later conflict and
+    # commits its OUTER transaction. SQLAlchemy savepoint rollback removes all
+    # preceding inserts within this batch; other caller DML remains untouched.
+    with session.begin_nested():
+        for bar in bars:
+            key = (
+                PriceBar.instrument_id == instrument_id,
+                PriceBar.timeframe == "1d",
+                PriceBar.session_date == bar.session_date,
+                PriceBar.price_basis == bar.price_basis,
+                PriceBar.source == "KIS",
+            )
+            statement = insert(PriceBar).values(
+                instrument_id=instrument_id,
+                timeframe="1d", session_date=bar.session_date,
+                price_basis=bar.price_basis,
+                open=bar.open, high=bar.high, low=bar.low, close=bar.close,
+                volume=bar.volume, source="KIS",
+                source_observed_at=None, fetched_at=bar.fetched_at,
+                is_final=False, quality_status="PARTIAL",
+            ).on_conflict_do_nothing(
+                constraint="uq_price_bar_identity_session_source",
+            ).returning(PriceBar.id)
+            new_id = session.execute(statement).scalar_one_or_none()
+            if new_id is not None:
+                added += 1
+            else:
+                existing = session.scalars(select(PriceBar).where(*key)).one_or_none()
+                if existing is None or not _same_values(existing, bar):
+                    raise PriceBarStorageError("PRICE_BAR_CONFLICT_NEEDS_REVIEW")
+                unchanged += 1
     # The caller owns commit/rollback; no side effects outside its transaction.
     return PriceBarWriteResult(inserted=added, unchanged=unchanged)

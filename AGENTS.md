@@ -245,3 +245,8 @@
 - 2026-11-19 KRX KOSPI/KOSDAQ은 수능으로 10:00~16:30 KST(일반 15:30이 아님). 한국거래소 KIND 공식 자료를 `app.exchange_calendar`에 기록했다.
 - 미국 NYSE/Nasdaq 공식 자료: 2026-11-26 휴장, 2026-11-27 및 2026-12-24 13:00 ET 조기마감. 증빙 없는 날짜는 절대 개장/최종시세로 추정하지 않고 `PRICE_SESSION_CALENDAR_UNVERIFIED` 거부.
 - 현재 명시된 날짜는 소수의 확인된 세션만 포함한 목록으로 전체 시장 달력으로 오인하면 안 된다. `PARTIAL`/is_final=false 유지. 실제 KIS/DB/운영 재검증 없이 새 날짜를 자동 허용하지 않는다.
+
+
+## MD-03 리뷰 보완: 배치 atomicity
+- `price_repository.insert_unverified_daily_batch`은 외부 Session을 유지하되 내부 `begin_nested()` savepoint로 여러 일봉의 단일 배치 저장 전체를 원자화한다. 중간 값 충돌이 있으면 그 배치의 앞서 들어간 행도 자동 롤백해야 한다.
+- 합성 PostgreSQL 테스트에 RAW 기존 값 충돌과 ADJUSTED 신규 행 결합을 추가. 호출자가 예외를 잡아도 부분 적재가 남지 않는지 격리 CI에서 검증. main/운영 DB에는 적용하지 않는다.
