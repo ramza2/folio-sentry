@@ -239,3 +239,8 @@
 - **이 CI 최적화는 아직 Runner 실제 실행 PASS 아님**. 정상 GitHub Actions로 CI 6개 작업/게이트가 확인되기 전 운영/보호규칙을 변경하지 않는다. PR #26의 MD-03 격리 가격 DB 테스트는 이후 워크플로 병합 때 반드시 유지.
 - Public 전환 시 표준 GitHub-hosted Ubuntu Runner는 요금 무료지만 Git 커밋 전체 이력과 Actions 로그도 공개될 수 있다. 개인 MiniPC 운영 도메인/포트/인증·백업 설정 노출 검토 및 전체 히스토리 비밀 스캔 전에 저장소 visibility 변경 금지. 실전 KIS App Key/Secret은 MiniPC 로컬 비밀파일에만 유지.
 - 모든 FolioSentry PR에서 불필요한 작은 커밋·문서만 커밋에 전체 CI를 돌리지 말고 합성 로컬 검사 우선. 자세한 사용량/검증/보안 정책은 `docs/CI_USAGE_CONTROL.md` 참조.
+
+
+## Public 전환 전 READ-ONLY 이력 검사
+- `scripts/public-visibility-preflight.py`는 Git 이력의 비밀 패턴 및 홈 운영 주소 등을 분류하여 **건수만** 표시한다. 어떠한 원문 자격증명도 화면/CI/ChatGPT로 내보내지 않는다. MiniPC에서만 실행하며 해당 경로가 main 미병합 상태라면 임시 Git blob 추출로 실행한다.
+- 로컬 역사 검사는 GitHub 과거 Actions 로그·아티팩트·원격 전용 PR ref를 다 검사하지 못한다. 그래서 **출력 0건도 공개 승인 아님**. 운영 중 개인 MiniPC 정보가 포함된 문서/로그를 사람 눈으로 검토한 뒤에만 Visibility 변경.

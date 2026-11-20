@@ -46,3 +46,9 @@
 - 공개 전 적어도 `git log --all`의 전체 파일 이력과 비밀 스캔, GitHub Actions 과거 로그/아티팩트, 개인정보·주택 네트워크 설정·하드코딩된 계좌/도메인 확인이 필요. 비밀이 발견되면 먼저 키 폐기·교체 후 이력 정리. **전체 이력 검증이 끝나기 전에는 Public 변경 권하지 않음**.
 - 대안: Private 유지 및 `scripts/ci/impact.py` 기반 경량 CI, 또는 MiniPC와 분리된 독립 실행 환경의 self-hosted runner(보안 격리·유지관리 비용 발생, 개인 운영 MiniPC에 무방비 Runner 설치 비권장).
 - Public로 바꿀 때 변경은 사용자 직접 GitHub `Settings → General → Danger Zone → Change repository visibility`에서 실행하며 GitHub에 한 번 게시된 기록은 이후 Private로 되돌려도 사본 회수가 어렵다.
+
+## 추가: Git 전체 이력 사전검사 도구
+- `scripts/public-visibility-preflight.py`는 **읽기 전용·표준 Python만 사용**. `git rev-list --objects --all`로 **해당 로컬 클론에 존재하는 참조의 역사적 Git 객체**를 검사한다. 비밀키 헤더/일부 접근 토큰 패턴/비밀번호 할당/운영 접속 주소/민감한 파일 경로의 **건수만 출력**하며 매칭된 값·파일 원문은 출력하지 않는다.
+- 사용법: MiniPC에서 `cd ~/folio-sentry` 후 올바른 스크립트를 가져와 `python3 scripts/public-visibility-preflight.py --self-test`, 이후 `python3 scripts/public-visibility-preflight.py` 실행. 단 이번 브랜치는 아직 main 미병합이므로 **git show로 스크립트를 임시 추출**해야 한다. 기존 운영 서비스/DB/KIS API 호출 없음.
+- 완전성을 위해 검사 직전 원격 모든 브랜치 및 PR 참조를 안전하게 가져왔는지 확인해야 한다. 이 스크립트는 GitHub 서버에만 있는 과거·닫힌 PR ref, GitHub Actions 로그·아티팩트, LFS, 키의 비표준 인코딩/암호화 내역을 **검증하지 못한다**. 결과에 문제 0건이라고 표시되어도 Public 승인 마커가 아니다.
+- 오류나 의심 발견 시 **키 값/매칭 문자열은 절대 채팅에 공유하지 말고**, 의심 항목의 건수·유형만 사용해 안전하게 판단한다.
