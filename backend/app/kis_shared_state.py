@@ -33,6 +33,7 @@ MIN_QUOTE_GAP = 1.25
 MAX_STATE_BYTES = 16384
 STATE_FILE = "kis-shared-state.json"
 LOCK_FILE = "kis-shared-state.lock"
+ISSUE_MARKER = "kis-ever-attempted-token.marker"
 
 
 class KisSharedStateError(KisReadOnlyError):
@@ -101,11 +102,57 @@ class KisSharedState:
         finally:
             os.close(fd)
 
+    def _mark_token_attempt_once(self):
+        """Durable marker retained independently of replaceable token cache.
+
+        If the state file disappears after a token attempt, the marker stops
+        accidental 'first run' reissuance. Never automatically remove it.
+        """
+        path = self._dir / ISSUE_MARKER
+        try:
+            fd = os.open(
+                path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+                0o600,
+            )
+        except FileExistsError:
+            try:
+                info = path.lstat()
+            except OSError:
+                raise KisSharedStateError("KIS_SHARED_ISSUE_MARKER_UNAVAILABLE") from None
+            if not stat.S_ISREG(info.st_mode) or info.st_uid != os.geteuid() \
+                    or stat.S_IMODE(info.st_mode) != 0o600:
+                raise KisSharedStateError("KIS_SHARED_ISSUE_MARKER_UNSAFE")
+            return
+        except OSError:
+            raise KisSharedStateError("KIS_SHARED_ISSUE_MARKER_UNAVAILABLE") from None
+        try:
+            with os.fdopen(fd, "w", encoding="ascii") as stream:
+                stream.write("TOKEN_ATTEMPT_RECORDED\\n")
+                stream.flush()
+                os.fsync(stream.fileno())
+            dirfd = os.open(self._dir, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+            try:
+                os.fsync(dirfd)
+            finally:
+                os.close(dirfd)
+        except Exception:
+            raise KisSharedStateError("KIS_SHARED_ISSUE_MARKER_WRITE_FAILED") from None
+
     def _read(self, fingerprint: str) -> dict:
         path = self._dir / STATE_FILE
         try:
             fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
         except FileNotFoundError:
+            try:
+                marker_info = (self._dir / ISSUE_MARKER).lstat()
+            except FileNotFoundError:
+                pass
+            except OSError:
+                raise KisSharedStateError("KIS_SHARED_ISSUE_MARKER_UNAVAILABLE") from None
+            else:
+                # An older issue attempt existed but state was lost/deleted;
+                # never silently permit a fresh token with a blank timestamp.
+                raise KisSharedStateError("KIS_SHARED_STATE_LOST_AFTER_ISSUE")
             return {
                 "version": 1, "fingerprint": fingerprint, "token": None,
                 "expires_at": None, "last_token_attempt": None,
@@ -223,6 +270,9 @@ class KisSharedState:
                 if state["last_token_attempt"] is not None \
                         and now - state["last_token_attempt"] < MIN_TOKEN_ISSUE_GAP:
                     raise KisSharedStateError("KIS_SHARED_TOKEN_ISSUE_TOO_SOON")
+                # An independent marker survives state-file loss. Place it
+                # BEFORE quota reservation/transport and fail closed on I/O.
+                self._mark_token_attempt_once()
                 state["token"] = None
                 state["expires_at"] = None
                 state["last_token_attempt"] = now
