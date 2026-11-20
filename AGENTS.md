@@ -231,3 +231,11 @@
 - 임시 단일 프로세스 토큰 캐시, 토큰 재발급 최소 6시간/일봉 요청 간 최소 1초/60회 상한. 재시작/병렬 세션 간 제어는 없으므로 **스케줄러/운영 UI/API에 연결하지 않는다**. 실제 호출은 개별 승인.
 - 해외 `MODP=1` 수정주가/`0` 원주가, 국내 `FID_ORG_ADJ_PRC=0` 수정주가/`1` 원주가. 기존 정규화 `is_final=False` 유지. 출처·시각·원주가/수정주가·장마감 검증 전 가격/차트/평가손익 노출 불가.
 - 기존 Phase 1 운영 배포·Chrome 인수 PASS(7/FAIL 0/N/A 2)와 별개로 GitHub 코드/CI만 개발. MiniPC 서비스·DB·Traefik/PinckNext·백업 타이머 불변. 참고 `docs/PHASE1_MARKET_DATA_ADAPTER.md`.
+
+
+## CI 월간 사용량·공개 전 보안 게이트 (2026-11-20)
+- ramza2/folio-sentry는 **Private**이며 사용자 Billing의 2026-11 Actions 무료 포함 $12/$12 소진으로 신규 CI 실행 차단. 코드 CI 실패와 호스티드 Runner 시작 전 예산 차단을 혼동하지 않는다. **중단된 CI를 무한 재실행하지 않는다**.
+- 독립 브랜치 `ci/usage-control-20261120`: PR main 및 push main만 CI 실행, `feat/**` push 중복 실행 제거, concurrency 이전 작업 취소, `scripts/ci/impact.py` fail-closed 선택 검증, `CI gate` 필수 안정 결과. 문서 변경은 라우팅+gate만, 인증·DB 변경은 격리 DB 검사. 워크플로/라우터/미분류 파일은 전체 6종. 별도 AUTH browser E2E는 수동 실행.
+- **이 CI 최적화는 아직 Runner 실제 실행 PASS 아님**. 정상 GitHub Actions로 CI 6개 작업/게이트가 확인되기 전 운영/보호규칙을 변경하지 않는다. PR #26의 MD-03 격리 가격 DB 테스트는 이후 워크플로 병합 때 반드시 유지.
+- Public 전환 시 표준 GitHub-hosted Ubuntu Runner는 요금 무료지만 Git 커밋 전체 이력과 Actions 로그도 공개될 수 있다. 개인 MiniPC 운영 도메인/포트/인증·백업 설정 노출 검토 및 전체 히스토리 비밀 스캔 전에 저장소 visibility 변경 금지. 실전 KIS App Key/Secret은 MiniPC 로컬 비밀파일에만 유지.
+- 모든 FolioSentry PR에서 불필요한 작은 커밋·문서만 커밋에 전체 CI를 돌리지 말고 합성 로컬 검사 우선. 자세한 사용량/검증/보안 정책은 `docs/CI_USAGE_CONTROL.md` 참조.

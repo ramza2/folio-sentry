@@ -1,0 +1,48 @@
+# CI 사용량 최적화 및 GitHub 공개 전 안전 확인 (2026-11-20)
+
+## 현재 상황
+- GitHub Free 개인 계정의 Actions 포함 사용량: **$12/$12(100%)**. Private 저장소 FolioSentry 관련 사용량이 빠르게 증가한 상황으로 사용자 Billing 스크린샷 확인.
+- 실 청구액 0 USD, 결제 수단 미등록. 과금 한도 증가나 카드 등록은 이번 작업에 포함되지 않음.
+- 기존 `.github/workflows/ci.yml`: `feat/**` 브랜치 push 및 PR 생성/변경에서 **같은 커밋을 두 번 검사할 수 있음**, 항상 6개 Linux Hosted job, 새 Frontend 이미지 Docker build와 PostgreSQL 격리 마이그레이션/백업 E2E도 실행.
+- `.github/workflows/auth-browser.yml`: 과거 `feat/auth01-*` push 때 Chromium+PostgreSQL+폰트 설치 검증. 인증/배포 점검이 필요할 때만 수동 실행하도록 변경.
+
+## 이번 코드 변경 (GitHub만, 실행 미검증)
+1. 자동 트리거를 `pull_request(main)` / `push(main)`으로 제한. PR 소스 브랜치에 push할 때 CI가 중복 생성되지 않는다.
+2. `concurrency: cancel-in-progress: true`로 같은 PR의 오래된 작업 취소.
+3. stdlib `scripts/ci/impact.py`: 변경 파일별로 6개 job 중 필요한 것만 선택. 기준 SHA가 없거나 알 수 없는 파일/워크플로 자체가 수정되면 **전부 실행(fail closed)**.
+4. 항상 실행되는 단일 `CI gate`: 결과 JSON을 기반으로 선택된 job은 PASS, 생략한 job은 SKIPPED인지 검사. 변경선별/게이트의 unittest도 라우터 단계에서 실행.
+5. Browser acceptance는 `workflow_dispatch` 수동만. 자동 전체 기능 E2E를 생략한 대신 릴리스 인수 때 명시적으로 수동 검사해야 한다.
+6. `workflow_dispatch`로 CI 전체 6종 실행 가능. **수동 실행도 Private 상태에서는 월간 한도를 소모하므로 제한 소진 중에는 실행 금지.**
+
+## 변경 영역별 실행 계획
+| 변경 범위 | 필수 자동 job |
+|---|---|
+| 문서만(README/AGENTS/docs/*.md) | `changes` + `CI gate` |
+| KIS/시세 수집 등 Backend 단위 코드 | `backend` |
+| 인증·모델·가격 저장·Alembic | `backend` + `auth-db-migration` |
+| 일반 Frontend UI | `frontend` |
+| Frontend Dockerfile.prod / nginx.prod.conf / package 파일 | `frontend` + `deploy01-production-config` |
+| compose.yaml | `compose-config` |
+| production/traefik Compose | `compose-config` + `deploy01-production-config` + `deploy02-backup-e2e` |
+| 백업/복원 스크립트 | `deploy02-backup-e2e` (+ backup-db.sh는 deploy01도) |
+| CI 워크플로·라우팅 코드·알 수 없는 파일 | **전체 6종** |
+| 수동 `workflow_dispatch` | **전체 6종** |
+
+작업을 나누어 테스트할 뿐, 관련 기능의 단위·격리 DB 검증 자체를 제거하지 않는다. 경로 판단에 실패하면 모든 검사를 실행하며 최종 CI gate에서 선택된 검사의 실제 성공 여부를 확인한다.
+
+## 검증과 병합 조건
+- 저장소의 현재 Private Actions 예산이 소진되었으므로 이 브랜치(`ci/usage-control-20261120`)의 **실제 Actions 실행은 아직 PASS 아님**. 별도 환경에서 unittest/YAML 검사 가능한 경우 수행하고, 실행 가능 상태가 된 뒤 GitHub CI 실제 PASS 요구.
+- 기존 PR #24~#27은 Draft 및 미병합. 특히 #26에도 `.github/workflows/ci.yml`의 격리 DB 테스트 단계가 추가돼 있어 **CI 최적화와 #26 병합 시 워크플로 충돌을 수동 통합**해야 한다. #26의 `20261120_pricebar01` 검사 절대 제거 금지.
+- `CI gate`를 GitHub 필수 확인(required status)으로 사용하는 경우 저장소의 branch protection 설정과 일치시켜야 한다. 다만 문서 변경도 안정적으로 체크가 떠야 하므로 `paths-ignore`로 PR 전체를 생략하지 않는다.
+- 이번 변경은 코드/문서만. 실제 KIS 호출, 실 키·개인 계좌 사용, MiniPC 운영 DB/서비스/배포 및 백업 타이머에 영향 없음.
+
+## Public 전환에 관한 실제 영향 및 사전 점검
+- GitHub 공식 정책상 **Public 저장소의 표준 GitHub-hosted Runner(ubuntu-latest 등)는 Actions 컴퓨팅 무료**. Private 표준 Runner는 포함 사용량을 소모. 단, Public 저장소의 Larger Runner 등 별도 요금 대상은 예외.
+  - https://docs.github.com/en/actions/concepts/billing-and-usage
+- GitHub **Private → Public**은 코드와 **모든 접근 가능한 Git 커밋 이력 및 Actions 실행 로그**를 누구나 볼 수 있게 한다. 공개 사용자가 fork/복사할 수 있고 일부 push rulesets 적용에도 변화가 생길 수 있다.
+  - https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/managing-repository-settings/setting-repository-visibility
+- 현재 FolioSentry GitHub 자료에는 집 MiniPC 사용자명/OS/리소스, 개인 DuckDNS/FQDN, Traefik 라우팅, 서비스 포트, 백업·인증 운영 절차 등 민감할 수 있는 운영 구조가 포함되어 있다. **비밀키가 없어도 보안 노출 범위가 증가**한다.
+- `.gitignore`의 `.env` 제외는 새 커밋 보호에만 도움이 된다. **과거 커밋/Actions 로그에 민감정보가 없다는 보증이 아님**. GitHub 최신 트리의 이름만 확인하는 검사는 충분하지 않다.
+- 공개 전 적어도 `git log --all`의 전체 파일 이력과 비밀 스캔, GitHub Actions 과거 로그/아티팩트, 개인정보·주택 네트워크 설정·하드코딩된 계좌/도메인 확인이 필요. 비밀이 발견되면 먼저 키 폐기·교체 후 이력 정리. **전체 이력 검증이 끝나기 전에는 Public 변경 권하지 않음**.
+- 대안: Private 유지 및 `scripts/ci/impact.py` 기반 경량 CI, 또는 MiniPC와 분리된 독립 실행 환경의 self-hosted runner(보안 격리·유지관리 비용 발생, 개인 운영 MiniPC에 무방비 Runner 설치 비권장).
+- Public로 바꿀 때 변경은 사용자 직접 GitHub `Settings → General → Danger Zone → Change repository visibility`에서 실행하며 GitHub에 한 번 게시된 기록은 이후 Private로 되돌려도 사본 회수가 어렵다.

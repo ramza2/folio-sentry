@@ -153,3 +153,16 @@ Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 �
 - N/A: (1) 실제 종목 목록이 비어 있어 개별 종목 행의 시세·손익 표시 미검사, (2) Network 요청별 HTTP 상태 미검사(콘솔 네트워크 오류는 관측되지 않음).
 - 운영 종목 등록·수정·삭제, DB/서버 설정 변경 없음. **읽기 전용 UI 인수 완료 ≠ CRUD E2E 검증 완료**.
 - 다음 개발은 국내·미국 시세 공급자 검토와 종목 식별자 매핑/시세 상태 모델링을 우선. 실제 종목 행과 CRUD E2E 시험은 합성 데이터 및 별도 명시 승인 이후 진행.
+
+
+## OPS-CI01 — GitHub Actions 무료 할당량/중복 실행 최적화 (2026-11-20)
+- [x] 개인 Billing Actions 포함 컴퓨팅 $12/$12 소진 확인, 결제수단 없이 Private Actions 작업이 실행 전 차단되는 증상 분석
+- [x] 기존 feat/** push + PR 중복 CI 및 매번 6 job 실행 문제 확인
+- [x] Private 상태에서 비용 최적화 독립 브랜치 설계: PR(main)/push(main) 이벤트, concurrency 취소, 영역별 job route + CI gate + 합성 unittest
+- [x] AUTH Chromium browser 수동 실행 전용으로 변경(릴리스 인수검사 때 명시 실행)
+- [ ] 최적화 워크플로 로컬 YAML/라우팅/최종게이트 검사
+- [ ] 정상 GitHub Actions 실행 가능 시 최적화 CI 6 job + 안정 게이트 PASS
+- [ ] 사용자 병합 승인 이후 main 동기화 및 PR #26의 격리 DB migration CI 유지·재검증
+- [ ] Public 전환 검토: 저장소 전체 Git 커밋/과거 Actions 로그/운영 서버 구조의 민감 정보 점검. 키 원문 노출 위험이 있으면 Public 금지
+- [ ] (사용자 선택) 공개 전 안전 검증 완료 시 GitHub Visibility Public 전환; 변경 즉시 코드·과거 로그 공개 가능
+- 세부: `docs/CI_USAGE_CONTROL.md`. **CI 코드 브랜치 작업만으로 실제 운영 MiniPC/서비스/KIS/DB 변경 없음.**

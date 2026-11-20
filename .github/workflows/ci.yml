@@ -1,11 +1,48 @@
 name: CI
+
+# One PR event, not both feat branch push + PR; main push is a post-merge check.
 on:
-  push:
-    branches: ["main", "docs/**", "feat/**"]
   pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: foliosentry-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
+  changes:
+    name: Change impact (fail closed)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      backend: ${{ steps.route.outputs['backend'] }}
+      frontend: ${{ steps.route.outputs['frontend'] }}
+      compose-config: ${{ steps.route.outputs['compose-config'] }}
+      auth-db-migration: ${{ steps.route.outputs['auth-db-migration'] }}
+      deploy01-production-config: ${{ steps.route.outputs['deploy01-production-config'] }}
+      deploy02-backup-e2e: ${{ steps.route.outputs['deploy02-backup-e2e'] }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Validate impact router and stable gate (offline stdlib)
+        run: python3 -m unittest discover -s scripts/ci -p 'test_*.py'
+      - name: Route changed areas (unknown means full)
+        id: route
+        env:
+          FOLIOSENTRY_CI_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          FOLIOSENTRY_CI_HEAD: ${{ github.sha }}
+        run: python3 scripts/ci/impact.py
   backend:
+    needs: changes
+    if: ${{ needs.changes.outputs['backend'] == 'true' }}
+    timeout-minutes: 15
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -23,6 +60,9 @@ jobs:
         run: python -m compileall -q app
 
   frontend:
+    needs: changes
+    if: ${{ needs.changes.outputs['frontend'] == 'true' }}
+    timeout-minutes: 15
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -42,6 +82,9 @@ jobs:
         run: npm run build
 
   compose-config:
+    needs: changes
+    if: ${{ needs.changes.outputs['compose-config'] == 'true' }}
+    timeout-minutes: 7
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -69,6 +112,9 @@ jobs:
           grep -Fq "CONTAINERS_MODIFIED=NO" <<< "$missing"
 
   auth-db-migration:
+    needs: changes
+    if: ${{ needs.changes.outputs['auth-db-migration'] == 'true' }}
+    timeout-minutes: 15
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -142,6 +188,9 @@ jobs:
           PY
 
   deploy01-production-config:
+    needs: changes
+    if: ${{ needs.changes.outputs['deploy01-production-config'] == 'true' }}
+    timeout-minutes: 20
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -252,6 +301,9 @@ jobs:
           docker image inspect foliosentry-prod-ci:local >/dev/null
 
   deploy02-backup-e2e:
+    needs: changes
+    if: ${{ needs.changes.outputs['deploy02-backup-e2e'] == 'true' }}
+    timeout-minutes: 20
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -263,3 +315,16 @@ jobs:
           bash -n scripts/run-daily-backup.sh
           grep -Fq "PREPUBLISH_BACKUPS_PRESERVED=YES" scripts/run-daily-backup.sh
           bash scripts/test-backup-ci.sh
+
+  ci-gate:
+    name: CI gate
+    if: ${{ always() }}
+    needs: [changes, backend, frontend, compose-config, auth-db-migration, deploy01-production-config, deploy02-backup-e2e]
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      FOLIOSENTRY_CI_NEEDS: ${{ toJSON(needs) }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify all selected checks passed; ignored checks skipped
+        run: python3 scripts/ci/final_gate.py
