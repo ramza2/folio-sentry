@@ -6,6 +6,7 @@ from sqlalchemy.engine import URL
 
 from app.auth_models import AuthBase
 from app import portfolio_models  # noqa: F401 — register Phase 1 tables in metadata
+from app import price_models  # noqa: F401 — MD-03 model metadata only
 from app.config import get_settings
 
 config = context.config
