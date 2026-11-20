@@ -160,7 +160,8 @@ Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 �
 - [x] `price_bar` SQLAlchemy 모델 + 추가형 `20261120_pricebar01` migration 코드 작성 (기존 표/행 불변, 최종시세 DB CHECK 차단)
 - [x] 멱등 단일 거래세션 INSERT: 동일 시세 NOOP, 다른 시세 충돌 발생, 불확정 PARTIAL 고정, 실제 신호/UI 노출 금지
 - [x] 합성 PostgreSQL CI 격리 migration 및 롤백 테스트 코드 준비 (전용 `folio_ci`만 허용)
-- [ ] MD-03 CI 전체 PASS 및 리뷰
+- [x] MD-03 GitHub Actions CI 6/6 PASS 및 격리 PostgreSQL 마이그레이션·멱등·DB 확정시세 차단·롤백 검증 완료 (2026-11-20)
+- [ ] MD-03 코드 리뷰와 병합 승인
 - [ ] PR #24/#25 병합 게이트와 후속 통합 검토 (현재 둘 다 Draft/미병합)
 - [ ] 공식 휴장/조기 종료 및 공급자 시세 관측/확정/수정주가 검증
 - [ ] **별도 승인 후에만** MiniPC 백업→격리 복원→운영 DB migration 및 배포
