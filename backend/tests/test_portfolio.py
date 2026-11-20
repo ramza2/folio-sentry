@@ -41,6 +41,30 @@ def track(instrument_id, kind="HOLDING", **kwargs):
     })
 
 
+
+def test_phase1_nested_router_schema_and_http_dispatch():
+    """FastAPI 0.137+ stores included routers as trees, not flat app.routes."""
+    from fastapi.openapi.utils import get_openapi
+
+    spec = get_openapi(title="Private Phase 1 Test", version="1", routes=app.routes)
+    paths = spec["paths"]
+    required = {
+        "/api/v1/instruments": {"get", "post"},
+        "/api/v1/instruments/{instrument_id}": {"get"},
+        "/api/v1/tracked": {"get", "post"},
+        "/api/v1/tracked/{tracked_id}": {"patch", "delete"},
+    }
+    for path, verbs in required.items():
+        assert verbs.issubset(paths[path].keys())
+
+    # Unlike app.routes iteration, these are actual HTTP dispatch checks.
+    assert client.get("/api/v1/instruments").json() == {
+        "items": [], "next_cursor": None,
+    }
+    assert client.get("/api/v1/tracked").json() == {
+        "items": [], "next_cursor": None,
+    }
+
 def test_empty_portfolio_not_demo():
     instruments = client.get("/api/v1/instruments")
     tracked = client.get("/api/v1/tracked")
