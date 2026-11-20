@@ -149,6 +149,14 @@ jobs:
         run: |
           bash -n scripts/deploy.sh
           bash -n scripts/phase1-live-preflight.sh
+          bash -n scripts/phase1-app-deploy.sh
+          if bash scripts/phase1-app-deploy.sh >/dev/null 2>&1; then
+            echo "Phase 1 app deploy must fail without explicit confirmation"
+            exit 1
+          fi
+          grep -Fq "FOLIOSENTRY_PHASE1_NESTED_ROUTER_SCHEMA_PASS" scripts/phase1-app-deploy.sh
+          grep -Fq "BACKUP_TIMER=INACTIVE_DISABLED" scripts/phase1-app-deploy.sh
+
           grep -Fq "FOLIOSENTRY_PHASE1_LIVE_READONLY_PREFLIGHT_PASS" scripts/phase1-live-preflight.sh
           grep -Fq "BACKUP_TIMER=INACTIVE_DISABLED" scripts/phase1-live-preflight.sh
           bash -n scripts/inspect-traefik.sh
