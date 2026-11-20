@@ -235,7 +235,7 @@
 
 ## MD-03 — 비확정 KIS 일봉 저장 경계 (2026-11-20)
 - MD-03 코드는 독립 Draft PR로만 작성. PR #24/#25는 main 미병합이며 MD-03에서 강제 병합·배포하지 않는다. 실제 KIS 재조회·MiniPC 운영 DB 변경/마이그레이션은 **별도 명시 승인 없이는 금지**.
-- `app.price_quality`: KRX 15:30 KST / 미국 16:00 ET + 보수적 2시간 대기, TZ/DST 검증, 주말·미래·오래된 데이터 거부. **공식 휴장·조기종료/공급자 관측시간 확인 전 finality 증명 아님**.
+- `app.price_quality`: 공식 확인된 거래일별 KRX/미국 마감시각 + 보수적 2시간 대기, TZ/DST 검증, 주말·미래·오래된 데이터 거부. **공식 휴장·조기종료/공급자 관측시간 확인 전 finality 증명 아님**.
 - `app.price_models.PriceBar`: 새 migration `20261120_pricebar01` 생성 코드. DB CHECK로 `quality_status='PARTIAL'`, `is_final=false`, `source_observed_at IS NULL` 강제. 운영 DB에는 설치하지 않는다.
 - `app.price_repository`: 기본 쓰기 거부(`allow_write=False`), SQLAlchemy Session 외부 주입, 명시적 isolated-only 테스트, 멱등 INSERT 충돌은 같은 값만 NOOP, 다른 OHLCV는 보류·검토. 내부 commit·실 API 호출 없음.
 - `analysis_eligible`은 항상 False. 부분 데이터로 포트폴리오 손익·실 시세·매매 신호·알림 노출 금지. 프론트 DEMO와 실 종목 가격 없음 표시 그대로 유지.
@@ -276,3 +276,9 @@
 
 ## REVIEW ONLY: PR #24+#25+#26 임시 통합
 - 이 브랜치는 각 Draft PR이 동시에 빌드·테스트 가능한지 확인하는 GitHub 리뷰용. main 병합/릴리스/실전 재요청/운영 DB migration 및 CLI 실행 지시 금지.
+
+
+## 병합 전 코드 리뷰 수정 결과 — 2026-11-20
+- PR #25: 공유 토큰 캐시 JSON이 유실된 뒤 기존 발급 이력이 사라지는 위험 수정. 별도 0600 `kis-ever-attempted-token.marker`를 토큰 요청 전에 영속화하고 상태 소실 시 `KIS_SHARED_STATE_LOST_AFTER_ISSUE`로 신규 요청 차단. 자동 복구/재발급 금지.
+- PR #26: 한 배치의 앞쪽 price_bar INSERT 후 뒤쪽 가격 충돌 시 부분 저장이 남을 위험 수정. 내부 `session.begin_nested()` SAVEPOINT로 해당 배치 전체를 원자적으로 롤백. 외부 트랜잭션 commit은 여전히 호출자 제어.
+- PR #27 합성 통합에서 두 위험의 추가 회귀 테스트를 함께 검증한다. 독립 Draft PR 병합과 운영 변경은 별도 승인. `docs/MD02_MD03_INTEGRATION_REVIEW.md` 참고.

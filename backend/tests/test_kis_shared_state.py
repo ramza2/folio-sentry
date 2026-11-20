@@ -11,7 +11,7 @@ from app.kis_readonly import (
 )
 from app.kis_shared_state import (
     KisSharedState, KisSharedStateError, LOCK_FILE, STATE_FILE,
-    MIN_TOKEN_ISSUE_GAP, MAX_HTTP_REQUESTS_24H,
+    MIN_TOKEN_ISSUE_GAP, MAX_HTTP_REQUESTS_24H, ISSUE_MARKER,
 )
 from app.market_data import InstrumentIdentity
 
@@ -261,3 +261,31 @@ def test_no_order_or_balance_path_and_no_implicit_shared_issuance(tmp_path):
     assert stub.calls == []
     with pytest.raises(KisReadOnlyError, match="KIS_SHARED_STATE_REQUIRED"):
         KisReadOnlyDailyProvider(KEY, allow_shared_token_issue=True)
+
+def test_deleted_token_state_cannot_reissue_even_with_optin(tmp_path):
+    clock = Clock()
+    gate, directory = state(tmp_path, clock)
+    stub = Stub()
+    fetch(cli(gate, stub, issue=True))
+    marker = directory / ISSUE_MARKER
+    assert marker.is_file() and marker.stat().st_mode & 0o777 == 0o600
+    (directory / STATE_FILE).unlink()  # simulate accidental deletion/crash recovery
+    clock.advance(86401)
+    with pytest.raises(KisSharedStateError, match="KIS_SHARED_STATE_LOST_AFTER_ISSUE"):
+        fetch(cli(KisSharedState(directory, clock=clock), stub, issue=True))
+    assert stub.calls == [("POST", TOKEN_PATH), ("GET", KR_DAILY_PATH)]
+    assert marker.is_file()
+
+
+def test_failed_token_attempt_also_marks_independent_reissue_guard(tmp_path):
+    clock = Clock()
+    gate, directory = state(tmp_path, clock)
+    stub = Stub(fail_token=True)
+    with pytest.raises(KisSharedStateError, match="KIS_SHARED_TOKEN_REQUEST_FAILED"):
+        fetch(cli(gate, stub, issue=True))
+    assert (directory / ISSUE_MARKER).is_file()
+    (directory / STATE_FILE).unlink()
+    clock.advance(86401)
+    with pytest.raises(KisSharedStateError, match="KIS_SHARED_STATE_LOST_AFTER_ISSUE"):
+        fetch(cli(KisSharedState(directory, clock=clock), stub, issue=True))
+    assert len(stub.calls) == 1

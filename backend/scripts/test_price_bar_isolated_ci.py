@@ -85,6 +85,25 @@ with Session(get_engine()) as db:
             raise AssertionError("conflicting prices must not be overwritten")
         assert db.scalars(select(PriceBar)).one().close == 105
 
+        # Reproduce a dangerous batch: first item would INSERT, second item
+        # conflicts with existing RAW price. Catch WITHOUT external savepoint.
+        # Repository-owned savepoint must roll back first item, even if caller
+        # catches and continues its surrounding transaction.
+        new_adjusted = replace(batch.bars[0], price_basis="ADJUSTED")
+        conflicting_raw = replace(batch.bars[0], close=batch.bars[0].close + 1)
+        partial_batch = replace(batch, bars=(new_adjusted, conflicting_raw))
+        try:
+            insert_unverified_daily_batch(
+                db, instrument.id, partial_batch, now=now, allow_write=True,
+            )
+        except PriceBarStorageError as exc:
+            assert str(exc) == "PRICE_BAR_CONFLICT_NEEDS_REVIEW"
+        else:
+            raise AssertionError("multi-bar partial write must fail atomically")
+        assert db.scalar(select(func.count()).select_from(PriceBar)) == 1
+        assert db.scalars(select(PriceBar)).one().price_basis == "RAW"
+        print("FOLIOSENTRY_MD03_BATCH_SAVEPOINT_ATOMICITY_PASS")
+
         try:
             with db.begin_nested():
                 db.execute(
