@@ -56,3 +56,8 @@
 ## 개인키 헤더 2건의 상세 위치 확인 (사용자 검사 후 추가)
 - 이전 감사에서 `PRIVATE_KEY_HEADER=2`가 나왔으며 실제 키인지 아직 확인하지 않았다. `scripts/public-visibility-preflight.py --locate-key-headers`는 Git 객체 SHA·파일 경로·해당 행·끝 마커 존재 여부만 출력하고 **키/PEM 원문은 출력하지 않는다**.
 - 검사 후 이 메타데이터만 공유한다. `.pem` 파일 내용, 인증키, 토큰 원문을 채팅에 붙여넣지 않는다. 단순 문자열 패턴(가짜 테스트 데이터 포함)인지 실제 키인지는 후속 별도 검토.
+
+## 운영 정보 노출 파일 경로 집계 (2026-11-20)
+- MiniPC 읽기 전용 기존 감사에서 운영 엔드포인트 관련 패턴 `OPERATIONAL_ENDPOINT_EXPOSURE=76`건(중복 Git 버전 기준). 아직 Public 공개 범위 검토 미완료.
+- `scripts/public-visibility-preflight.py --locate-operational-paths`는 과거 Git 참조의 운영 호스트·내부 IP 패턴이 포함된 **파일 경로 및 Git Blob 버전 수만** 출력한다. IP/호스트명/행 내용/키/비밀번호를 출력하지 않음.
+- 원격 전체 ref나 과거 Actions 로그·아티팩트를 보장해서 검사하지는 못한다. 기존 운영 주소·Traefik 경로·개인 홈 구성 공개의 적정성은 사용자가 결정해야 한다.
