@@ -225,9 +225,60 @@
 - 후속 KIS 실제 호출은 사용자 계정·사용 조건이 충족된 후 별도 PR, 자격증명은 MiniPC 비공개 파일/Docker secret으로만 처리, 로그/커밋에 저장 금지. 주문·잔고 API 금지. DB 마이그레이션·시세 활성화·운영 배포 모두 별도 명시 승인. 자동 백업 timer 비활성화 유지.
 
 ## MD-02 KIS 조회 전용 전송 코드 (2026-11-20)
-- 사용자는 한국투자증권 **계좌를 보유**함. **Open API 신청·App Key/Secret 발급 여부는 미확인**. 값·계좌번호·토큰 원문 절대 요청하거나 GitHub/로그/채팅에 저장하지 않는다. 사용자가 확인할 것은 신청 완료 여부만.
+- 사용자는 한국투자증권 **계좌를 보유**함. **2026-11-20 Open API 신청·실전 App Key/Secret 발급 및 최초 조회 PASS 사용자 확인**. 값·계좌번호·토큰 원문 절대 요청하거나 GitHub/로그/채팅에 저장하지 않는다. 사용자가 확인할 것은 신청 완료 여부만.
 - `backend/app/kis_readonly.py`는 순수 opt-in 전송 모듈: 기본 `live_enabled=False`; KIS 고정 실전 HTTPS 호스트와 허용된 OAuth 토큰 POST/국내·해외 일봉 GET **3개 경로만** 사용. 주문·계좌·잔고 조회 차단.
 - 비밀키는 사용자가 별도 비공개 0600 파일에 저장 후, 승인된 실행시에만 읽는다. HTTP 응답 원문·인증 오류 상세·키/토큰·계좌값 로그 출력 금지.
 - 임시 단일 프로세스 토큰 캐시, 토큰 재발급 최소 6시간/일봉 요청 간 최소 1초/60회 상한. 재시작/병렬 세션 간 제어는 없으므로 **스케줄러/운영 UI/API에 연결하지 않는다**. 실제 호출은 개별 승인.
 - 해외 `MODP=1` 수정주가/`0` 원주가, 국내 `FID_ORG_ADJ_PRC=0` 수정주가/`1` 원주가. 기존 정규화 `is_final=False` 유지. 출처·시각·원주가/수정주가·장마감 검증 전 가격/차트/평가손익 노출 불가.
 - 기존 Phase 1 운영 배포·Chrome 인수 PASS(7/FAIL 0/N/A 2)와 별개로 GitHub 코드/CI만 개발. MiniPC 서비스·DB·Traefik/PinckNext·백업 타이머 불변. 참고 `docs/PHASE1_MARKET_DATA_ADAPTER.md`.
+
+
+## MD-03 — 비확정 KIS 일봉 저장 경계 (2026-11-20)
+- MD-03 코드는 독립 Draft PR로만 작성. PR #24/#25는 main 미병합이며 MD-03에서 강제 병합·배포하지 않는다. 실제 KIS 재조회·MiniPC 운영 DB 변경/마이그레이션은 **별도 명시 승인 없이는 금지**.
+- `app.price_quality`: 공식 확인된 거래일별 KRX/미국 마감시각 + 보수적 2시간 대기, TZ/DST 검증, 주말·미래·오래된 데이터 거부. **공식 휴장·조기종료/공급자 관측시간 확인 전 finality 증명 아님**.
+- `app.price_models.PriceBar`: 새 migration `20261120_pricebar01` 생성 코드. DB CHECK로 `quality_status='PARTIAL'`, `is_final=false`, `source_observed_at IS NULL` 강제. 운영 DB에는 설치하지 않는다.
+- `app.price_repository`: 기본 쓰기 거부(`allow_write=False`), SQLAlchemy Session 외부 주입, 명시적 isolated-only 테스트, 멱등 INSERT 충돌은 같은 값만 NOOP, 다른 OHLCV는 보류·검토. 내부 commit·실 API 호출 없음.
+- `analysis_eligible`은 항상 False. 부분 데이터로 포트폴리오 손익·실 시세·매매 신호·알림 노출 금지. 프론트 DEMO와 실 종목 가격 없음 표시 그대로 유지.
+- CI 합성 DB에는 `folio_ci` loopback 전용 가드, migration 전후 isolated transaction/rollback 검증. 운영 MiniPC에서 `alembic upgrade head` 금지. 참조: `docs/MD03_PRICE_BAR_STORAGE.md`.
+
+## MD-03B 공식 거래소 예외 일정 안전 기준
+- 2026-11-19 KRX KOSPI/KOSDAQ은 수능으로 10:00~16:30 KST(일반 15:30이 아님). 한국거래소 KIND 공식 자료를 `app.exchange_calendar`에 기록했다.
+- 미국 NYSE/Nasdaq 공식 자료: 2026-11-26 휴장, 2026-11-27 및 2026-12-24 13:00 ET 조기마감. 증빙 없는 날짜는 절대 개장/최종시세로 추정하지 않고 `PRICE_SESSION_CALENDAR_UNVERIFIED` 거부.
+- 현재 명시된 날짜는 소수의 확인된 세션만 포함한 목록으로 전체 시장 달력으로 오인하면 안 된다. `PARTIAL`/is_final=false 유지. 실제 KIS/DB/운영 재검증 없이 새 날짜를 자동 허용하지 않는다.
+
+## MD-02B KIS 첫 시세 조회 도구 게이트
+- `backend/app/kis_first_probe.py`는 metadata-only 점검을 기본 권장한다. 네트워크는 `live` + 정확한 승인 문자열 + 개인 0600 비밀파일 + 단일 실행 마커를 만족한 경우에만 실행한다.
+- 합성 테스트는 실제 KIS API를 호출하지 않는다. 키/토큰/가격/계좌 정보는 출력·저장·커밋하지 않는다. `live`는 사용자의 **별도 명시 승인** 없이 MiniPC에서 실행하지 않는다.
+- 실패 및 빈 일봉 응답을 성공으로 간주하지 않고, 1회 시도 마커를 지우거나 자동 재시도하지 않는다. 다른 프로세스와 공유하는 토큰/전역 레이트리밋은 아직 미구현이며 운영 스케줄러·DB·UI에 연결하지 않는다.
+- `docs/KIS_FIRST_READONLY_PROBE.md` 참고. 개인 MiniPC/Traefik/기존 운영/백업 정책 불변.
+
+
+## MD-02C MiniPC 로컬 KIS 키 저장 준비
+- `scripts/kis-secret-setup.py`는 GitHub Draft PR #24의 오프라인 도구다. 사용자가 PR을 검토·병합한 뒤 MiniPC 비루트 사용자 SSH에서 키를 **숨김 입력**한다. 0700 개인 폴더·0600 개인 파일을 생성하고 기존 키를 덮어쓰지 않는다.
+- `check`는 메타데이터만 검사하며 키 원문을 읽지 않고 KIS 호출도 하지 않는다. 로그·Git·환경변수·명령행·화면공유·ChatGPT에 키/토큰을 노출하지 않는다.
+- KIS 실전/모의 키는 구별해야 한다. 현 MD-02는 실전 API 도메인만 허용하므로 키 종류 확인 전 실제 호출 금지. 첫 실 API GET은 **별도 사용자 승인** 필수.
+- 운영 서비스·Compose/DB/Frontend/Traefik/백업 타이머 및 MiniPC 파일은 승인 없이 건드리지 않는다. 상세 `docs/KIS_FIRST_READONLY_PROBE.md`.
+
+
+## MD-02 실전 KIS 최초 호출 검증 결과 (2026-11-20)
+- 사용자는 실전투자용 키임을 확인하고 토큰 POST 1회, KR/US 일봉 GET 각 1회를 승인. MiniPC 일회성 조회 로그: KR 비확정 bar 1건, US 비확정 bar 1건, `FOLIOSENTRY_KIS_FIRST_READONLY_PASS`. KIS 토큰 발급 카카오톡 안내 수신.
+- KIS 안내에 따르면 접근 토큰 24시간 유효, 1일 1회 발급 원칙. **추가 API 호출·토큰 재발급 금지(별도 승인 전), 최초 일회성 마커 삭제 금지.**
+- 실제 응답 경로/정규화만 PASS. `is_final=False`/관측시각 없음 유지, 실제 시세 표시·손익 계산·DB 저장 금지. 스케줄러 전에 프로세스 간 토큰 재사용 및 글로벌 레이트리밋 구현 필요.
+- PR #24 Draft 유지, 운영 서비스·MiniPC 배포/DB 변경 없음. 상세 기록: `docs/KIS_FIRST_READONLY_PROBE.md`.
+
+
+## MD-02D KIS 토큰 공유 상태 안전 게이트 (2026-11-20)
+- GitHub 신규 파일 backend/app/kis_shared_state.py는 Linux 한 호스트/한 사용자/한 안전한 로컬 파일시스템에서만 flock 기반 토큰 및 API 호출 이력 제어를 제공한다. 상태파일에는 민감한 Bearer 토큰이 0600 권한으로 저장되므로 홈 백업 암호화/접근통제 필수.
+- **기본 새 토큰 발급 거부**. 프로세스 재시작 후 토큰 공유는 새 상태 파일로 발급한 이후에만 가능하며 2026-11-20 최초 실호출 토큰은 이전 프로세스 종료로 재사용 불가. 그날 토큰을 재발급하지 않는다. 허용 플래그 활성화는 별도 사용자 승인 전 금지.
+- 24h 토큰 발급 억제, 1.25초 일봉 간격, 최근 24h 요청 60회는 보수적 앱 내부 제한이며 KIS 전체 계정/다른 호스트 한도 보장 아님. 발급/요청 시도는 네트워크 이전에 영속화, 실패해도 자동 재시도 금지.
+- MD-02D 코드는 live API/스케줄러/DB/Frontend/MiniPC에 연결하지 않고 합성 테스트만 허용. 운영 KIS 실제 요청·Compose 파일/볼륨 변경·DB migration/배포는 별도 승인. 상세 docs/KIS_SHARED_TOKEN_GATE.md.
+
+
+## REVIEW ONLY: PR #24+#25+#26 임시 통합
+- 이 브랜치는 각 Draft PR이 동시에 빌드·테스트 가능한지 확인하는 GitHub 리뷰용. main 병합/릴리스/실전 재요청/운영 DB migration 및 CLI 실행 지시 금지.
+
+
+## 병합 전 코드 리뷰 수정 결과 — 2026-11-20
+- PR #25: 공유 토큰 캐시 JSON이 유실된 뒤 기존 발급 이력이 사라지는 위험 수정. 별도 0600 `kis-ever-attempted-token.marker`를 토큰 요청 전에 영속화하고 상태 소실 시 `KIS_SHARED_STATE_LOST_AFTER_ISSUE`로 신규 요청 차단. 자동 복구/재발급 금지.
+- PR #26: 한 배치의 앞쪽 price_bar INSERT 후 뒤쪽 가격 충돌 시 부분 저장이 남을 위험 수정. 내부 `session.begin_nested()` SAVEPOINT로 해당 배치 전체를 원자적으로 롤백. 외부 트랜잭션 commit은 여전히 호출자 제어.
+- PR #27 합성 통합에서 두 위험의 추가 회귀 테스트를 함께 검증한다. 독립 Draft PR 병합과 운영 변경은 별도 승인. `docs/MD02_MD03_INTEGRATION_REVIEW.md` 참고.

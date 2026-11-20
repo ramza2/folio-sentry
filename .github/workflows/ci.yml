@@ -113,7 +113,7 @@ jobs:
           bootstrap_owner("ci-owner", "ci-only-synthetic-password-123!")
           assert auth_ready()
           tables = set(inspect(get_engine()).get_table_names())
-          assert {"auth_owner", "auth_session", "alembic_version", "instrument", "tracked_instrument"}.issubset(tables)
+          assert {"auth_owner", "auth_session", "alembic_version", "instrument", "tracked_instrument", "price_bar"}.issubset(tables)
           from decimal import Decimal
           from sqlalchemy.orm import Session
           from sqlalchemy import text
@@ -134,12 +134,18 @@ jobs:
               db.rollback()
           with get_engine().connect() as conn:
               rev = conn.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-              assert rev == "20261119_portfolio01"
+              assert rev == "20261120_pricebar01"
               assert conn.execute(text("SELECT count(*) FROM instrument")).scalar_one() == 0
               assert conn.execute(text("SELECT count(*) FROM tracked_instrument")).scalar_one() == 0
+              assert conn.execute(text("SELECT count(*) FROM price_bar")).scalar_one() == 0
           print("FOLIOSENTRY_AUTH01_ISOLATED_MIGRATION_PASS")
           print("FOLIOSENTRY_PHASE1_PORTFOLIO_MIGRATION_CI_PASS")
+          print("FOLIOSENTRY_MD03_ISOLATED_SCHEMA_CI_PASS")
           PY
+      - name: MD03 price-bar idempotency and finality guards (synthetic isolated DB)
+        env:
+          FOLIOSENTRY_MD03_ISOLATED_DB_TEST: "yes"
+        run: python scripts/test_price_bar_isolated_ci.py
 
   deploy01-production-config:
     runs-on: ubuntu-latest

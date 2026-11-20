@@ -59,7 +59,7 @@
 - [x] MD-01: 한국투자증권 KIS/Twelve Data/Alpha Vantage 공식 문서 기반 KR·US 시세 공급자 비교 및 호출 전 확인 조건 정리 (2026-11-20, GitHub만)
 - [x] MD-01: KIS KR·US 일봉 OHLCV 비통신 정규화 계약 + Decimal·거래소·시점·품질 경계 합성 테스트 (GitHub만)
 - [x] MD-02: KIS 일봉 전용 GET·토큰 POST·고정 호스트 allowlist·비밀 파일 권한·레이트리밋·합성 transport 테스트 구현 (GitHub 전용, 비활성 기본값, 2026-11-20)
-- [ ] MD-02 실제 KIS Open API 신청 상태 확인 및 사용자 승인 후 제한적 최초 실 시세 GET 검증 (운영 미적용)
+- [x] MD-02 KIS Open API 신청/실전 키 발급 후 최초 토큰 POST·KR/US 일봉 GET 각 1회 사용자 검증 PASS (2026-11-20, 기존 Draft PR에 별도 기록, 운영 미연동)
 - [ ] MD-02 토큰 공유 캐시·다중 프로세스 rate limit·장마감/지연/가격조정 정책 검증 (스케줄러 전에 필요)
 - [ ] MD-03: 확정 검증 데이터용 price_bar DB migration, 적재·멱등·장 마감/품질 판단 (별도 승인)
 - [ ] 외부 공급자 기반 Instrument 검색/식별자 매핑 (별도 공급자 검증)
@@ -153,3 +153,80 @@ Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 �
 - N/A: (1) 실제 종목 목록이 비어 있어 개별 종목 행의 시세·손익 표시 미검사, (2) Network 요청별 HTTP 상태 미검사(콘솔 네트워크 오류는 관측되지 않음).
 - 운영 종목 등록·수정·삭제, DB/서버 설정 변경 없음. **읽기 전용 UI 인수 완료 ≠ CRUD E2E 검증 완료**.
 - 다음 개발은 국내·미국 시세 공급자 검토와 종목 식별자 매핑/시세 상태 모델링을 우선. 실제 종목 행과 CRUD E2E 시험은 합성 데이터 및 별도 명시 승인 이후 진행.
+
+
+## MD-03 — 일봉 시세 품질·격리 저장 경계 (2026-11-20)
+- [x] KRX/미국 거래소 시간대 및 보수적 장마감+2h 제한, 미국 DST·미래/주말·결측/오래된 시세 품질검사 오프라인 코드 작성. 확정 거래일/종가 인정은 미구현
+- [x] `price_bar` SQLAlchemy 모델 + 추가형 `20261120_pricebar01` migration 코드 작성 (기존 표/행 불변, 최종시세 DB CHECK 차단)
+- [x] 멱등 단일 거래세션 INSERT: 동일 시세 NOOP, 다른 시세 충돌 발생, 불확정 PARTIAL 고정, 실제 신호/UI 노출 금지
+- [x] 합성 PostgreSQL CI 격리 migration 및 롤백 테스트 코드 준비 (전용 `folio_ci`만 허용)
+- [x] MD-03 GitHub Actions CI 6/6 PASS 및 격리 PostgreSQL 마이그레이션·멱등·DB 확정시세 차단·롤백 검증 완료 (2026-11-20)
+- [ ] MD-03 코드 리뷰와 병합 승인
+- [ ] PR #24/#25 병합 게이트와 후속 통합 검토 (현재 둘 다 Draft/미병합)
+- [ ] 공식 휴장/조기 종료 및 공급자 시세 관측/확정/수정주가 검증
+- [ ] **별도 승인 후에만** MiniPC 백업→격리 복원→운영 DB migration 및 배포
+- [ ] 확정된 시세만 포트폴리오 화면/손익·신호로 노출 (MD-03에서는 불가)
+- 상세: `docs/MD03_PRICE_BAR_STORAGE.md`
+
+## MD-03B — 공식 시장일정 예외 검토 (2026-11-20)
+- [x] 한국거래소 KIND 근거 2026-11-19 수능일 정규장 종료 16:30(KST) 반영, 기존 15:30 가정 교정
+- [x] NYSE/Nasdaq 근거 2026-11-26 휴장, 2026-11-27·12-24 13:00(ET) 조기 종료 일정 검증·코드 작성
+- [x] 미증빙 거래일 전면 차단하는 제한적 명시 세션 화이트리스트, EST/EDT 변환 테스트 작성
+- [ ] 전체 휴장·특수 거래일 캘린더와 공급자 시세 최종성 검증 — 현재 소수 날짜만 검증
+- [ ] PR #26 통합 CI 및 코드 리뷰, 운영 변경은 별도 승인
+
+## MD-02B — KIS 최초 실 조회를 위한 일회성 운영자 점검 (2026-11-20)
+- [x] 계좌 및 Open API 신청·App Key/Secret 발급 완료 사용자 확인(2026-11-20; 실전/모의 구분은 미확인)
+- [x] `backend/app/kis_first_probe.py`: 기본 metadata-only 검사, 명시적인 live 승인 문자열, 최초 1회 마커, 국내/미국 각 1개 일봉 조회, 시세·토큰·원문 출력 금지
+- [x] `backend/tests/test_kis_first_probe.py`: 합성 데이터/가짜 전송만, 인증정보·외부 접속 없음
+- [x] KIS 신청·키 발급 완료 사용자 확인(2026-11-20; 비밀원문 미수신)
+- [x] MiniPC 0600 비밀 파일 준비·메타데이터 점검 PASS (2026-11-20 사용자 제공, 실제 API 호출 없음)
+- [x] 사용자 승인 후 국내/미국 실제 조회 전용 최초 호출 성공 — OAuth 1회 / KR 1건 / US 1건, 2026-11-19 거래일 (2026-11-20 사용자 로그)
+- [ ] 다중 프로세스 토큰 캐시/전역 rate limit/장마감 정책 확정; MD-03 가격 저장 이전 필수
+- 문서: `docs/KIS_FIRST_READONLY_PROBE.md`. **이 코드/PR은 실제 API 호출이나 운영 배포 승인이 아니다.**
+
+
+## MD-02C — MiniPC 로컬 KIS 키 등록 준비 (2026-11-20)
+- [x] `scripts/kis-secret-setup.py` 대화형 숨김 입력·0700 폴더/0600 파일·기존파일 덮어쓰기 방지·메타데이터 전용 check 준비
+- [x] `backend/tests/test_kis_secret_setup.py` 합성/오프라인 권한 및 실패 테스트 준비
+- [ ] PR #24 리뷰 및 병합 승인
+- [x] MiniPC 사용자 `setup` + `check` 실행 성공(2026-11-20, `FOLIOSENTRY_KIS_SECRET_SETUP_LOCAL_PASS_NO_NETWORK`, `FOLIOSENTRY_KIS_SECRET_METADATA_PASS_NO_CONTENT_READ_NO_NETWORK`; 사용자 제공 결과, 비밀값 미수신)
+- [x] 사용자 실전용 키 확인 + 별도 실 시세 GET 승인 + 제한적 최초 호출 성공 (2026-11-20; 시세 최종성 미검증)
+- 코드 준비는 운영 MiniPC 변경이나 KIS 실제 호출을 포함하지 않음.
+
+
+## 2026-11-20 실제 KIS 최초 조회 인수 결과 — 사용자 제공 MiniPC 실행 로그
+- 승인: 한국투자증권 **실전투자용** App Key/Secret, 조회 전용 3회(OAuth 토큰 POST 1회, 삼성전자 일봉 GET 1회, 애플 일봉 GET 1회). 사용자 명시 승인.
+- GitHub PR #24 검증 커밋 `01703f507cde8010b99c217ffbf1ae5eb3fccc3a`의 도구를 임시 폴더에서 실행. main 배포·작업트리·DB·Compose 변경 없음.
+- `KIS_PRIVATE_FILES_METADATA_PASS_NO_SECRETS_READ_NO_NETWORK`
+- `KIS_KR_UNFINALIZED_BAR_COUNT=1`, `KIS_US_UNFINALIZED_BAR_COUNT=1`
+- `KIS_FIRST_CALL_STATUS=READONLY_QUOTE_SHAPE_PASS_NOT_PRODUCTION_APPROVAL`, `FOLIOSENTRY_KIS_FIRST_READONLY_PASS`
+- 대상 조회 거래일: 국내·미국 **2026-11-19**, RAW 가격. KIS 실제 OAuth 발급에 대한 한국투자증권 카카오톡 알림 사용자 수신.
+- **성공 판정 범위는 접근 토큰 발급 및 국내/미국 일봉 응답 구조·정규화 성공뿐**. 실제 가격값·장마감 최종성·원주가/수정주가 정합성·실시간 지연·공급자 관측시각·장기조회는 아직 미검증. `is_final=False`, `source_observed_at=None` 유지.
+- KIS 안내 메시지: 토큰 발급 시점부터 유효기간 **24시간**, **1일 1회 발급 원칙**, 잦은 추가 발급 시 이용 제한 가능. **재발급을 위한 probe 재실행 및 1회 마커 삭제 금지**.
+- 후속: 실제 재호출 없이 합성 fixture로 전역 레이트리밋 및 다중 프로세스 토큰 공유·재기동 정책 설계. 본 PR은 여전히 미병합 Draft이며 시세 적재/운영 표시/주문 기능 없음.
+
+## MD-02D — KIS 공유 토큰/호출 예약 기반 (2026-11-20)
+- [x] 2026-11-20 최초 실전 KIS 토큰 POST 1회 및 KR/US 일봉 GET 각 1회 성공 기록(사용자 제공 PASS, 데이터 UNFINALIZED)
+- [x] 공유 상태 파일 모델과 프로세스간 flock, 24시간 토큰 발급 간격, 전역 일봉 간격 1.25초, 24시간 60회 내부 상한, crash-safe 선예약 코드 작성
+- [x] 기본 발급 거부 및 독립 optional shared_state 연계로 기존 운영 미변경, 진짜 토큰/호출 없음
+- [x] PR #25 GitHub CI 6/6 PASS (2026-11-20, synthetic tests only)
+- [ ] PR #25 리뷰 및 병합 승인
+- [ ] 운영 MiniPC 공유 상태 디렉터리/보안/암호화 백업 검토(별도 승인)
+- [ ] KIS 최신 정책/실 사용량 외부 확인 후 토큰 발급/실 호출 별도 승인
+- [ ] MD-03 장마감 최종성·price_bar DB 모델/적재·스케줄러 승인
+- 상세: docs/KIS_SHARED_TOKEN_GATE.md
+
+
+## MD-02~03 임시 통합 CI 게이트
+- [x] PR #24 최초 조회/로컬 키 관리, #25 공유 토큰, #26 비확정 price_bar 세 기능 간 충돌 점검용 소스 조합 작성
+- [ ] 단일 통합 GitHub CI 전체 PASS
+- [ ] 개별 PR 리뷰/명시적 병합 승인 전 main/운영에 반영 금지
+
+
+## 통합 리뷰 보완/게이트 (2026-11-20)
+- [x] PR #25 캐시 상태 파일 유실 후 기존 토큰 발급 기록 보호: 독립 영속 마커 + 실 키 없는 합성 회귀 테스트
+- [x] PR #26 중간 가격 충돌 시 한 배치 부분 INSERT 방지: 내부 SAVEPOINT + PostgreSQL 격리 테스트
+- [ ] PR #27 수정본 통합 CI 6/6 최종 확인
+- [ ] PR #24→#25→#26 개별 리뷰·병합 승인. AGENTS/ROADMAP 문서 충돌 조정 필요
+- [ ] 공식 거래소 전체 캘린더·가격 확정 정책 검증, 실 API/KIS/운영 DB/배포 별도 승인
