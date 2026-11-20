@@ -223,3 +223,11 @@
 - `market+exchange_mic+symbol+currency` 검증, 국내 6자리 선행 0, 해외 시세 거래소 EXCD mapping, Decimal 문자열/8자리 소수, OHLC 일관성/중복/미래 거래일/미국 타임존 검증. 실패 시 전체 배치 거부.
 - 수집시각 `fetched_at`을 공급자 갱신시각으로 위장하지 않고, 정규화 결과 `source_observed_at=None`, `is_final=False`, `availability=UNFINALIZED` 고정. 기존 운영 `quote.status=UNAVAILABLE` 유지, DEMO 수치 및 미확인 바를 실제 시세로 노출하지 않는다.
 - 후속 KIS 실제 호출은 사용자 계정·사용 조건이 충족된 후 별도 PR, 자격증명은 MiniPC 비공개 파일/Docker secret으로만 처리, 로그/커밋에 저장 금지. 주문·잔고 API 금지. DB 마이그레이션·시세 활성화·운영 배포 모두 별도 명시 승인. 자동 백업 timer 비활성화 유지.
+
+## MD-02 KIS 조회 전용 전송 코드 (2026-11-20)
+- 사용자는 한국투자증권 **계좌를 보유**함. **Open API 신청·App Key/Secret 발급 여부는 미확인**. 값·계좌번호·토큰 원문 절대 요청하거나 GitHub/로그/채팅에 저장하지 않는다. 사용자가 확인할 것은 신청 완료 여부만.
+- `backend/app/kis_readonly.py`는 순수 opt-in 전송 모듈: 기본 `live_enabled=False`; KIS 고정 실전 HTTPS 호스트와 허용된 OAuth 토큰 POST/국내·해외 일봉 GET **3개 경로만** 사용. 주문·계좌·잔고 조회 차단.
+- 비밀키는 사용자가 별도 비공개 0600 파일에 저장 후, 승인된 실행시에만 읽는다. HTTP 응답 원문·인증 오류 상세·키/토큰·계좌값 로그 출력 금지.
+- 임시 단일 프로세스 토큰 캐시, 토큰 재발급 최소 6시간/일봉 요청 간 최소 1초/60회 상한. 재시작/병렬 세션 간 제어는 없으므로 **스케줄러/운영 UI/API에 연결하지 않는다**. 실제 호출은 개별 승인.
+- 해외 `MODP=1` 수정주가/`0` 원주가, 국내 `FID_ORG_ADJ_PRC=0` 수정주가/`1` 원주가. 기존 정규화 `is_final=False` 유지. 출처·시각·원주가/수정주가·장마감 검증 전 가격/차트/평가손익 노출 불가.
+- 기존 Phase 1 운영 배포·Chrome 인수 PASS(7/FAIL 0/N/A 2)와 별개로 GitHub 코드/CI만 개발. MiniPC 서비스·DB·Traefik/PinckNext·백업 타이머 불변. 참고 `docs/PHASE1_MARKET_DATA_ADAPTER.md`.

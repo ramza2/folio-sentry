@@ -58,7 +58,9 @@
 - [ ] Network 요청별 응답 HTTP 코드 직접 확인 (읽기 전용 가능 시)
 - [x] MD-01: 한국투자증권 KIS/Twelve Data/Alpha Vantage 공식 문서 기반 KR·US 시세 공급자 비교 및 호출 전 확인 조건 정리 (2026-11-20, GitHub만)
 - [x] MD-01: KIS KR·US 일봉 OHLCV 비통신 정규화 계약 + Decimal·거래소·시점·품질 경계 합성 테스트 (GitHub만)
-- [ ] MD-02: KIS 계좌/API 사용 가능성·호출 제한·미국 데이터 지연·수정주가 정책 확인 후 읽기 전용 실제 시세 전송 adapter 구현 (별도 승인)
+- [x] MD-02: KIS 일봉 전용 GET·토큰 POST·고정 호스트 allowlist·비밀 파일 권한·레이트리밋·합성 transport 테스트 구현 (GitHub 전용, 비활성 기본값, 2026-11-20)
+- [ ] MD-02 실제 KIS Open API 신청 상태 확인 및 사용자 승인 후 제한적 최초 실 시세 GET 검증 (운영 미적용)
+- [ ] MD-02 토큰 공유 캐시·다중 프로세스 rate limit·장마감/지연/가격조정 정책 검증 (스케줄러 전에 필요)
 - [ ] MD-03: 확정 검증 데이터용 price_bar DB migration, 적재·멱등·장 마감/품질 판단 (별도 승인)
 - [ ] 외부 공급자 기반 Instrument 검색/식별자 매핑 (별도 공급자 검증)
 - [ ] 국내·미국 일봉 시세 수집/중복 방지/수집 상태 표시
