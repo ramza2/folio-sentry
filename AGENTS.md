@@ -395,3 +395,13 @@
 - DB 체크로 UNVERIFIED_REFERENCE/publication_allowed=false 고정, PostgreSQL UPDATE/DELETE trigger 추가; caller-owned session+transaction/explicit allow_write만 쓰기. 부모 SELECT FOR UPDATE/중복 멱등/모순 거부, 체인 read-only 검사. 관리자가 트리거를 변경할 수 있어 외부 불변 원장은 아님.
 - 신규 품질 이력 migration + 격리 테스트는 GitHub-hosted folio_ci/127.0.0.1 synthetic DB에서만 실행. main 병합/운영 MiniPC 백업·DB migration/실 KIS API·토큰/프론트·백엔드 운영 배포/가격·손익·신호·알림/스케줄러는 별도 승인.
 - 기존 MD-04C2 인증 GET은 UNAVAILABLE 및 가격·손익 null 유지. 상세 docs/MD04C4_REFERENCE_HISTORY.md.
+
+
+## MD-04C4 병합 완료 / MD-04C5 KIS 공식 예제 근거 수동 진단 (2026-11-23)
+- MD-04C4 PR #34 사용자 승인 main@1a9f95c 병합 및 Hosted CI #45146478310 전체 8 PASS. 위의 Draft 기록은 과거 상태.
+- MD-04C5는 **기존 운영 API/DB/시세 저장소/KIS 호출을 일절 변경하지 않는** 순수 backend/app/md04c5_source_review.py 검토 도구와 합성 테스트, 문서만 추가한다. 공식 upstream koreainvestment/open-trading-api commit 74b0a082fa67a0be5bf53f561719c853890ed2df 및 Blob SHA를 카탈로그에 고정.
+- KR itemchart FID_ORG_ADJ_PRC=0 수정주가/1 원주가라는 해당 엔드포인트 공식 예제·MCP 설정의 설명을 구분한다. **별도의 KR inquire-daily-price MCP 설정에서 같은 명칭의 옵션 0/1이 반대로 설명됨**: 다른 엔드포인트의 설명을 가져오지 않는다.
+- US dailyprice MODP의 설명과 백테스터 1=수정주가 주석은 있으나, 공급자 최종성/기업행동·정정/원천 관측시각이나 실제 응답 원주가·수정주가 의미 보증은 없음. 자동 승격 금지.
+- 문서 URL/해시/검토시각은 공급자 최종 시세·진위 증명 아님. 오프라인 카탈로그 외 사용자 임의 URL 불허, 문서 원문/가격/계좌·토큰 입력·출력·네트워크/DB access 금지.
+- MD04B UNVERIFIED_REASONS 6개 전부 유지, source_observed_at NULL, final/publication/promotion/analysis/automatic_storage false 고정. 기존 MD04C2 quote-status UNAVAILABLE/가격·손익 null, MD03 price_bar PARTIAL 제약 불변.
+- 별도 승인 전 main 병합, MiniPC 운영 배포/DB migration/새 KIS 실호출·토큰, 자동 스케줄러, 가격·손익·신호·알림 공개 금지. 상세 docs/MD04C5_OFFLINE_SOURCE_REVIEW.md.
