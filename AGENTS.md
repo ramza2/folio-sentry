@@ -315,3 +315,28 @@
 - `main@9e5cd61`의 Public Actions 운영·실 KIS 1회 마커 보존·비밀키 금지 지침을 그대로 유지하면서 PR #25의 optional 공유 캐시 코드를 통합 검토한다.
 - 공유 상태 JSON에는 실제 bearer token 평문이 0600으로 기록될 수 있으므로, **공개 저장소 Git 추적·로그·CI 아티팩트로 저장하지 않는다**. 이 PR은 합성 데이터 CI만 실행하며 운영에 상태 폴더를 생성하거나 연결하지 않는다.
 - PR #25 병합 전 최신 GitHub Actions `CI gate` PASS 필요. 병합은 별도 사용자 승인 필수.
+
+
+## MD-03 — 비확정 KIS 일봉 저장 경계 (2026-11-20)
+- MD-03 코드는 별도 Draft PR #26에서 검토 중. PR #24/#25는 2026-11-23에 `main` 병합 및 GitHub-hosted CI 검증을 완료했으며 MD-03에서 운영 배포하지 않는다. 실제 KIS 재조회·MiniPC 운영 DB 변경/마이그레이션은 **별도 명시 승인 없이는 금지**.
+- `app.price_quality`: KRX 15:30 KST / 미국 16:00 ET + 보수적 2시간 대기, TZ/DST 검증, 주말·미래·오래된 데이터 거부. **공식 휴장·조기종료/공급자 관측시간 확인 전 finality 증명 아님**.
+- `app.price_models.PriceBar`: 새 migration `20261120_pricebar01` 생성 코드. DB CHECK로 `quality_status='PARTIAL'`, `is_final=false`, `source_observed_at IS NULL` 강제. 운영 DB에는 설치하지 않는다.
+- `app.price_repository`: 기본 쓰기 거부(`allow_write=False`), SQLAlchemy Session 외부 주입, 명시적 isolated-only 테스트, 멱등 INSERT 충돌은 같은 값만 NOOP, 다른 OHLCV는 보류·검토. 내부 commit·실 API 호출 없음.
+- `analysis_eligible`은 항상 False. 부분 데이터로 포트폴리오 손익·실 시세·매매 신호·알림 노출 금지. 프론트 DEMO와 실 종목 가격 없음 표시 그대로 유지.
+- CI 합성 DB에는 `folio_ci` loopback 전용 가드, migration 전후 isolated transaction/rollback 검증. 운영 MiniPC에서 `alembic upgrade head` 금지. 참조: `docs/MD03_PRICE_BAR_STORAGE.md`.
+
+## MD-03B 공식 거래소 예외 일정 안전 기준
+- 2026-11-19 KRX KOSPI/KOSDAQ은 수능으로 10:00~16:30 KST(일반 15:30이 아님). 한국거래소 KIND 공식 자료를 `app.exchange_calendar`에 기록했다.
+- 미국 NYSE/Nasdaq 공식 자료: 2026-11-26 휴장, 2026-11-27 및 2026-12-24 13:00 ET 조기마감. 증빙 없는 날짜는 절대 개장/최종시세로 추정하지 않고 `PRICE_SESSION_CALENDAR_UNVERIFIED` 거부.
+- 현재 명시된 날짜는 소수의 확인된 세션만 포함한 목록으로 전체 시장 달력으로 오인하면 안 된다. `PARTIAL`/is_final=false 유지. 실제 KIS/DB/운영 재검증 없이 새 날짜를 자동 허용하지 않는다.
+
+
+## MD-03 리뷰 보완: 배치 atomicity
+- `price_repository.insert_unverified_daily_batch`은 외부 Session을 유지하되 내부 `begin_nested()` savepoint로 여러 일봉의 단일 배치 저장 전체를 원자화한다. 중간 값 충돌이 있으면 그 배치의 앞서 들어간 행도 자동 롤백해야 한다.
+- 합성 PostgreSQL 테스트에 RAW 기존 값 충돌과 ADJUSTED 신규 행 결합을 추가. 호출자가 예외를 잡아도 부분 적재가 남지 않는지 격리 CI에서 검증. main/운영 DB에는 적용하지 않는다.
+
+## MD-03 Public CI 충돌 해결 정책 (2026-11-23)
+- 사용자가 승인한 것은 **PR #25 main 병합**까지이며 PR #26은 Review/CI 준비만. GitHub-hosted isolated PostgreSQL에서만 `20261120_pricebar01` 마이그레이션·멱등성·PARTIAL 제한을 검사한다.
+- `main` CI (`.github/workflows/ci.yml`)의 변경 라우팅/`ci-gate`/MD03 migration/test 파일 동시 존재 fail-closed와 `auth-db-migration` isolated test는 절대 제거하지 않는다. PR #26의 구식 워크플로로 되돌리지 않는다.
+- 실제 MiniPC에는 별도 승인 전 `alembic upgrade head`, 시세 적재/백업 변경/실 KIS API 요청·토큰 발급, 자동 스케줄러·Portfolio 가격 표시 절대 실행하지 않는다.
+- 사용자 제공 과거 최초 실 KIS 조회는 합성 MD-03 테스트와 별개이며, 최종 종가·수정주가·거래소 공식 일정의 완전 검증은 미완료다.

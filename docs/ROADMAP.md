@@ -274,3 +274,38 @@ Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 �
 - [x] PR #25 공유 상태 기능 코드와 기존 Public/CI/보안 문서 충돌 해소 준비.
 - [ ] PR #25 최신 SHA GitHub Actions Backend/CI gate PASS 확인.
 - [ ] 사용자 별도 승인 후 PR #25 병합. 운영 KIS API/토큰 재발급/시세 수집/DB·Docker 배포는 본 PR 범위 밖.
+
+
+## MD-03 — 일봉 시세 품질·격리 저장 경계 (2026-11-20)
+- [x] KRX/미국 거래소 시간대 및 보수적 장마감+2h 제한, 미국 DST·미래/주말·결측/오래된 시세 품질검사 오프라인 코드 작성. 확정 거래일/종가 인정은 미구현
+- [x] `price_bar` SQLAlchemy 모델 + 추가형 `20261120_pricebar01` migration 코드 작성 (기존 표/행 불변, 최종시세 DB CHECK 차단)
+- [x] 멱등 단일 거래세션 INSERT: 동일 시세 NOOP, 다른 시세 충돌 발생, 불확정 PARTIAL 고정, 실제 신호/UI 노출 금지
+- [x] 합성 PostgreSQL CI 격리 migration 및 롤백 테스트 코드 준비 (전용 `folio_ci`만 허용)
+- [x] MD-03 GitHub Actions CI 6/6 PASS 및 격리 PostgreSQL 마이그레이션·멱등·DB 확정시세 차단·롤백 검증 완료 (2026-11-20)
+- [ ] MD-03 코드 리뷰와 병합 승인
+- [ ] PR #24/#25는 2026-11-23 `main` 병합 완료, PR #26은 별도 Draft 유지
+- [ ] 공식 휴장/조기 종료 및 공급자 시세 관측/확정/수정주가 검증
+- [ ] **별도 승인 후에만** MiniPC 백업→격리 복원→운영 DB migration 및 배포
+- [ ] 확정된 시세만 포트폴리오 화면/손익·신호로 노출 (MD-03에서는 불가)
+- 상세: `docs/MD03_PRICE_BAR_STORAGE.md`
+
+## MD-03B — 공식 시장일정 예외 검토 (2026-11-20)
+- [x] 한국거래소 KIND 근거 2026-11-19 수능일 정규장 종료 16:30(KST) 반영, 기존 15:30 가정 교정
+- [x] NYSE/Nasdaq 근거 2026-11-26 휴장, 2026-11-27·12-24 13:00(ET) 조기 종료 일정 검증·코드 작성
+- [x] 미증빙 거래일 전면 차단하는 제한적 명시 세션 화이트리스트, EST/EDT 변환 테스트 작성
+- [ ] 전체 휴장·특수 거래일 캘린더와 공급자 시세 최종성 검증 — 현재 소수 날짜만 검증
+- [ ] PR #26 통합 CI 및 코드 리뷰, 운영 변경은 별도 승인
+
+
+## MD-03 리뷰 원자성 보완 (2026-11-20)
+- [x] 다중 일봉 배치 중간 충돌 후 일부 앞쪽 INSERT가 남을 가능성 식별
+- [x] 저장 함수 내부 SAVEPOINT 도입하여 충돌 시 배치 전체 원자적 롤백
+- [x] 추가 격리 PostgreSQL 합성 테스트: NEW ADJUSTED + conflicting RAW → 저장 0건(기존 RAW 유지)
+- [ ] PR #26 CI 회귀검증 및 병합 승인
+
+## MD-03 GitHub Actions PR #26 통합 준비 (2026-11-23)
+- [x] CI 최적화 PR #28/최초 조회 PR #24/공유 토큰 PR #25 `main` 병합, 각 main CI PASS (PR #25 main CI #45130169347).
+- [x] PR #26의 독립 MD-03 코드 8개 및 데이터 모델 문서 원본 blobs 보존, `AGENTS.md`·`docs/ROADMAP.md` 충돌 조정.
+- [x] 최적화된 main CI 유지: PR #26의 구형 Workflow 덮어쓰기 금지; MD03 migration+test 양쪽 존재 fail-closed, 조건부 isolated PostgreSQL 테스트가 실행되도록 설계.
+- [ ] 새 PR #26 HEAD의 Hosted Backend + auth-db-migration + CI gate 실제 PASS 확인.
+- [ ] 사용자의 별도 명시 승인 후 PR #26 `main` 병합. 운영 MiniPC DB migration/실 시세 GET/배포는 별도 승인.
