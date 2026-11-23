@@ -307,3 +307,10 @@
 - 사용자 MiniPC 최종 실행: bash -n PASS, 오프라인 안전계약 6/6 PASS, 격리 PostgreSQL READY, FOLIOSENTRY_MD03_ARCHIVED_SOURCE_IMPORT_PASS, SAVEPOINT 원자성/중복·충돌/DB 최종성 차단/전체 ROLLBACK/Alembic revision 20261120_pricebar01/잔여 0건 PASS. 최종 FOLIOSENTRY_MD03_ISOLATED_POSTGRES_INTEGRATION_PASS 및 FOLIOSENTRY_MD03_LOCAL_E2E_COMPLETE.
 - 테스트 전후 라벨 기반 일회용 컨테이너 조회 0건. 1차 ModuleNotFoundError는 PYTHONPATH 및 -m 실행 수정으로 해결. 운영 DB/운영 서비스 건강 상태의 독립 확인, 실 KIS API/미국 일봉 최종성, GitHub hosted Actions 실행은 **미검증**.
 - 이전 MiniPC 종료·재부팅 의심 사건의 원인은 미확인. 이전 부팅 커널 OOM/온도/전원/watchdog 로그와 시스템 상태를 읽기 전용 확인 전에는 추가 부하 시험과 운영 마이그레이션·배포 금지. 저장소 Private 유지; main 미병합.
+
+
+## MiniPC 2026-11-23 부팅 복구 읽기 전용 점검 결과
+- 사용자가 제공한 uptime/journalctl: 직전 부팅 기록 최종 2026-11-23 09:52:19 KST, 현재 부팅 시작 11:24:21 KST. 기록 간 1시간 32분 공백이 있으나 전원 종료/재시작/부팅 실패 원인은 **불명**. last 명령 미설치(별도 설치 불필요).
+- 12:12 KST 기준 memory 14GiB 중 available 12GiB, swap 사용 0B. 운영 foliosentry-prod frontend/backend/db 3개 컨테이너가 모두 약 46분 Up(healthy). MD03 테스트용 라벨 컨테이너 0건.
+- 이전 커널 경고 grep에서 현재 사고 직전 OOM/panic/열폭주 로그는 확인되지 않음. 출력된 11월 1일 초기 NMI watchdog 및 TSC 불안정 문구는 **11월 23일 사고 원인 증거가 아님**. 현재 메모리 여유가 사고 당시 OOM 가능성을 배제하지도 않음.
+- 정지 원인 조사 전 신규 격리 Docker 부하 E2E/운영 마이그레이션/배포 금지. 09:40~09:55 KST 이전 부팅의 종료·OOM·watchdog·전원/디스크 오류 로그 추가 확인 후 안전 판단. 이번 MiniPC 자체 재부팅은 MD03 격리 DB E2E PASS와 별도 사건. Private 유지.

@@ -271,3 +271,13 @@ Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 �
 - [ ] MiniPC 이전 전원 종료·재부팅 의심 현상: 부팅 이력/커널 OOM/thermal/watchdog/하드웨어 및 운영 서비스 건강 상태를 **읽기 전용** 조사, 원인 미확인
 - [ ] 시스템 안정성 확인 전 추가 Docker 부하/운영 배포·DB 마이그레이션 보류
 - [ ] GitHub hosted Actions 최종 검증과 Draft PR 단계적 병합은 별도. Private 유지
+
+
+## OPS-STABILITY-01 — MiniPC 비예정 재부팅 분석 (2026-11-23)
+- [x] MiniPC 부팅 이력 확인: 이전 journal 09:52:19 종료, 새 부팅 11:24:21 KST. 중간 시간대 원인 불명
+- [x] 현재 RAM 14GiB/가용 12GiB, Swap 0B; 운영 Frontend/Backend/PostgreSQL 컨테이너 **healthy** 3개 (상태 조회 기준)
+- [x] 이전 부팅 커널 경고 검색에서 해당 사건 직전 명시적 OOM/Kernel Panic 확인되지 않음. 발견된 NMI watchdog/TSC 초기화 기록은 **11월 1일**, 사건 관련 증거 아님
+- [x] 일회용 MD03 라벨 Docker 컨테이너 잔존 0건. `last` 명령은 미설치이므로 설치하지 않고 journalctl로 확인
+- [ ] 사건 전후 2026-11-23 09:40~09:55 이전 부팅 journal의 shutdown/OOM/thermal/watchdog/I-O 관련 로그 읽기 전용 확인
+- [ ] 예상치 못한 shutdown·전원 문제의 재발 여부 관찰; 필요하면 BIOS/전원/시스템 로그를 별도 검토
+- [ ] 시스템 안정성 확보 전 추가 격리 Docker 부하 테스트/운영 DB 마이그레이션/운영 배포 보류
