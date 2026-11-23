@@ -239,3 +239,15 @@ Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 �
 - [ ] 정상 GitHub Actions 갱신 후 PR #24→#25→#26 및 CI 최적화 브랜치의 결합 검증
 - [x] Private 유지, 실 KIS 호출/실 DB/Docker/운영 배포/시세 UI 연동 금지 유지
 - 자세한 계획·한계: `docs/MD02_MD03_STDLIB_OFFLINE_GATE.md`
+
+ 
+## MD03-DB-LOCAL — MiniPC 완전 격리 PostgreSQL 저장 E2E (2026-11-23)
+- [x] MD02/MD03 합성 KIS·PARTIAL 연동 stdlib 검사 10/10 PASS (사용자 MiniPC 실행 결과 확인)
+- [x] 임시 합성 PostgreSQL 컨테이너의 --network none, tmpfs 저장소, 포트 없음 및 운영 image ID 재사용 설계
+- [x] 운영 Backend/DB 컨테이너는 image ID만 읽고 새 Python+PostgreSQL 테스트 컨테이너만 사용하도록 분리, 사전점검/명시적 확인 문자열/자동 정리 코드 작성
+- [x] 일회용 DB에 Alembic 20261120_pricebar01 및 저장 멱등·충돌·원자성·finality CHECK·롤백 검증 연결
+- [x] Docker 무실행 정적 검사 및 문서 초안 작성
+- [ ] MiniPC 격리 archive에서 bash -n / Python contract test 및 --preflight PASS 확인
+- [ ] 명시적인 합성 컨테이너 실행으로 격리 PostgreSQL E2E PASS 확인
+- [ ] GitHub Actions CI 최종 검증·기존 Draft PR 단계적 병합은 무료 사용량 갱신/사용자 별도 승인 뒤 수행
+- [x] Private 유지, 실 KIS 토큰 재발급/운영 마이그레이션·서비스 변경 없음

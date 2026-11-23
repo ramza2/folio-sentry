@@ -287,3 +287,11 @@
 ## MD-02/03 오프라인 통합 품질 게이트 (2026-11-20)
 - 검토 전용 PR #27 코드 스냅샷에서 분기한 `review/md02-md03-stdlib-offline-gate-20261120`에 `scripts/ci/md02_md03_offline_acceptance.py`를 작성했다. Python 3.12 표준 라이브러리만, 임시 파일 및 합성 키/transport만, socket.connect 차단. 실 계좌·KIS HTTP·운영 DB·Docker·로그인 API 접근 금지.
 - `docs/MD02_MD03_STDLIB_OFFLINE_GATE.md` 참고. 저장소는 Private 유지. **로컬 테스트 실행 PASS 전까지 완료로 단정하지 말 것**. GitHub Actions 실제 실행 PASS, Alembic/실 PostgreSQL 검증을 대체하지 않는다.
+
+ 
+## MD-03 임시 PostgreSQL 격리 테스트 도구 (2026-11-23)
+- MD02/MD03 stdlib 합성 통합검증 10/10 PASS(사용자 MiniPC 제공 로그). 이것은 실제 PostgreSQL 동작 검증이 아니며 실 KIS API 호출도 아니다.
+- scripts/ci/run-md03-isolated-docker.sh는 무조건 /tmp 격리 git archive에서만 실행. 기본 --preflight는 운영 docker image ID 읽기 전용 검사만, --run은 APPROVE_MD03_EPHEMERAL_DOCKER_ONLY 확인 문자열이 있어야 일회용 PostgreSQL+새 Python 테스트 컨테이너 2개를 실행한다.
+- 운영 foliosentry-prod 컨테이너에서 실행/재시작/DB접속/환경변수·비밀파일 접근 금지. 운영 이미지 ID만 확인, 신규 PostgreSQL --network none, tmpfs, host port 없음. Python 테스트가 일회용 namespace만 공유한다.
+- Docker pull/build/pip install/실 KIS·실 계좌/운영 마이그레이션/운영 Compose/배포 금지. scripts/ci/test_md03_isolated_docker_contract.py는 실행 명령의 핵심 안전 계약만 검사한다. 최신 지침 docs/MD03_ISOLATED_POSTGRES_LOCAL.md 참조.
+- 이 스크립트는 아직 MiniPC 실행 PASS를 확인받지 못함. 따라서 실제 PostgreSQL 격리 E2E 결과는 미검증. 사용자가 승인하지 않으면 main, 운영 환경, KIS 토큰, 가격 시세·UI 불변. Private 유지.
