@@ -356,3 +356,14 @@ Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 �
 - [ ] 사용자 별도 병합 승인 후에만 main 반영. 운영 MiniPC 배포·DB migration·KIS 토큰 발급·실조회·가격/손익/알림 공개 금지.
 - [ ] MD-04C3 실제 공급자 품질 메타데이터 기록 및 확정성 승인 체계 검토. 가격 공개 전 가격기준·원천 관측·휴장/기업행동 검증 필요.
 - 상세 docs/MD04C2_AUTH_QUOTE_STATUS.md.
+
+
+## MD-04C3 — 비확정 공급자 품질 증빙 분리 저장 (2026-11-23)
+- [x] MD-04C2 PR #32 사용자 승인 병합 main@77ade4e, post-merge Hosted CI #45141141642 PASS, 운영 미배포.
+- [x] 신규 price_quality_evidence version MD04C3_V1 모델/추가형 20261123_quality01 migration/DB CHECK 코드 준비. price_bar PARTIAL-only 제약 불변.
+- [x] 명시적 allow_write, 단일 price_bar·정책 고정, 멱등/모순 충돌 차단, 메타데이터만 저장하는 repo 및 합성 테스트 작성.
+- [x] GitHub-hosted PostgreSQL folio_ci 전용 마이그레이션 HEAD, 0행 확인, 합성 KR/US 증빙, 최종성/공개 위조 CHECK, 전 행 rollback 테스트 연결.
+- [ ] MD-04C3 Draft PR 최신 Backend/격리 PostgreSQL/CI gate PASS 확인.
+- [ ] 사용자 별도 명시적 승인 후 main 병합. MiniPC 운영 DB migration·KIS 호출/토큰·배포·가격/손익 공개 승인은 별도.
+- [ ] 품질 증빙의 외부 출처, 공급자 관측시각, 원주가/수정주가 의미, 기업행동/정정 이력에 대한 승인 가능 근거 수집. 최종성 v2 전이는 증빙 완료 후 별도 PR.
+- 상세 docs/MD04C3_EVIDENCE_STORAGE.md.
