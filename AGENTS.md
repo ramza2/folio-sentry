@@ -325,6 +325,12 @@
 ## OPS-CI03 — CI × KIS 검토 스냅샷 (2026-11-23)
 - 원본 CI `ci/usage-control-20261120@6843092`, MD02/MD03 검토 소스 `review/md02-md03-stdlib-offline-gate-20261120@20631a9`. 별도 **review/ci-kis-offline-integration-20261123** 브랜치에서만 소스 병합 미리보기. `main`/기존 PR #24~#27 미병합·Private 유지.
 - CI 8 job: `changes` → 6개 선택 작업 → `ci-gate`. `changes`에서 기존 CI stdlib 단위 테스트 외 합성 KIS 통합 10개를 자동 실행하도록 결합(실 키·HTTP·DB 없음). MD03 임시 PostgreSQL CI 및 DB 최종성 차단 유지. AUTH browser는 수동 전용.
-- `scripts/ci/test_ci_kis_combined_contract.py` 신규 4개 정적 계약 검사 포함. 기존 CI 28 + MD03 Docker 계약 6 + 신규 4 = 전체 stdlib **38개 테스트 예상**, 실제 결합 스냅샷 테스트는 **아직 미실행**. 단독 테스트의 PASS를 결합본 PASS로 해석 금지.
+- `scripts/ci/test_ci_kis_combined_contract.py` 신규 4개 정적 계약 포함. 사용자 MiniPC에서 결합 스냅샷 unittest **38/38 PASS**, 별도 KIS 합성 **10/10 PASS**, YAML **PASS** 확인 (2026-11-23). hosted GitHub Actions 실행과는 별개.
 - `docs/CI_KIS_COMBINED_REVIEW.md`가 통합 기준. 임시 검토 브랜치를 CI 복구 전에 PR 생성하지 않고, 유료 Runner·GitHub Actions 동작 검증을 주장하지 않는다. 실전 KIS 토큰·Quote·실계좌/잔고/주문, 운영 Docker/DB/Traefik/백업, live 시세·손익 UI 불변.
 - 전원 문제는 가족 연락으로 집 전원 스위치가 꺼져 있었고 복구됐다는 정보 확보. **외부 전원 차단이 가장 유력**하지만 추정과 완전한 하드웨어 진단은 구분한다.
+
+
+## OPS-CI04 38/38 + 10/10 최종 검증과 Draft 병합 경계 (2026-11-23)
+- 검토 브랜치 `review/ci-kis-offline-integration-20261123@d2168a6`를 MiniPC의 별도 임시 archive에서 확인: CI unittest 38/38 PASS, KIS 합성 stdlib 10/10 PASS, YAML 파싱 PASS, 최종 `FOLIOSENTRY_CI_KIS_OFFLINE_GATE_PASS`.
+- 병합 조정 계획 `docs/CI_KIS_MERGE_PLAN.md`: CI 최적화 우선 → Draft #24 → #25 → #26 → 통합 회귀 테스트 보존. 특히 #26의 `.github/workflows/ci.yml` 수정이 CI 최적화 워크플로를 덮어쓰지 못하게 최신 CI를 기준으로 충돌 조정할 것. 문서와 소스 경계 유지.
+- 실제 hosted Actions, PR 승인/병합, 운영 스키마·서비스·실 KIS 연결과는 구분. 새로운 검토 브랜치는 main 병합 금지. Private 유지.

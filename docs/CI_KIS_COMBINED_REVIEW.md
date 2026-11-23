@@ -17,8 +17,8 @@
 
 ## 오프라인 검증과 결과의 범위
 - 기존 **단독 실행 결과**: CI 최적화 stdlib 28/28 PASS + YAML 파싱 PASS; KIS/가격 통합 stdlib 10/10 PASS; 임시 PostgreSQL 실 DB E2E SAVEPOINT·UNFINALIZED CHECK·롤백 PASS(모두 사용자 MiniPC 2026-11-23 이전 제공 로그).
-- 이 문서 기준 **새로 결합된 소스 전체는 아직 재실행/hosted CI 검증하지 않음**. 별도 로컬 아카이브 실행이 필요.
-- 최종 결합된 stdlib unittest 기대 검사 수: **38개 (기존 CI 28 + MD03 Docker 무실행 계약 6 + 신규 결합 계약 4)**. 별도 KIS 순수 stdlib 10개도 다시 검사.
+- **2026-11-23 MiniPC 통합 코드 실행 완료**: Python unittest 38/38 PASS, 합성 KIS 10/10 PASS, YAML 파싱 PASS. hosted GitHub Actions/Runner는 여전히 미검증.
+- 최종 결합 stdlib unittest **38/38 PASS** (기존 CI 28 + MD03 Docker 계약 6 + 통합 계약 4). 별도 KIS 순수 stdlib **10/10 PASS**.
 - Github Actions 실제 runner, required checks, docker PostgreSQL runner가 연계된 최종 Actions는 무료 할당량 갱신 전 확인할 수 없음. MiniPC 운영 이미지/DB/서비스에도 **이 통합 버전을 적용하지 않음**.
 - PR #24~#27 기능 자체는 Draft/미병합 상태를 유지하고, KIS 자동 수집·최종 가격/손익·알림·실전 주문/잔고 API를 연결하지 않음.
 

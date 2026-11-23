@@ -105,5 +105,5 @@
 ## OPS-CI03 Review-only KIS 결합 (2026-11-23)
 - `review/ci-kis-offline-integration-20261123`는 CI 최적화 및 KIS MD02/MD03 코드를 **검토 목적으로만** 조합하며, CI 단독 브랜치·기존 Draft PR/main에 어떤 변경도 적용하지 않는다.
 - `changes` job은 stdlib CI 계약 회귀 테스트 및 **합성 KIS token→KR/US PARTIAL 시세** 10개를 수행, MD03 migration은 기존 일회용 PostgreSQL `auth-db-migration` job에서 재검증되도록 보존.
-- 결합본 stdlib 38개 unittest + 10개 KIS behavior + YAML 구문 검사는 MiniPC 실제 로그 수신 전까지 PASS로 표시하지 말 것. GitHub Runner 검증 필요.
+- 2026-11-23 사용자 MiniPC 결합본 확인: stdlib unittest **38/38 PASS**, KIS 합성 **10/10 PASS**, PyYAML **PASS** 및 FOLIOSENTRY_CI_KIS_OFFLINE_GATE_PASS. GitHub-hosted Actions Runner는 별도 미검증.
 - FolioSentry Private 유지. Public 전환/유료 Actions 결제/PR 자동 생성/실 KIS·계좌/운영 DB·배포 없음.
