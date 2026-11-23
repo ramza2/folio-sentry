@@ -74,7 +74,7 @@ test("price-bearing or DEMO data can never appear in real positions", async () =
     items: [{ ...position, quote: { ...position.quote, status: "DEMO", close: "99999" } }],
     next_cursor: null,
   });
-  try { await assert.rejects(loadTracked(), /응답 형식/); }
+  try { await assert.rejects(loadTracked(), /검증되지 않은 실제 시세 응답을 차단했습니다/); }
   finally { globalThis.fetch = prior; }
 });
 
