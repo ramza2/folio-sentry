@@ -363,3 +363,11 @@
 - 최종 핵심 코드 23/23 Git blob MATCH, 해소 파일 3/3 MATCH. 이전 `cat-file -e`의 128 오판을 `ls-tree`로 수정, 후속 5개 파일 미포함 **정상**, 최종 `FOLIOSENTRY_SEQUENTIAL_LOCAL_REVIEW_COMPLETE` 확인.
 - **이 검사 완료는 main/PR 병합 승인 또는 hosted Actions PASS가 아님**. 후속 파일 5개는 독립 PR 연쇄로 자동 포함되지 않아 별도 통합 회귀검증 PR이 필요. `docs/CI_KIS_FOLLOWUP_INTEGRATION_PLAN.md` 참고.
 - CI → PR #24 → #25 → #26 각각 최신 main 기준 실제 CI 검증/병합은 사용자 별도 승인 대기. 현재 Private, main/원본 PR/운영 DB/KIS 토큰/miniPC 불변.
+
+
+## OPS-LOCAL-CI01 — Windows(WSL2) SHA 고정 로컬 CI 준비 (2026-11-23)
+- GitHub-hosted Actions 사용량 한도 소진은 개발 중단 사유가 아님. Private Windows 전용 별도 clone + WSL2(Ubuntu, Python >=3.12)에서 `scripts/ci/local-gate.ps1` 또는 `python3 scripts/ci/local_gate.py` 실행. `backend/app/kis_shared_state.py`가 Linux `fcntl.flock`를 사용하므로 **네이티브 Windows Python 전체 KIS PASS 금지**.
+- 로컬 게이트는 GitHub 공식 origin/40자리 HEAD SHA/clean tracked source를 확인하고, git archive 스냅샷을 Linux 임시 폴더에 격리한 후 작업. 운영 MiniPC와 사용자 worktree, GitHub main/기존 PR, 실제 DB·KIS·토큰·Docker 접근 없음.
+- `offline`: GitHub CI stdlib 안전계약/병합 계약 + 합성 KIS 테스트. `full --install-deps`: 명시적 pip/npm 인터넷 의존성 다운로드 허용 후 임시 Backend pytest/compileall, Frontend npm test/typecheck/build 추가. 설치는 임시 공간에서만. 실 PostgreSQL migration, 운영 배포, GitHub Runner status는 **N/A**.
+- 비밀정보 환경변수 상속 금지, 차단된 로컬 DB host/port 설정, 로컬 로그(0600)/SHA-명시 JSON 요약, 실패 시 nonzero. 네트워크가 OS 방화벽 수준으로 격리되는 것은 아님. 실제 테스트 PASS는 **아직 미실행**; `docs/LOCAL_CI_WSL.md` 참고.
+- Cursor Agent에 전체 코드 탐색/빌드를 맡기지 말고 ChatGPT에서 GitHub 코드 관리 및 단일 터미널 명령 제시. `main`/PR 병합 및 운영 DB/키/배포는 사용자 별도 승인 필수, Private 유지.

@@ -356,3 +356,15 @@ Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 �
 - [ ] CI Actions 무료 할당량 회복/비용 검토, 실제 GitHub-hosted Runner 검증 및 사용자 승인 시 CI → PR #24 → #25 → #26 단계적 병합
 - [ ] 그 후 별도 통합 회귀검증 PR로 optional 5개 테스트/격리 검증 파일 반영·검사
 - [ ] 운영 DB migration/실 KIS 수집/시세·손익 UI는 별도 사용자 승인. 현재 main과 운영 환경 불변
+
+
+## OPS-LOCAL-CI01 — Windows WSL2 로컬 CI Gate (2026-11-23)
+- [x] 원본 저장소 Backend pytest가 in-memory SQLite fixture를 사용함과 KIS 공유토큰이 Linux fcntl을 요구함을 코드 확인
+- [x] WSL2 기반 SHA 검증/Private origin 확인/clean worktree 확인/임시 git archive 격리 방식 Local CI Python gate 작성
+- [x] PowerShell WSL2 launcher, 오프라인 unittest 계약 테스트 7개, 안전 매뉴얼 작성
+- [x] 기본 offline 테스트와 명시적 `full -InstallDeps`의 테스트 범위·의존성 다운로드·리포트/미검증 PostgreSQL 경계 분리
+- [ ] WSL2(Ubuntu) 실제 오프라인 Gate PASS 검증 후 Local CI 도구 최종 판정
+- [ ] Windows WSL2 Node 22.17+/Python 3.12+ 설치 환경 확인 및 full gate Backend pytest/Frontend 빌드 PASS
+- [ ] 이후 사용자 별도 승인 뒤 CI → PR #24 → PR #25 → PR #26 각 SHA 검증/실제 병합, 필요 시 별도 격리 PostgreSQL 검사
+- [x] 이번 브랜치 검토 작업에서 기존 main/PR/운영 MiniPC/KIS·DB/유료 GitHub Actions 변경 없음
+- 상세 `docs/LOCAL_CI_WSL.md`
