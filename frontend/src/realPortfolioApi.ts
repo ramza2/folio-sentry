@@ -1,5 +1,5 @@
 /** Live single-owner portfolio adapter (never reads /demo endpoints). */
-import { parseHiddenQuote, type HiddenQuote } from "./realQuoteStatus";
+import { parseHiddenQuote, type HiddenQuote } from "./realQuoteStatus.ts";
 
 export type Market = "KR" | "US";
 export type TrackedKind = "HOLDING" | "WATCH";
