@@ -350,3 +350,9 @@
 - 23개 핵심 코드와 3개 충돌 해소 파일 blob을 최종 통합 검토본과 대조. 통합 검토본에만 있는 후속 테스트는 자동 병합되지 않음. 중간 합성 merge commit은 미래 단계 문서가 선반영됐을 수 있으므로 **운영/실제 병합에 사용 금지**.
 - `scripts/ci/test_sequential_merge_rehearsal.py`는 로컬 Git fixture와 무통신 계약 6개 포함. 새로운 순차 검사는 **아직 MiniPC 실행 PASS가 아님**. `docs/CI_KIS_SEQUENTIAL_REHEARSAL.md` 참고.
 - 기존 CI 38/38+KIS 10/10+YAML 및 MD03 일회용 DB PASS는 유지하되, Github-hosted Actions 미검증. 원본 private GitHub 브랜치/PR/main, 운영 DB/KIS API/Docker 불변.
+
+
+## OPS-CI06 후속 조회 오류 보정 (2026-11-23)
+- 사용자 MiniPC에서 순차 합성 병합 unittest **12/12 PASS**, CI→#24→#25→#26 (충돌 0/2/2/3), 23개 핵심 코드 blob 및 3개 허용 해소 파일 **MATCH**. 최종 선택적 후속 테스트 파일 검사는 `SEQUENTIAL_FOLLOWUP_CHECK_FAILED`로 종료하여 전체 게이트는 FAIL.
+- 원인: Git `cat-file -e tree:없는경로`는 종료 코드 128인데 스크립트가 1만 예상. `ls-tree --name-only`의 정상 0+빈 출력 패턴으로 변경하고 실제 임시 Git fixture 및 잘못된 응답 거부 테스트 2개 추가. 새 **14개 테스트 / 순차 최종 마커는 MiniPC에서 재검증 전**.
+- 원본 PR/CI/통합 스냅샷/SHA/메인 및 운영은 불변. 합성 병합 결과로 실제 GitHub PR을 병합하지 않으며, 후속 통합 테스트 파일이 실제 개별 PR에 없으면 정상적인 follow-up 대상. hosted Actions 실행, 운영 DB 마이그레이션, 실 KIS 재호출 금지. Private 유지.

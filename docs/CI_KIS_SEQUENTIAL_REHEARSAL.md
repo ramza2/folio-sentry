@@ -36,3 +36,13 @@ MiniPC의 `review/ci-kis-merge-rehearsal-20261123@beacf5d3c02678c8b4bb3a58d80882
 - [x] 오프라인 Git fixture 계약 검증 소스 작성.
 - [ ] MiniPC 12개 unittest 및 실제 읽기 전용 sequential rehearsal PASS 확인.
 - [ ] 실패/미해소 충돌이 발견되면 리뷰 브랜치에만 수정. 사용자 별도 승인 없이 main/PR/Actions/운영 변경 금지.
+
+
+## 2026-11-23 MiniPC 실제 순차 검증 결과 및 후속 파일 조회 수정
+- 고정 브랜치 `41288798d0406d129e38ca9679949a8e88108079` 사용자 MiniPC 실행: unittest **12/12 PASS**, 사전점검 PASS, pinned refs PASS, source code blob 23/23 일치.
+- 임시 bare Git의 4단계 합성 병합: **CI=충돌 0건 → #24=2건 → #25=2건 → #26=3건**. 허용한 총 7건의 파일별 충돌은 검토본에서 가져온 세 파일의 Git blob으로 해소. 마지막 **23개 코드 blob MATCH 및 3개 통합 관리 파일 MATCH**까지 확인.
+- 그 직후 `SEQUENTIAL_FOLLOWUP_CHECK_FAILED`로 전체 종료. **순차 병합/코드 검증이 실패한 것이 아니라 선택적 후속 테스트 파일 존재 확인 단계에서 중단**.
+- 확정 원인: `git cat-file -e TREE:missing_path`는 해당 경로가 없을 때 exit code **128**을 반환. 기존 소스는 exit **1**만 정상적인 "파일 없음"으로 처리하여 잘못 FAIL 처리.
+- 수정: 후속 선택 파일은 `git ls-tree --name-only <tree> -- <path>`로 조회. **returncode 0 + 빈 출력은 정상적인 미포함**, returncode 0 + 요청 경로는 포함, 그 외 반환값/출력은 fail-closed. 핵심 blob·관리 파일·허용 충돌 검증은 수정하지 않음.
+- 순수 테스트에 실제 임시 Git fixture를 이용한 **파일 미포함/포함 회귀**, 잘못된 Git 응답 차단 테스트를 각각 추가. 기대 unittest **14개** (기존 12 + 추가 2).
+- **수정 스크립트의 MiniPC 전체 실행은 아직 미확인**. 이전 12개 PASS와 병합 23/23 PASS를 최종 PASS로 잘못 표기하지 않는다. 실제 GitHub/운영/실전 KIS 요청 없음.

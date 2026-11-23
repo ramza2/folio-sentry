@@ -144,12 +144,29 @@ def compare_final(repo: Path, tree: str):
 
     print("FOLIOSENTRY_SEQUENTIAL_REHEARSAL_MATCHED_CODE_BLOBS=" + str(count))
     print("FOLIOSENTRY_SEQUENTIAL_REHEARSAL_REVIEWED_FILES_MATCH=3")
+    check_followups(repo, tree)
+
+
+def check_followups(repo: Path, tree: str) -> int:
+    """Report absent optional review tests without mistaking Git exit 128 for corruption.
+
+    git cat-file -e <tree>:<missing> returns 128, NOT 1. The Git ls-tree
+    lookup instead returns status 0 and empty stdout when an exact path is
+    absent. Any unexpected exit status or unexpected path fails closed.
+    """
+    missing = 0
     for path in INTEGRATION_FOLLOWUP:
-        exists = temp_git(repo, "cat-file", "-e", tree + ":" + path)
-        if exists.returncode == 1:
+        result = temp_git(repo, "ls-tree", "--name-only", tree, "--", path)
+        if result.returncode != 0:
+            raise RehearsalError("SEQUENTIAL_FOLLOWUP_TREE_QUERY_FAILED")
+        entries = result.stdout.splitlines()
+        if not entries:
             print("SEQUENTIAL_FOLLOWUP_NOT_INCLUDED=" + path)
-        elif exists.returncode != 0:
-            raise RehearsalError("SEQUENTIAL_FOLLOWUP_CHECK_FAILED")
+            missing += 1
+        elif entries != [path]:
+            raise RehearsalError("SEQUENTIAL_FOLLOWUP_TREE_OUTPUT_INVALID")
+    print("FOLIOSENTRY_SEQUENTIAL_FOLLOWUP_NOT_INCLUDED_COUNT=" + str(missing))
+    return missing
 
 
 def run(source: Path):

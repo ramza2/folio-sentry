@@ -60,3 +60,9 @@
 ## OPS-CI05/06 충돌 검증 업데이트
 - 사용자 MiniPC에서 7쌍 pairwise merge-tree **총 13건(중복) / 고유 3개 파일** 확인: `AGENTS.md`, `docs/ROADMAP.md`, `.github/workflows/ci.yml`. CI·KIS 핵심 blob 23개 그대로 유지.
 - OPS-CI06은 CI→#24→#25→#26을 실제 순서대로 임시 bare Git에서 합성 병합하여 허용 3개 파일의 충돌을 통합 검토본 기준으로 해소하는 검증 코드. 단, 중간 synthetic merge를 실제 main/PR에 사용하지 않는다. `docs/CI_KIS_SEQUENTIAL_REHEARSAL.md` 참조. 새 도구 MiniPC 실행 결과 확인 필요.
+
+
+## OPS-CI06 MiniPC 1차 순차 검증 및 후속 파일 조회 버그 (2026-11-23)
+- 실제 합성 순차 병합은 CI=충돌 0, #24=2, #25=2, #26=3건. 모든 충돌이 문서와 CI 워크플로 3개 파일 안에서 해소되었고 코드 23개·관리 파일 3개가 기준 브랜치와 일치함을 확인.
+- **전체 최종 게이트는 FAIL**: 선택적인 후속 테스트 파일의 정상 미포함을 `git cat-file -e` 반환 코드 128 때문에 오류로 잘못 판단함.
+- 후속 조회만 `git ls-tree --name-only`로 변경하고 실제 Git 임시 fixture 테스트 2개 추가. 보정된 14개 테스트/순차 최종 검사는 다시 실행해야 한다. 현재 어떤 PR도 main 병합/승인하지 않는다.

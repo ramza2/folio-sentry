@@ -108,5 +108,70 @@ class SequentialMergeContract(unittest.TestCase):
                                        commit).split()), 3)
 
 
+    def test_optional_followup_missing_is_success_with_real_git_tree(self):
+        """Regression: Git cat-file -e on a missing path returns 128.
+
+        The replacement ls-tree lookup must return a clean empty result,
+        while preserving the single present integration file.
+        """
+        from contextlib import redirect_stdout
+        from io import StringIO
+
+        with tempfile.TemporaryDirectory(prefix="folio-followup-contract-") as tmp:
+            root = Path(tmp)
+            source = root / "source"
+            source.mkdir()
+            def git(*args):
+                result = subprocess.run(
+                    ["git", "-C", str(source), *args],
+                    capture_output=True, text=True, timeout=20,
+                )
+                self.assertEqual(result.returncode, 0, (args, result.stderr))
+                return result.stdout.strip()
+
+            git("init", "-q")
+            git("config", "user.name", "Synthetic")
+            git("config", "user.email", "synthetic@example.invalid")
+            present = seq.INTEGRATION_FOLLOWUP[0]
+            file = source / present
+            file.parent.mkdir(parents=True)
+            file.write_text("synthetic only\n", encoding="utf-8")
+            git("add", ".")
+            git("commit", "-qm", "synthetic fixture")
+            tree = git("rev-parse", "HEAD^{tree}")
+            bare = root / "bare.git"
+            result = subprocess.run(
+                ["git", "clone", "--quiet", "--bare", str(source), str(bare)],
+                capture_output=True, text=True, timeout=20,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            output = StringIO()
+            with redirect_stdout(output):
+                count = seq.check_followups(bare, tree)
+            self.assertEqual(count, len(seq.INTEGRATION_FOLLOWUP) - 1)
+            self.assertNotIn("SEQUENTIAL_FOLLOWUP_NOT_INCLUDED=" + present,
+                             output.getvalue())
+            for absent in seq.INTEGRATION_FOLLOWUP[1:]:
+                self.assertIn("SEQUENTIAL_FOLLOWUP_NOT_INCLUDED=" + absent,
+                              output.getvalue())
+            self.assertIn("FOLIOSENTRY_SEQUENTIAL_FOLLOWUP_NOT_INCLUDED_COUNT=4",
+                          output.getvalue())
+
+    def test_followup_tree_query_errors_fail_closed(self):
+        from subprocess import CompletedProcess
+
+        with patch.object(seq, "temp_git",
+                          return_value=CompletedProcess([], 128, "", "")):
+            with self.assertRaisesRegex(RehearsalError,
+                                        "SEQUENTIAL_FOLLOWUP_TREE_QUERY_FAILED"):
+                seq.check_followups(Path("/tmp/does-not-exist"), "fake")
+
+        wrong = CompletedProcess([], 0, "unrelated-file\n", "")
+        with patch.object(seq, "temp_git", return_value=wrong):
+            with self.assertRaisesRegex(RehearsalError,
+                                        "SEQUENTIAL_FOLLOWUP_TREE_OUTPUT_INVALID"):
+                seq.check_followups(Path("/tmp/does-not-exist"), "fake")
+
+
 if __name__ == "__main__":
     unittest.main()
