@@ -34,7 +34,7 @@ MiniPC의 `review/ci-kis-merge-rehearsal-20261123@beacf5d3c02678c8b4bb3a58d80882
 - [x] MiniPC 쌍별 병합 7개·13건 중복 충돌, 3개 고유 파일 실사 완료.
 - [x] 임시 bare Git 순차 합성 병합 및 코드 blob 보존 게이트 구현.
 - [x] 오프라인 Git fixture 계약 검증 소스 작성.
-- [ ] MiniPC 12개 unittest 및 실제 읽기 전용 sequential rehearsal PASS 확인.
+- [x] MiniPC 최종 수정본 `ca705b0` 14/14 unittest 및 읽기 전용 순차 rehearsal 전체 PASS 확인 (2026-11-23).
 - [ ] 실패/미해소 충돌이 발견되면 리뷰 브랜치에만 수정. 사용자 별도 승인 없이 main/PR/Actions/운영 변경 금지.
 
 
@@ -46,3 +46,13 @@ MiniPC의 `review/ci-kis-merge-rehearsal-20261123@beacf5d3c02678c8b4bb3a58d80882
 - 수정: 후속 선택 파일은 `git ls-tree --name-only <tree> -- <path>`로 조회. **returncode 0 + 빈 출력은 정상적인 미포함**, returncode 0 + 요청 경로는 포함, 그 외 반환값/출력은 fail-closed. 핵심 blob·관리 파일·허용 충돌 검증은 수정하지 않음.
 - 순수 테스트에 실제 임시 Git fixture를 이용한 **파일 미포함/포함 회귀**, 잘못된 Git 응답 차단 테스트를 각각 추가. 기대 unittest **14개** (기존 12 + 추가 2).
 - **수정 스크립트의 MiniPC 전체 실행은 아직 미확인**. 이전 12개 PASS와 병합 23/23 PASS를 최종 PASS로 잘못 표기하지 않는다. 실제 GitHub/운영/실전 KIS 요청 없음.
+
+
+## 최종 사용자 MiniPC 재검증 — 전체 PASS (2026-11-23)
+- 검증 브랜치 코드 SHA `ca705b0fb73ac3b619fc480bc4e956585c3524bf`; 테스트 **14/14 OK**, Git 원본 preflight·고정 ref 검사 PASS.
+- 순차 합성 `SEQUENTIAL_STAGE=ci CONFLICT_COUNT=0`, `pr24=2`, `pr25=2`, `pr26=3`; 전체 7건을 허용된 고유 3파일만으로 임시 해소.
+- `FOLIOSENTRY_SEQUENTIAL_REHEARSAL_MATCHED_CODE_BLOBS=23`, `FOLIOSENTRY_SEQUENTIAL_REHEARSAL_REVIEWED_FILES_MATCH=3`.
+- `SEQUENTIAL_FOLLOWUP_NOT_INCLUDED` 5개는 **정상 미포함**이며 `FOLIOSENTRY_SEQUENTIAL_FOLLOWUP_NOT_INCLUDED_COUNT=5`로 집계.
+- `FOLIOSENTRY_SEQUENTIAL_NO_SOURCE_WORKTREE_MUTATION=YES`, `FOLIOSENTRY_SEQUENTIAL_NO_GITHUB_PUSH_OR_MERGE=YES`, `FOLIOSENTRY_SEQUENTIAL_REVIEW_COMPLETE_NOT_PRODUCTION_APPROVAL`, `FOLIOSENTRY_SEQUENTIAL_LOCAL_REVIEW_COMPLETE` 확인.
+- **중요**: 단위 테스트의 `SEQUENTIAL_UNEXPECTED_CONFLICT_PATH=backend/app/main.py`는 의도된 fail-closed 테스트 출력으로 실제 합성 병합 충돌이 아니다.
+- 사용자 제공 로그 외의 hosted GitHub Runner 실행은 미검증. 실제 PR merge/운영 schema·KIS live API 동작으로 확대 해석 금지. 후속 5개 파일은 `docs/CI_KIS_FOLLOWUP_INTEGRATION_PLAN.md` 참조.

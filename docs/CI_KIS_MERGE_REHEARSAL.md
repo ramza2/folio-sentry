@@ -70,3 +70,9 @@ python3 -B "$TMP/scripts/ci/merge_rehearsal.py" --run
 - 7개 pairwise 결과: main+ci 0, ci+pr24 2, ci+pr25 2, ci+pr26 3, pr24+pr25 2, pr24+pr26 2, pr25+pr26 2. **총 13개는 중복 포함**.
 - 충돌 고유 파일 정확히 3개: `AGENTS.md`, `docs/ROADMAP.md`, `.github/workflows/ci.yml`. 나머지 KIS·가격·migration 핵심 파일은 이번 pairwise 결과에서 충돌 없음.
 - 실제 순차 검증은 별도 신규 `scripts/ci/sequential_merge_rehearsal.py`와 `docs/CI_KIS_SEQUENTIAL_REHEARSAL.md` 참고. 현재 미실행.
+
+
+## OPS-CI07 상태 변경 (2026-11-23)
+- OPS-CI05 7쌍 pairwise PASS 후 OPS-CI06 순차 synthetic rehearsal 수정본 `ca705b0` 사용자 MiniPC에서 **14/14 unittest + 전체 4단계 sequential PASS**.
+- 선택 파일 5개는 결함이 아니라 **독립 원본 PR에 없음**이 검증됨. `docs/CI_KIS_FOLLOWUP_INTEGRATION_PLAN.md`에 별도 포팅/승인 절차 정리.
+- 실제 PR 본 병합/Actions/운영 배포는 여전히 미실행.

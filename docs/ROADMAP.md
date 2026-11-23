@@ -321,7 +321,7 @@ Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 �
 - [x] 임시 bare Git 저장소에서만 read-only fetch 및 `merge-tree`로 7개 독립 pairwise 충돌을 진단하는 stdlib 스크립트 작성
 - [x] 중요 CI/KIS/MD03 핵심 23개 코드 blob이 통합 검토본과 동일한지 확인하는 보수적 검사 작성
 - [x] 별도 무통신/unittest 계약 테스트 6개·실행 가이드 문서 작성
-- [ ] MiniPC GitHub 읽기 전용 fetch 통한 최신 SHA 검증·pairwise 실제 충돌 파일 목록 수집, 로컬 unittest PASS 결과 확인
+- [x] MiniPC GitHub 읽기 전용 pairwise 진단: 안전 unittest 6/6 PASS, 7쌍 충돌 합계 13건(중복), 고유 3파일 실사
 - [ ] 충돌이 있는 경우 **별도 검토 브랜치**에서 해결책 준비하고 최종 CI 통합 검증 반복 (main·기존 PR 미변경)
 - [ ] hosted Actions 계정 할당량 갱신과 사용자의 별도 승인 후 단계적 main 병합 실행
 - [x] Private 유지, 실 KIS 호출/토큰 재발급·운영 DB/컨테이너 변경 금지
@@ -344,6 +344,15 @@ Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 �
 - [x] 사용자 MiniPC 순차 rehearsal: 12/12 unittest PASS, refs PASS, CI→#24→#25→#26 4단계 완료, 충돌 0/2/2/3, 코드 23/23 및 관리 파일 3/3 MATCH
 - [x] 마지막 `SEQUENTIAL_FOLLOWUP_CHECK_FAILED`는 없는 파일의 `git cat-file -e`가 128을 반환하는 데 스크립트가 1만 정상 미포함으로 허용했던 버그라고 진단
 - [x] `git ls-tree --name-only` 기반 정상 미포함 검사로 교체; 임시 Git 실제 fixture / 비정상 쿼리 응답 차단 **테스트 2개 추가**
-- [ ] MiniPC 신규 14개 unittest 및 전체 합성 순차 병합 최종 PASS 마커 재확인
-- [ ] 후속 독립 통합 검증 파일의 포팅 순서·최종 Actions gate 재검증은 별도; main·PR 실제 병합 아님
+- [x] MiniPC 14/14 unittest, CI→#24→#25→#26 합성 병합, 23/23·3/3 MATCH 및 최종 PASS 마커 확인 (2026-11-23)
+- [x] 후속 독립 통합 검증 **5파일 포팅 순서 문서화**. 실제 포팅·hosted Actions 검증·main/PR 병합은 미실행
 - [x] Private 유지, 실제 KIS 호출/키 관리/운영 DB/Docker/배포 및 원본 PR/CI 브랜치 변경 없음
+
+
+## OPS-CI07 — 순차 병합 사전검토 종료 및 후속 QA 계획 (2026-11-23)
+- [x] 합성 순차 병합 최신본 `ca705b0`: 14/14 안전 테스트, 고정 refs, 4단계 CI→#24→#25→#26, 충돌 해소 0/2/2/3
+- [x] 본문 23/23 코드 blob·3/3 관리 파일 동일성 PASS. optional 5개 후속 파일 **미포함은 정상**, 최종 `FOLIOSENTRY_SEQUENTIAL_LOCAL_REVIEW_COMPLETE`
+- [x] `docs/CI_KIS_FOLLOWUP_INTEGRATION_PLAN.md`에 5개 파일의 검토본 SHA·용도·분리 반영·검증 순서 기록
+- [ ] CI Actions 무료 할당량 회복/비용 검토, 실제 GitHub-hosted Runner 검증 및 사용자 승인 시 CI → PR #24 → #25 → #26 단계적 병합
+- [ ] 그 후 별도 통합 회귀검증 PR로 optional 5개 테스트/격리 검증 파일 반영·검사
+- [ ] 운영 DB migration/실 KIS 수집/시세·손익 UI는 별도 사용자 승인. 현재 main과 운영 환경 불변

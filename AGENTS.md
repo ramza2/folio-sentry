@@ -356,3 +356,10 @@
 - 사용자 MiniPC에서 순차 합성 병합 unittest **12/12 PASS**, CI→#24→#25→#26 (충돌 0/2/2/3), 23개 핵심 코드 blob 및 3개 허용 해소 파일 **MATCH**. 최종 선택적 후속 테스트 파일 검사는 `SEQUENTIAL_FOLLOWUP_CHECK_FAILED`로 종료하여 전체 게이트는 FAIL.
 - 원인: Git `cat-file -e tree:없는경로`는 종료 코드 128인데 스크립트가 1만 예상. `ls-tree --name-only`의 정상 0+빈 출력 패턴으로 변경하고 실제 임시 Git fixture 및 잘못된 응답 거부 테스트 2개 추가. 새 **14개 테스트 / 순차 최종 마커는 MiniPC에서 재검증 전**.
 - 원본 PR/CI/통합 스냅샷/SHA/메인 및 운영은 불변. 합성 병합 결과로 실제 GitHub PR을 병합하지 않으며, 후속 통합 테스트 파일이 실제 개별 PR에 없으면 정상적인 follow-up 대상. hosted Actions 실행, 운영 DB 마이그레이션, 실 KIS 재호출 금지. Private 유지.
+
+
+## OPS-CI07 — 순차 합성 검증 최종 PASS (2026-11-23)
+- 사용자 MiniPC 원본 `ca705b0`: 오프라인 안전·회귀 unittest **14/14 PASS**, 고정 SHA 6개 PASS, 임시 bare Git CI→#24→#25→#26 순차 합성 4단계 완료. 충돌 0/2/2/3 = 합계 7건을 사전 승인된 문서 2개와 CI workflow 1개에서만 해소.
+- 최종 핵심 코드 23/23 Git blob MATCH, 해소 파일 3/3 MATCH. 이전 `cat-file -e`의 128 오판을 `ls-tree`로 수정, 후속 5개 파일 미포함 **정상**, 최종 `FOLIOSENTRY_SEQUENTIAL_LOCAL_REVIEW_COMPLETE` 확인.
+- **이 검사 완료는 main/PR 병합 승인 또는 hosted Actions PASS가 아님**. 후속 파일 5개는 독립 PR 연쇄로 자동 포함되지 않아 별도 통합 회귀검증 PR이 필요. `docs/CI_KIS_FOLLOWUP_INTEGRATION_PLAN.md` 참고.
+- CI → PR #24 → #25 → #26 각각 최신 main 기준 실제 CI 검증/병합은 사용자 별도 승인 대기. 현재 Private, main/원본 PR/운영 DB/KIS 토큰/miniPC 불변.
