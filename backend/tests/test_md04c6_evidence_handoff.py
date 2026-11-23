@@ -145,10 +145,7 @@ def test_duplicate_requirement_and_cross_market_candidate_rejected():
     for candidates in (
         (pointer(), pointer()),
         (pointer("US_DAILYPRICE"),),
-        (pointer(requirement="UNKNOWN"),) if False else (),
     ):
-        if not candidates:
-            continue
         with pytest.raises(EvidenceHandoffError, match="MD04C6_POINTER_SCOPE_OR_DUPLICATE"):
             inspect_supplier_evidence_handoff(
                 "KR_ITEMCHART", doc(), candidates, now=NOW,
