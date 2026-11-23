@@ -389,3 +389,15 @@ Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 �
 - [ ] 별도 사용자 승인 후에만 main 병합. MiniPC DB migration/운영 배포/실 KIS 호출/가격·손익 공개는 각각 별도 승인.
 - [ ] 실제 API/거래소별 수정주가·최종 종가 정책/원천 관측/정정·기업행동의 공급자 문서와 개별 종목 처리 1차 근거 확보. 근거 없는 finality 승격 금지.
 - 상세 docs/MD04C5_OFFLINE_SOURCE_REVIEW.md.
+
+
+## MD-04C6 — 공급자 최종성 증빙 확보 절차 및 승인 분리 게이트 (2026-11-23)
+- [x] MD-04C5 PR #35 승인 병합 main@cae0695, Hosted CI #45150651288 SUCCESS. MiniPC 미배포.
+- [x] 공급자/거래소의 7개 필수 근거 질문(원천 관측, 최종 종가, API별 가격기준, 정정창, 기업행동, 공급자 세션범위, 거래소 특수일정)을 국내·해외 각 엔드포인트별로 문서화.
+- [x] MD04C5 결손/비승인 상태를 재검증하고 요구항목·출처 유형·참조 코드/문서지문/버전·시각·철회를 검사하는 fail-closed 오프라인 handoff 함수 작성. 참조 후보가 모두 있어도 HUMAN_REVIEW_REQUIRED/HOLD_UNVERIFIED만.
+- [x] 공급자 공식 원문 수령→독립 기술 검토→데이터 정책 검토→v2 정책 별도 PR→운영승인 프로세스와 자료 비공개·보존 경계 문서화.
+- [x] Backend 순수 합성 테스트에 cross-endpoint, 공급자/거래소 증빙 혼동, 철회, 위조된 승인/시각/지문, 비가격 UI 계약 유지 회귀 추가.
+- [ ] MD-04C6 Draft PR 최신 GitHub-hosted Backend/CI gate PASS 확인.
+- [ ] 별도 사용자 병합 승인 후에만 main 병합. MiniPC 운영 DB migration·실 KIS 호출/토큰·배포·가격·손익·알림/시그널 공개 승인은 별도.
+- [ ] 실제 KIS 담당자로부터 7개 범주에 대한 1차 근거 확보 및 2인 검토 절차 별도 승인. 근거 미확보 시 현행 MD04B 6개 blocker 모두 HOLD.
+- 상세 docs/MD04C6_PROVIDER_EVIDENCE_HANDOFF.md.
