@@ -314,3 +314,9 @@
 - 12:12 KST 기준 memory 14GiB 중 available 12GiB, swap 사용 0B. 운영 foliosentry-prod frontend/backend/db 3개 컨테이너가 모두 약 46분 Up(healthy). MD03 테스트용 라벨 컨테이너 0건.
 - 이전 커널 경고 grep에서 현재 사고 직전 OOM/panic/열폭주 로그는 확인되지 않음. 출력된 11월 1일 초기 NMI watchdog 및 TSC 불안정 문구는 **11월 23일 사고 원인 증거가 아님**. 현재 메모리 여유가 사고 당시 OOM 가능성을 배제하지도 않음.
 - 정지 원인 조사 전 신규 격리 Docker 부하 E2E/운영 마이그레이션/배포 금지. 09:40~09:55 KST 이전 부팅의 종료·OOM·watchdog·전원/디스크 오류 로그 추가 확인 후 안전 판단. 이번 MiniPC 자체 재부팅은 MD03 격리 DB E2E PASS와 별도 사건. Private 유지.
+
+
+## MiniPC 2026-11-23 재부팅 추가 증거 (읽기 전용)
+- 이전 부팅 09:40~09:55 종료/전원/OOM/커널 패닉/과열 로그 grep 결과 특이 이벤트 없음(그 범위·패턴 한정). 현재 부팅 11:24:26 KST systemd-journald가 system.journal corrupted or uncleanly shut down, renaming and replacing 경고 출력.
+- 이는 시스템 저널의 비정상 종료/손상 정황이지 정전·하드웨어 고장·Docker 부하가 원인이라는 **확정 증거가 아님**. 커널/저널이 기록 못 하는 갑작스런 정지·강제 리셋 가능성도 남음.
+- 추가 진단은 journalctl 읽기 전용과 네트워크/서비스 상태 관찰만. 신규 Docker 부하 테스트·운영 DB migration·배포 중지. Private 저장소 및 운영 서비스 유지.

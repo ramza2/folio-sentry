@@ -281,3 +281,11 @@ Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 �
 - [ ] 사건 전후 2026-11-23 09:40~09:55 이전 부팅 journal의 shutdown/OOM/thermal/watchdog/I-O 관련 로그 읽기 전용 확인
 - [ ] 예상치 못한 shutdown·전원 문제의 재발 여부 관찰; 필요하면 BIOS/전원/시스템 로그를 별도 검토
 - [ ] 시스템 안정성 확보 전 추가 격리 Docker 부하 테스트/운영 DB 마이그레이션/운영 배포 보류
+
+
+## OPS-STABILITY-01 후속 로그 확인 (2026-11-23)
+- [x] 이전 부팅 09:40~09:55 KST shutdown/OOM/kernel panic/thermal/watchdog/I/O error 키워드 검사에서 해당 패턴 로그 미검출(로그 없다는 의미 아님)
+- [x] 현재 부팅 11:24:26 KST `systemd-journald: system.journal corrupted or uncleanly shut down, renaming and replacing` 확인 — **이전 저널 비정상 종료/손상 정황**
+- [ ] 정확한 원인 미확정: 정전/전원 어댑터/강제 리셋/시스템 멈춤/저널 손상 등 감별. OS 비정상 종료와 Docker E2E의 인과관계 증거 없음
+- [ ] 이전 저널 마지막 메시지·정상 shutdown 시퀀스, 현재 저장장치 오류·시스템 부팅 상태 읽기 전용 추가 검토(로그에 비밀 노출 주의)
+- [ ] 안정성 확인 전 부하가 있는 Docker E2E, 운영 DB schema 변경/배포 중단. Private 유지
