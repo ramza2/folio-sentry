@@ -96,3 +96,13 @@
 - `GET /api/v1/tracked`: 연결된 실제 가격 원천이 없어 모든 실 등록 종목의 `quote.status=UNAVAILABLE`, `market_value/unrealized_pnl=null`. DEMO 값 사용 금지.
 - `POST/PATCH /api/v1/tracked`: 수량/평균 단가 JSON 문자열, 소수 최대 8자리. 응답 문자열 소수 8자리. `WATCH`로 변경 시 수량·평균단가 제거. `alerts_enabled`는 알림 전송 기능이 아닌 **희망 설정 저장**에 그침.
 - 이 구현은 GitHub PR·격리 CI 단계이며 운영 DB에 `20261119_portfolio01` 마이그레이션을 자동 적용하지 않는다.
+
+
+## MD-04C1 보완 계약 — 인증 실제 종목 비가격 품질 상태 (2026-11-23)
+- Phase 1의 실제 종목 CRUD는 운영 배포 완료. 그러나 실 KIS 시세·price_bar 저장/조회/손익 계산은 **운영 미연결**이다. 위 표의 실가격/가격-bars API는 여전히 계획만 된 경로다.
+- GET /api/v1/tracked의 **기존 운영 응답은 UNAVAILABLE/모든 quote 가격 필드 null/모든 손익 null**로 그대로 유지.
+- 향후 상태 전용 확장에 대해 클라이언트는 UNAVAILABLE, UNFINALIZED, STALE, ERROR 네 상태만 잠정 지원. 모든 상태에서 quote는 정확히 status, close, change_pct, as_of, source 5개 키이며 마지막 네 값은 null. market_value, unrealized_pnl, unrealized_pnl_percent도 반드시 null.
+- CURRENT, VALID, DEMO, 값이 있는 close/change_pct, null이 아닌 source/as_of, 추가적인 quote 키/승인 플래그 모두 **fail-closed**. STALE도 마지막 가격 수치 표시 금지. UI는 시세 없음/종가 미확정/오래된 시세/시세 확인 실패와 손익 미계산 텍스트만 출력.
+- 기존의 'stale이면 수치 표시 가능' 문구는 장래의 최종 검증 가격 정책을 위한 과거 계획이므로 **현재 MD-04C1에서는 적용하지 않는다**.
+- Backend 순수 masked_quote_from_finality 함수는 임의 출처 최종성 승인이 아니라 UNAVAILABLE/UNFINALIZED 상태 전용 규격 검사일 뿐, 현재 API 라우터에 미연결. 모든 실 API 호출은 기존 인증 게이트·캐시 금지 유지, DEMO fallback 금지.
+- 운영 연동/price_bar migration/실제 시세 공개/알림은 별도 사용자 승인. 세부 docs/MD04C1_QUALITY_UI_CONTRACT.md.
