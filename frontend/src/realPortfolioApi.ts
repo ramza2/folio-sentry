@@ -138,6 +138,23 @@ export async function loadTracked(cursor: string | null = null, signal?: AbortSi
   return parsePage(await apiRequest("tracked?" + params.toString(), { signal }), parseTracked);
 }
 
+/** Explicit owner-only metadata GET. Never fetches prices, DEMO or triggers KIS. */
+export async function loadTrackedQuoteStatus(
+  trackedId: string, signal?: AbortSignal,
+): Promise<HiddenQuote> {
+  const value = await apiRequest(
+    "tracked/" + encodeURIComponent(trackedId) + "/quote-status", { signal },
+  );
+  if (!isRecord(value) ||
+      Object.keys(value).length !== 2 ||
+      !Object.hasOwn(value, "tracked_id") ||
+      !Object.hasOwn(value, "quote") ||
+      value.tracked_id !== trackedId) {
+    throw new Error("실제 종목 시세 상태의 식별자가 올바르지 않습니다.");
+  }
+  return parseHiddenQuote(value.quote);
+}
+
 export async function addInstrument(data: ManualInstrumentInput, csrf: string):
   Promise<RealInstrument> {
   return parseInstrument(await mutation("POST", "instruments", csrf, data));
