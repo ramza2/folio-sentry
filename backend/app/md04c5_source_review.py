@@ -36,6 +36,7 @@ class PublicSource:
     source_id: SourceId
     endpoint: Endpoint
     url: str
+    pinned_blob_sha: str
     evidence_scope: Literal["TARGET_ENDPOINT", "CROSS_ENDPOINT_CONTEXT"]
     # These describe publicly documented code examples, NOT verified prices.
     documented_fact_code: str
@@ -44,32 +45,37 @@ class PublicSource:
 PUBLIC_SOURCES: tuple[PublicSource, ...] = (
     PublicSource(
         "KR_ITEMCHART_EXAMPLE", "KR_ITEMCHART",
-        "https://github.com/koreainvestment/open-trading-api/blob/main/"
+        "https://github.com/koreainvestment/open-trading-api/blob/74b0a082fa67a0be5bf53f561719c853890ed2df/"
         "examples_llm/domestic_stock/inquire_daily_itemchartprice/inquire_daily_itemchartprice.py",
+        "77f0eac28baba0c55a87ad05cc2aba67c12b73f6",
         "TARGET_ENDPOINT", "KR_FID_ORG_ADJ_PRC_0_ADJUSTED_1_RAW_EXAMPLE",
     ),
     PublicSource(
         "KR_ITEMCHART_CONFIG", "KR_ITEMCHART",
-        "https://github.com/koreainvestment/open-trading-api/blob/main/"
+        "https://github.com/koreainvestment/open-trading-api/blob/74b0a082fa67a0be5bf53f561719c853890ed2df/"
         "MCP/Kis%20Trading%20MCP/configs/domestic_stock.json",
+        "e82a0829ef519c64dfecb3e966ed217b4fcd3805",
         "TARGET_ENDPOINT", "KR_ITEMCHART_CONFIG_0_ADJUSTED_1_RAW",
     ),
     PublicSource(
         "KR_OTHER_DAILY_PRICE_CONFIG", "KR_ITEMCHART",
-        "https://github.com/koreainvestment/open-trading-api/blob/main/"
+        "https://github.com/koreainvestment/open-trading-api/blob/74b0a082fa67a0be5bf53f561719c853890ed2df/"
         "MCP/Kis%20Trading%20MCP/configs/domestic_stock.json",
+        "e82a0829ef519c64dfecb3e966ed217b4fcd3805",
         "CROSS_ENDPOINT_CONTEXT", "KR_OTHER_DAILY_PRICE_OPPOSITE_EXAMPLE_NOT_TRANSFERABLE",
     ),
     PublicSource(
         "US_DAILYPRICE_EXAMPLE", "US_DAILYPRICE",
-        "https://github.com/koreainvestment/open-trading-api/blob/main/"
+        "https://github.com/koreainvestment/open-trading-api/blob/74b0a082fa67a0be5bf53f561719c853890ed2df/"
         "examples_llm/overseas_stock/dailyprice/dailyprice.py",
+        "4c7a88370a485606c0d87990615ad6f1eafa95ce",
         "TARGET_ENDPOINT", "US_MODP_PARAMETER_DESCRIBED_VALUE_MAPPING_UNATTESTED",
     ),
     PublicSource(
         "US_BACKTESTER_USAGE", "US_DAILYPRICE",
-        "https://github.com/koreainvestment/open-trading-api/blob/main/"
+        "https://github.com/koreainvestment/open-trading-api/blob/74b0a082fa67a0be5bf53f561719c853890ed2df/"
         "backtester/kis_backtest/providers/kis/data.py",
+        "28bf9aca834e4abd7c0b4b63ab0b9be61678de13",
         "TARGET_ENDPOINT", "US_MODP_1_ADJUSTED_BACKTESTER_COMMENT_ONLY",
     ),
 )
