@@ -59,7 +59,7 @@
 - [x] MD-01: 한국투자증권 KIS/Twelve Data/Alpha Vantage 공식 문서 기반 KR·US 시세 공급자 비교 및 호출 전 확인 조건 정리 (2026-11-20, GitHub만)
 - [x] MD-01: KIS KR·US 일봉 OHLCV 비통신 정규화 계약 + Decimal·거래소·시점·품질 경계 합성 테스트 (GitHub만)
 - [x] MD-02: KIS 일봉 전용 GET·토큰 POST·고정 호스트 allowlist·비밀 파일 권한·레이트리밋·합성 transport 테스트 구현 (GitHub 전용, 비활성 기본값, 2026-11-20)
-- [ ] MD-02 실제 KIS Open API 신청 상태 확인 및 사용자 승인 후 제한적 최초 실 시세 GET 검증 (운영 미적용)
+- [x] MD-02 한국투자증권 Open API 신청·실전 키 발급 확인 및 2026-11-20 사용자 승인 1회성 KR/US 일봉 조회 검증 (자동 수집·시세 표시·DB 저장 미적용)
 - [ ] MD-02 토큰 공유 캐시·다중 프로세스 rate limit·장마감/지연/가격조정 정책 검증 (스케줄러 전에 필요)
 - [ ] MD-03: 확정 검증 데이터용 price_bar DB migration, 적재·멱등·장 마감/품질 판단 (별도 승인)
 - [ ] 외부 공급자 기반 Instrument 검색/식별자 매핑 (별도 공급자 검증)
@@ -249,3 +249,28 @@ Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 �
 - [x] Public `main@afd9cb3` 기반 PR #24 코드/테스트 및 기존 검증 기록 보존 방향 확정; AGENTS·ROADMAP 충돌 조정
 - [ ] PR #24 최신 SHA의 GitHub-hosted `CI gate` PASS 확인
 - [ ] 별도 명시 승인 후 PR #24 `main` 병합; 운영 MiniPC·DB·실 KIS 조회는 본 PR 범위에서 제외
+
+
+## MD-02D — KIS 공유 토큰/호출 예약 기반 (2026-11-20)
+- [x] 2026-11-20 최초 실전 KIS 토큰 POST 1회 및 KR/US 일봉 GET 각 1회 성공 기록(사용자 제공 PASS, 데이터 UNFINALIZED)
+- [x] 공유 상태 파일 모델과 프로세스간 flock, 24시간 토큰 발급 간격, 전역 일봉 간격 1.25초, 24시간 60회 내부 상한, crash-safe 선예약 코드 작성
+- [x] 기본 발급 거부 및 독립 optional shared_state 연계로 기존 운영 미변경, 진짜 토큰/호출 없음
+- [x] PR #25 GitHub CI 6/6 PASS (2026-11-20, synthetic tests only)
+- [ ] PR #25 리뷰 및 병합 승인
+- [ ] 운영 MiniPC 공유 상태 디렉터리/보안/암호화 백업 검토(별도 승인)
+- [ ] KIS 최신 정책/실 사용량 외부 확인 후 토큰 발급/실 호출 별도 승인
+- [ ] MD-03 장마감 최종성·price_bar DB 모델/적재·스케줄러 승인
+- 상세: docs/KIS_SHARED_TOKEN_GATE.md
+
+
+## MD-02D 리뷰 안전 보완 (2026-11-20)
+- [x] 공유 캐시 JSON 소실 → 신규 토큰 발급 제한 우회 위험 식별
+- [x] 독립 영속 0600 토큰 발급 시도 마커를 네트워크 전 생성, 파일 소실/복구 시 재발급을 fail closed 차단
+- [x] 합성 회귀 테스트 2개 추가(기존 토큰·발급 실패의 상태 소실) — CI 재검증 대상
+- [ ] 손상/유실 상태의 안전한 수동 복구 절차는 별도 승인·공식 발급 이력 검증 이후 개발
+
+## MD-02D — Public Actions 최신 검증 (2026-11-23)
+- [x] PR #24 `main@9e5cd61` 병합 완료, main Hosted CI `45129177429` PASS.
+- [x] PR #25 공유 상태 기능 코드와 기존 Public/CI/보안 문서 충돌 해소 준비.
+- [ ] PR #25 최신 SHA GitHub Actions Backend/CI gate PASS 확인.
+- [ ] 사용자 별도 승인 후 PR #25 병합. 운영 KIS API/토큰 재발급/시세 수집/DB·Docker 배포는 본 PR 범위 밖.
