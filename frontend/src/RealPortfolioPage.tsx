@@ -2,7 +2,8 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useOwnerAuth } from "./AuthGate";
 import { hiddenQuoteLabel } from "./realQuoteStatus";
 import {
-  addInstrument, addTracked, editTracked, loadInstruments, loadTracked, removeTracked,
+  addInstrument, addTracked, editTracked, loadInstruments, loadTracked,
+  loadTrackedQuoteStatus, removeTracked,
   type AssetType, type ManualInstrumentInput, type Market,
   type RealInstrument, type RealTracked, type TrackedKind,
 } from "./realPortfolioApi";
@@ -249,6 +250,15 @@ export default function RealPortfolioPage() {
                   <span className="real-muted" aria-label="시세 품질 상태">{hiddenQuoteLabel(item.quote.status)}</span>
                 </div>
                 <div className="real-item-actions">
+                  <button type="button" disabled={busy}
+                    aria-label={item.instrument.name + " 시세 품질 상태 확인"}
+                    onClick={() => void execute(async () => {
+                      const quote = await loadTrackedQuoteStatus(item.id);
+                      setRows((current) => current.map((row) =>
+                        row.id === item.id ? { ...row, quote } : row
+                      ));
+                      setMessage("시세 품질 상태만 확인했습니다. 가격과 손익은 조회하지 않습니다.");
+                    })}>상태 확인</button>
                   <button type="button" disabled={busy} onClick={() => {
                     setEditing(item.id);
                     setEditPosition({
