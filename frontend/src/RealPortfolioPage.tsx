@@ -290,7 +290,7 @@ export default function RealPortfolioPage() {
                       setMessage("KIS의 과거 일봉 참고값만 조회했습니다. 현재가·최종 종가나 평가손익으로 사용하지 않습니다.");
                     })}>참고 종가 조회</button>
                   <button type="button" disabled={busy}
-                    aria-label={item.instrument.name + " 시세 품질 상태 확인"
+                    aria-label={item.instrument.name + " 시세 품질 상태 확인"}
                     onClick={() => void execute(async () => {
                       const quote = await loadTrackedQuoteStatus(item.id);
                       setRows((current) => current.map((row) =>
