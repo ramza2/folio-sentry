@@ -55,3 +55,8 @@
 - 사용자 MiniPC에서 GitHub Private repository의 원본 6개 ref를 읽기 전용으로 가져와 오직 임시 bare repo 내부 `git merge-tree`를 7회(pairwise) 수행하도록 `scripts/ci/merge_rehearsal.py`를 별도 검토 브랜치에 준비했다.
 - 원본 PR #24/#25/#26의 코드와 통합 검토본 간 핵심 23개 Git blob 동일성을 검증한다. 브랜치 SHA 불일치 또는 변경 코드 있으면 중단.
 - 본 검사는 **순차 병합 시뮬레이션이 아니므로 충돌 수=0이 실제 완전 병합 승인/Actions PASS를 뜻하지 않는다**. `docs/CI_KIS_MERGE_REHEARSAL.md` 참고. MiniPC 실제 진단은 미실행.
+
+
+## OPS-CI05/06 충돌 검증 업데이트
+- 사용자 MiniPC에서 7쌍 pairwise merge-tree **총 13건(중복) / 고유 3개 파일** 확인: `AGENTS.md`, `docs/ROADMAP.md`, `.github/workflows/ci.yml`. CI·KIS 핵심 blob 23개 그대로 유지.
+- OPS-CI06은 CI→#24→#25→#26을 실제 순서대로 임시 bare Git에서 합성 병합하여 허용 3개 파일의 충돌을 통합 검토본 기준으로 해소하는 검증 코드. 단, 중간 synthetic merge를 실제 main/PR에 사용하지 않는다. `docs/CI_KIS_SEQUENTIAL_REHEARSAL.md` 참조. 새 도구 MiniPC 실행 결과 확인 필요.

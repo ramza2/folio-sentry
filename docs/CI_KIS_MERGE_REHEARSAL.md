@@ -63,3 +63,10 @@ python3 -B "$TMP/scripts/ci/merge_rehearsal.py" --run
 - MD-03 일회용 PostgreSQL SAVEPOINT/DB CHECK/전체 rollback 검증 별도로 PASS.
 - **이번 병합 충돌 검사는 아직 MiniPC에서 실행되지 않았다.** 별도 테스트 결과를 받기 전 충돌 건수를 단정하지 않는다.
 - 실제 GitHub-hosted Actions 검증, PR draft 해제/병합, 운영 DB migration/배포 및 KIS 실호출은 여전히 별도 승인 항목.
+
+
+## 실제 MiniPC 쌍별 병합 출력 (2026-11-23)
+- Bash 아카이브 SHA `beacf5d3`, unittest **6/6 PASS**, GitHub pinned refs 및 23개 핵심 Git blob 일치 PASS.
+- 7개 pairwise 결과: main+ci 0, ci+pr24 2, ci+pr25 2, ci+pr26 3, pr24+pr25 2, pr24+pr26 2, pr25+pr26 2. **총 13개는 중복 포함**.
+- 충돌 고유 파일 정확히 3개: `AGENTS.md`, `docs/ROADMAP.md`, `.github/workflows/ci.yml`. 나머지 KIS·가격·migration 핵심 파일은 이번 pairwise 결과에서 충돌 없음.
+- 실제 순차 검증은 별도 신규 `scripts/ci/sequential_merge_rehearsal.py`와 `docs/CI_KIS_SEQUENTIAL_REHEARSAL.md` 참고. 현재 미실행.

@@ -326,3 +326,15 @@ Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 �
 - [ ] hosted Actions 계정 할당량 갱신과 사용자의 별도 승인 후 단계적 main 병합 실행
 - [x] Private 유지, 실 KIS 호출/토큰 재발급·운영 DB/컨테이너 변경 금지
 - 상세 `docs/CI_KIS_MERGE_REHEARSAL.md`
+
+
+## OPS-CI06 — 7개 pairwise 충돌 실사 후 실제 순차 병합 검증 (2026-11-23)
+- [x] MiniPC에서 7쌍 독립 merge-tree 완료: 합산 충돌 13건, 고유 충돌 파일 3개(AGENTS, ROADMAP, CI workflow)
+- [x] 사용자 Git source 폴더는 읽기만 하고 임시 bare Git에서 CI→#24→#25→#26 4단계를 합성 병합하는 검토 도구 구현
+- [x] 허용 충돌 3개 파일은 기존 검증된 통합본 blob만 선택하며 그 외 모든 충돌 차단. 최종 23개 코드 blob·3개 해소 파일 동일성 비교
+- [x] 오프라인 Git fixture 계약 unittest 6개와 사용 설명 작성
+- [ ] MiniPC 기존 6개+신규 6개 테스트 및 순차 3-way 합성 merge 결과 PASS 확인(현재 미실행)
+- [ ] 이후 실제 PR 병합 각 중간 단계의 AGENTS/ROADMAP CI 기여를 보존하도록 재검토. 합성 문서 선반영 상태를 실제 main에 재사용 금지
+- [ ] GitHub-hosted Actions 무료 할당량 갱신과 사용자 별도 승인 뒤 단계적 병합
+- [x] Private 유지, 운영 MiniPC/실 KIS/운영 DB 불변
+- 상세 `docs/CI_KIS_SEQUENTIAL_REHEARSAL.md`

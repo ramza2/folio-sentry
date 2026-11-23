@@ -342,3 +342,11 @@
 - main/CI/PR #24/#25/#26/결합본의 고정 40자리 SHA 검증, 23개 CI 및 KIS 핵심 코드 blob 비교, 7개 독립 `git merge-tree --write-tree --name-only`로 충돌 파일명/개수 진단.
 - **pairwise 분석은 CI→#24→#25→#26의 실제 순차 병합을 재현하지 않음**. 충돌 발견 시 직접 조정 필요. 실제 GitHub merge/push/rebase/Actions dispatch/운영 Docker/KIS API/DB 접근 금지. 현재 검사 코드 작성 상태일 뿐 실 실행 PASS 미확인.
 - 로드맵·병합 계획 최신 내용과 비밀정보/Private 유지 조건 보존. 새 테스트/검토 브랜치는 main에 병합하지 않는다.
+
+
+## OPS-CI06 — 순차 합성 병합 사전검증 (2026-11-23)
+- 기존 MiniPC pairwise 검사 6/6 PASS, PINNED SHA PASS, 핵심 CI/KIS 23개 blob MATCH. 7개 쌍 총 충돌 13건은 중복 포함이며 실제 고유 경로는 `AGENTS.md`, `docs/ROADMAP.md`, `.github/workflows/ci.yml` **3개**.
+- `scripts/ci/sequential_merge_rehearsal.py`로 CI→PR #24→#25→#26을 임시 **bare Git**에서 단계별 `merge-tree`+임시 synthetic merge commit으로 순차 검증. 허용된 세 파일 이외의 충돌이면 fail-closed. 합성 충돌 해소는 결합 검토본의 같은 파일 Git blob을 임시 index에서 사용.
+- 23개 핵심 코드와 3개 충돌 해소 파일 blob을 최종 통합 검토본과 대조. 통합 검토본에만 있는 후속 테스트는 자동 병합되지 않음. 중간 합성 merge commit은 미래 단계 문서가 선반영됐을 수 있으므로 **운영/실제 병합에 사용 금지**.
+- `scripts/ci/test_sequential_merge_rehearsal.py`는 로컬 Git fixture와 무통신 계약 6개 포함. 새로운 순차 검사는 **아직 MiniPC 실행 PASS가 아님**. `docs/CI_KIS_SEQUENTIAL_REHEARSAL.md` 참고.
+- 기존 CI 38/38+KIS 10/10+YAML 및 MD03 일회용 DB PASS는 유지하되, Github-hosted Actions 미검증. 원본 private GitHub 브랜치/PR/main, 운영 DB/KIS API/Docker 불변.
