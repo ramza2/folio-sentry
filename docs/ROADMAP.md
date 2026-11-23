@@ -345,3 +345,14 @@ Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 �
 - [ ] 사용자 별도 병합 승인 이후에만 main 병합. 운영 MiniPC 앱 배포, DB migration, 실 KIS 호출, 실제 가격/손익/신호/알림 연결은 별도 승인.
 - [ ] MD-04C2 인증 상태 전용 API 연계 설계 및 공급자 품질 상태 기록. 검증 완료된 FINAL/CURRENT 가격 공개는 아직 미구현.
 - 세부 docs/MD04C1_QUALITY_UI_CONTRACT.md.
+
+
+## MD-04C2 — 로그인 세션 보호 시세 품질 상태 API (2026-11-23)
+- [x] MD-04C1 PR #31 승인 병합: main 9422bea, GitHub Actions #45139488106 PASS, MiniPC 운영 변경 없음.
+- [x] 기존 tracked/기본 종목 테이블만 읽는 GET /api/v1/tracked/{tracked_id}/quote-status 계약 작성 (기본 UNAVAILABLE + null, 엄격 response_model).
+- [x] Frontend '상태 확인' 명시적 클릭 조회, same-origin/no-store, tracked ID와 비가격 상태 검증 및 실패 안전 처리.
+- [x] 합성 SQLite/FastAPI 보안·오류·스키마와 Frontend adapter 회귀 테스트 작성.
+- [ ] MD-04C2 Draft PR 최신 GitHub-hosted Backend/Frontend/CI gate PASS 확인.
+- [ ] 사용자 별도 병합 승인 후에만 main 반영. 운영 MiniPC 배포·DB migration·KIS 토큰 발급·실조회·가격/손익/알림 공개 금지.
+- [ ] MD-04C3 실제 공급자 품질 메타데이터 기록 및 확정성 승인 체계 검토. 가격 공개 전 가격기준·원천 관측·휴장/기업행동 검증 필요.
+- 상세 docs/MD04C2_AUTH_QUOTE_STATUS.md.
