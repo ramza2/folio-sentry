@@ -289,3 +289,20 @@ Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 �
 - [ ] 정확한 원인 미확정: 정전/전원 어댑터/강제 리셋/시스템 멈춤/저널 손상 등 감별. OS 비정상 종료와 Docker E2E의 인과관계 증거 없음
 - [ ] 이전 저널 마지막 메시지·정상 shutdown 시퀀스, 현재 저장장치 오류·시스템 부팅 상태 읽기 전용 추가 검토(로그에 비밀 노출 주의)
 - [ ] 안정성 확인 전 부하가 있는 Docker E2E, 운영 DB schema 변경/배포 중단. Private 유지
+
+
+## OPS-CI03 — CI 최적화·KIS MD02/03 결합 검토 (2026-11-23)
+- [x] CI 단독 브랜치 12개 변경 경로, KIS 검토 브랜치 29개 변경 경로 및 공통 충돌 후보 `.github/workflows/ci.yml`, `AGENTS.md`, ROADMAP 확인
+- [x] 검토 소스 기반 신규 `review/ci-kis-offline-integration-20261123` 생성, CI 브랜치 파일만 선별해 결합
+- [x] 6개 선택 검사와 stable final gate 유지, MD03 price_bar PostgreSQL 분리 검사 유지 및 KIS 순수 stdlib 10개 검사 자동 추가
+- [x] 신규 통합 정적 계약 4개 작성. 기존 단독 검증 로그를 합산한 38개 unittest 예상, **결합본 아직 미실행**
+- [ ] MiniPC 격리 임시 archive에서 stdlib 38개·합성 KIS 10개·YAML 파싱 재검증 (Docker 새 컨테이너 없음)
+- [ ] 할당량 회복 후 GitHub-hosted Actions 실제 CI 라우팅/스킵/6개 선택 job/MD03 migration 및 final gate 검증
+- [ ] 사용자 명시적 승인 뒤 적절한 순서로 CI 브랜치 및 PR #24/#25/#26 병합; PR #27은 검토 Draft일 뿐 병합 대상 아님
+- [x] Private 유지, KIS 자동 수집/운영 DB/시세 UI/배포 변경 없음
+- 참고 `docs/CI_KIS_COMBINED_REVIEW.md`
+
+## OPS-STABILITY-01 전원 차단 정황 보완 (2026-11-23)
+- [x] 가족 연락에서 집 전원 스위치가 꺼진 것을 확인하고 전원을 다시 켰다는 정보 확보 → 비정상 저널 종료 및 재부팅 시간대와 부합, 외부 전원 차단이 가장 유력
+- [x] 복구 후 운영 Frontend/Backend/DB Healthy, 일회용 테스트 Docker 잔존 없음
+- [ ] 가정 전원 스위치가 재차 내려가지 않도록 물리적 표식/전원 케이블 고정/필요하면 UPS 별도 검토. Docker 또는 앱 장애 단정 금지

@@ -320,3 +320,11 @@
 - 이전 부팅 09:40~09:55 종료/전원/OOM/커널 패닉/과열 로그 grep 결과 특이 이벤트 없음(그 범위·패턴 한정). 현재 부팅 11:24:26 KST systemd-journald가 system.journal corrupted or uncleanly shut down, renaming and replacing 경고 출력.
 - 이는 시스템 저널의 비정상 종료/손상 정황이지 정전·하드웨어 고장·Docker 부하가 원인이라는 **확정 증거가 아님**. 커널/저널이 기록 못 하는 갑작스런 정지·강제 리셋 가능성도 남음.
 - 추가 진단은 journalctl 읽기 전용과 네트워크/서비스 상태 관찰만. 신규 Docker 부하 테스트·운영 DB migration·배포 중지. Private 저장소 및 운영 서비스 유지.
+
+
+## OPS-CI03 — CI × KIS 검토 스냅샷 (2026-11-23)
+- 원본 CI `ci/usage-control-20261120@6843092`, MD02/MD03 검토 소스 `review/md02-md03-stdlib-offline-gate-20261120@20631a9`. 별도 **review/ci-kis-offline-integration-20261123** 브랜치에서만 소스 병합 미리보기. `main`/기존 PR #24~#27 미병합·Private 유지.
+- CI 8 job: `changes` → 6개 선택 작업 → `ci-gate`. `changes`에서 기존 CI stdlib 단위 테스트 외 합성 KIS 통합 10개를 자동 실행하도록 결합(실 키·HTTP·DB 없음). MD03 임시 PostgreSQL CI 및 DB 최종성 차단 유지. AUTH browser는 수동 전용.
+- `scripts/ci/test_ci_kis_combined_contract.py` 신규 4개 정적 계약 검사 포함. 기존 CI 28 + MD03 Docker 계약 6 + 신규 4 = 전체 stdlib **38개 테스트 예상**, 실제 결합 스냅샷 테스트는 **아직 미실행**. 단독 테스트의 PASS를 결합본 PASS로 해석 금지.
+- `docs/CI_KIS_COMBINED_REVIEW.md`가 통합 기준. 임시 검토 브랜치를 CI 복구 전에 PR 생성하지 않고, 유료 Runner·GitHub Actions 동작 검증을 주장하지 않는다. 실전 KIS 토큰·Quote·실계좌/잔고/주문, 운영 Docker/DB/Traefik/백업, live 시세·손익 UI 불변.
+- 전원 문제는 가족 연락으로 집 전원 스위치가 꺼져 있었고 복구됐다는 정보 확보. **외부 전원 차단이 가장 유력**하지만 추정과 완전한 하드웨어 진단은 구분한다.
