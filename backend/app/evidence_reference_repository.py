@@ -43,7 +43,7 @@ class ReferenceWriteResult:
 
 
 def _validate_url(kind: str, url: str) -> None:
-    if kind not in _OFFICIAL_HOSTS or type(url) is not str or len(url) > 512:
+    if type(kind) is not str or kind not in _OFFICIAL_HOSTS or type(url) is not str or len(url) > 512:
         raise EvidenceReferenceError("REFERENCE_SOURCE_INVALID")
     if not url or any(c.isspace() or ord(c) < 32 for c in url):
         raise EvidenceReferenceError("REFERENCE_URL_INVALID")
@@ -57,7 +57,6 @@ def _validate_url(kind: str, url: str) -> None:
             and parsed.port is None
             and not parsed.query
             and not parsed.fragment
-            and parsed.path.startswith(("/", ""))
             and ".." not in parsed.path
             and "%" not in parsed.path
             and "//" not in parsed.path
