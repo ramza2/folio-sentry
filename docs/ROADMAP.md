@@ -309,3 +309,16 @@ Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 �
 - [x] 최적화된 main CI 유지: PR #26의 구형 Workflow 덮어쓰기 금지; MD03 migration+test 양쪽 존재 fail-closed, 조건부 isolated PostgreSQL 테스트가 실행되도록 설계.
 - [ ] 새 PR #26 HEAD의 Hosted Backend + auth-db-migration + CI gate 실제 PASS 확인.
 - [ ] 사용자의 별도 명시 승인 후 PR #26 `main` 병합. 운영 MiniPC DB migration/실 시세 GET/배포는 별도 승인.
+
+
+## MD-04A — KIS 합성 수집→격리 저장과 비확정 시세 공개 차단 (2026-11-23 최신)
+- [x] PR #28 CI 최적화, PR #24 최초 조회, PR #25 공유토큰, PR #26 PARTIAL price_bar 저장 구조 main 병합. main 7ced35d, Hosted CI #45132743967 PASS.
+- [x] 기존 DB는 PARTIAL/is_final=false/관측시간 NULL 강제. portfolio_api 시세 UNAVAILABLE·손익 NULL, Frontend 숫자 시세 응답 거부를 확인.
+- [x] MD-04A 오프라인 intake 계약·KR/US 합성 테스트 코드 준비.
+- [x] Fake KIS token POST 1 / 한국·미국 일봉 GET 각 1 → 정규화/품질 → 합성 DB PARTIAL 저장·롤백 테스트 코드 준비.
+- [ ] MD-04A 신규 Draft PR의 GitHub-hosted Backend, auth-db-migration, CI gate PASS 확인.
+- [ ] 사용자 별도 명시 승인 후 MD-04A main 병합.
+- [ ] MD-04B 공급자 최종성·원천 관측시각·시장 일정·원주가/수정주가 증빙, 버전드 스키마 설계/검증.
+- [ ] MD-04C 인증 시세 조회 API/Frontend/손익 UI와 오래된·불확정 가격 차단 E2E.
+- [ ] 운영 DB 백업/격리 복원/마이그레이션, KIS 실조회, 자동수집/배포는 각각 별도 승인.
+- 참조 docs/MD04A_OFFLINE_INTAKE.md.

@@ -340,3 +340,12 @@
 - `main` CI (`.github/workflows/ci.yml`)의 변경 라우팅/`ci-gate`/MD03 migration/test 파일 동시 존재 fail-closed와 `auth-db-migration` isolated test는 절대 제거하지 않는다. PR #26의 구식 워크플로로 되돌리지 않는다.
 - 실제 MiniPC에는 별도 승인 전 `alembic upgrade head`, 시세 적재/백업 변경/실 KIS API 요청·토큰 발급, 자동 스케줄러·Portfolio 가격 표시 절대 실행하지 않는다.
 - 사용자 제공 과거 최초 실 KIS 조회는 합성 MD-03 테스트와 별개이며, 최종 종가·수정주가·거래소 공식 일정의 완전 검증은 미완료다.
+
+
+## MD-04A 현재 개발 경계 (2026-11-23 최신)
+- PR #28, #24, #25, #26 모두 사용자 승인으로 main 병합, 각 main Hosted CI PASS. 위의 미병합/Draft 문구는 과거 기록이다.
+- MD-04A는 가짜 KIS → 정규화 → 품질검사 → CI 격리 PostgreSQL PARTIAL 저장 → 롤백을 검증하는 **별도 Draft PR**. 비가격 진단 모듈 backend/app/md04_intake.py, pytest backend/tests/test_md04_intake.py, 격리 DB 테스트 backend/scripts/test_price_bar_isolated_ci.py.
+- 공개 시세는 여전히 금지. 현행 portfolio_api 의 quote UNAVAILABLE, 손익 NULL, Frontend 검증 계약을 보존. PARTIAL로 손익/신호/알림을 생산하면 안 된다.
+- Public 경량 CI 라우터와 CI gate는 유지. 실제 KIS 키/토큰·계좌·DB 백업을 GitHub/로그에 입력하지 않는다. 합성 transport만 테스트에서 허용.
+- MiniPC 운영 DB에 20261120_pricebar01 적용 여부 미확인. 별도 승인 없이 alembic upgrade head, KIS 재조회/토큰 발급, 운영 배포, 백업타이머 변경, 실 가격 UI 노출 금지.
+- KRX 특수일정과 KIS 최종 종가/원천 관측시각/RAW·ADJUSTED 근거가 준비되기 전 VALID 전이 구현 금지. 상세 docs/MD04A_OFFLINE_INTAKE.md.
