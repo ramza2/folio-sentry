@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  loadInstruments, loadTracked, addInstrument, addTracked, editTracked, removeTracked,
+  loadInstruments, loadTracked, loadTrackedQuoteStatus, addInstrument, addTracked, editTracked, removeTracked,
 } from "./realPortfolioApi.ts";
 
 const csrf = "test-csrf-token-abcdefghijklmnopqrstuvwxyz-0123456789";
@@ -133,5 +133,65 @@ test("missing CSRF prevents any mutation request", async () => {
       instrument_id: manual.id, kind: "WATCH",
       quantity: null, average_cost: null, alerts_enabled: false, memo: null,
     }, "x"), /유효한 인증 세션/);
+  } finally { globalThis.fetch = prior; }
+});
+
+
+test("owner-only status GET uses no-store, does not contact demo, and returns no prices", async () => {
+  const prior = globalThis.fetch;
+  const called = [];
+  globalThis.fetch = async (url, options) => {
+    called.push([url, options]);
+    return okJson({
+      tracked_id: position.id,
+      quote: { ...position.quote, status: "UNAVAILABLE" },
+    });
+  };
+  try {
+    const quote = await loadTrackedQuoteStatus(position.id);
+    assert.deepEqual(quote, position.quote);
+    assert.equal(called.length, 1);
+    assert.equal(called[0][0], "/api/v1/tracked/" + position.id + "/quote-status");
+    assert.equal(called[0][1].credentials, "same-origin");
+    assert.equal(called[0][1].cache, "no-store");
+    assert.equal(called[0][1].method, undefined);
+    assert.equal(called[0][1].headers.Accept, "application/json");
+    assert.ok(!called[0][0].includes("demo"));
+    assert.ok(!called[0][0].includes("kis"));
+    assert.equal(quote.close, null);
+  } finally { globalThis.fetch = prior; }
+});
+
+test("status-only GET requires exact tracked identity and disallows added financial data", async () => {
+  const prior = globalThis.fetch;
+  const invalid = [
+    { tracked_id: manual.id, quote: position.quote },
+    { tracked_id: position.id, quote: { ...position.quote, close: "105" } },
+    { tracked_id: position.id, quote: { ...position.quote, status: "CURRENT" } },
+    { tracked_id: position.id, quote: { ...position.quote, is_final: true } },
+    { tracked_id: position.id, quote: position.quote, market_value: "210" },
+    { tracked_id: position.id, quote: position.quote, unrealized_pnl: "10" },
+    { quote: position.quote },
+    {},
+  ];
+  try {
+    for (const payload of invalid) {
+      globalThis.fetch = async () => okJson(payload);
+      await assert.rejects(loadTrackedQuoteStatus(position.id));
+    }
+  } finally { globalThis.fetch = prior; }
+});
+
+test("authenticated status GET surfaces 401/404/503 without fake fallback", async () => {
+  const prior = globalThis.fetch;
+  try {
+    for (const [code, message] of [
+      [401, /세션이 만료/],
+      [404, /찾을 수 없/],
+      [503, /준비되지/],
+    ]) {
+      globalThis.fetch = async () => ({ ok: false, status: code });
+      await assert.rejects(loadTrackedQuoteStatus(position.id), message);
+    }
   } finally { globalThis.fetch = prior; }
 });

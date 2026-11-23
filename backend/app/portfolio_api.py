@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_engine
 from app.portfolio_models import Instrument, TrackedInstrument
+from app.quote_visibility import masked_quote_from_finality
 
 router = APIRouter(prefix="/api/v1")
 Market = Literal["KR", "US"]
@@ -41,6 +42,20 @@ def error(status: int, code: str, message: str) -> JSONResponse:
 
 class StrictInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
+
+
+class HiddenQuoteStatusDTO(StrictInput):
+    """MD-04C2: never expose OHLCV, timestamps, source or verification claims."""
+    status: Literal["UNAVAILABLE"]
+    close: None
+    change_pct: None
+    as_of: None
+    source: None
+
+
+class TrackedQuoteStatusDTO(StrictInput):
+    tracked_id: UUID
+    quote: HiddenQuoteStatusDTO
 
 
 class InstrumentCreate(StrictInput):
@@ -319,3 +334,28 @@ def delete_tracked(tracked_id: UUID):
         return None
     except SQLAlchemyError:
         return error(503, "PORTFOLIO_DATABASE_UNAVAILABLE", "등록 종목을 삭제할 수 없습니다.")
+
+
+@router.get("/tracked/{tracked_id}/quote-status", response_model=TrackedQuoteStatusDTO)
+def get_tracked_quote_status(tracked_id: UUID):
+    """Owner-only status lookup; no KIS, price_bar, market values or writes.
+
+    Phase MD-04C2 has NO verified price-quality store to consult: return
+    UNAVAILABLE even if a partial price_bar exists. A strict response model
+    prevents future changes from accidentally returning priced responses.
+    """
+    try:
+        with Session(get_engine()) as db:
+            exists = db.scalar(
+                select(TrackedInstrument.id)
+                .join(Instrument, TrackedInstrument.instrument_id == Instrument.id)
+                .where(TrackedInstrument.id == tracked_id, Instrument.active.is_(True))
+            )
+            if exists is None:
+                return error(404, "TRACKED_NOT_FOUND", "등록 종목을 찾을 수 없습니다.")
+            return {
+                "tracked_id": str(exists),
+                "quote": masked_quote_from_finality(None),
+            }
+    except SQLAlchemyError:
+        return error(503, "PORTFOLIO_DATABASE_UNAVAILABLE", "등록 종목의 상태를 확인할 수 없습니다.")

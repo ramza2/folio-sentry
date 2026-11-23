@@ -106,3 +106,12 @@
 - 기존의 'stale이면 수치 표시 가능' 문구는 장래의 최종 검증 가격 정책을 위한 과거 계획이므로 **현재 MD-04C1에서는 적용하지 않는다**.
 - Backend 순수 masked_quote_from_finality 함수는 임의 출처 최종성 승인이 아니라 UNAVAILABLE/UNFINALIZED 상태 전용 규격 검사일 뿐, 현재 API 라우터에 미연결. 모든 실 API 호출은 기존 인증 게이트·캐시 금지 유지, DEMO fallback 금지.
 - 운영 연동/price_bar migration/실제 시세 공개/알림은 별도 사용자 승인. 세부 docs/MD04C1_QUALITY_UI_CONTRACT.md.
+
+
+## MD-04C2 인증 상태 전용 GET (2026-11-23 / 코드 준비, 미배포)
+- GET /api/v1/tracked/{tracked_id}/quote-status: 기존 단일 소유자 로그인 세션 필수, 존재하는 활성 실제 종목에만 200.
+- 응답은 tracked_id(요청한 UUID) 및 quote 2개 필드만 사용; quote는 status=UNAVAILABLE, close/change_pct/as_of/source=null. 경제적 값/보유량/매입가/원천시각/가격근거/DEMO 반환하지 않음.
+- 401 비인증, 404 비존재, 422 UUID 잘못됨, 503 기존 종목 DB 접속 장애; error JSON은 기존 계약. Cache-Control no-store, Vary Cookie.
+- 가격테이블 및 KIS 조회 없이 기존 instrument/tracked 테이블의 존재만 SELECT. 이전 Phase 1A의 STALE 가격 허용 계획은 이 구현에 적용되지 않는다.
+- 프론트 개별 상태 확인 버튼은 클릭 시에만 이 GET을 호출하며, tracked_id 불일치/추가 필드/비null 가격/원천 등은 오류로 차단. 기존 실 종목 목록은 변화 없음.
+- 현재 실제 백엔드 배포에는 포함되지 않았다. 코드 PR/CI PASS가 운영 API 존재 또는 live 시세를 의미하지 않음. 상세 docs/MD04C2_AUTH_QUOTE_STATUS.md.
