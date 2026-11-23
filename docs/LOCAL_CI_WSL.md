@@ -53,8 +53,8 @@ FolioSentry Private 저장소에서 GitHub-hosted Actions 무료 할당량에 �
 
 ## 완료 조건
 - [x] Local CI Gate Python·PowerShell·순수 unittest 코드 작성
-- [ ] Linux/WSL2에서 오프라인 안전 계약·KIS 합성 Gate 실제 실행 PASS
-- [ ] WSL2에 Python/Node/npm/네트워크 연결 확인 후 Full Mode 테스트 PASS
+- [x] Linux/WSL2에서 오프라인 안전 계약·KIS 합성 Gate 실제 실행 PASS (검증 SHA `2f322e4b8da7d2ac0aa66502d3d398fd87a69b39`)
+- [x] WSL2에 Python/Node/npm/네트워크 연결 확인 후 Full Mode 테스트 PASS (Python 3.14.4, Node 22.17.0, npm 10.9.2, `FULL_CI_EXIT=0`)
 - [ ] 전체 GitHub Actions required checks 충족 여부는 별도 확인
 - [ ] main/운영 DB/실제 KIS/배포는 별도 명시 승인
 
@@ -65,3 +65,14 @@ FolioSentry Private 저장소에서 GitHub-hosted Actions 무료 할당량에 �
 - 수정된 `scripts/ci/local-gate.ps1`은 직접 `wsl -- python3`로 Python을 시작하지 않고 `wsl -- bash -lc`를 통해 `~/.nvm/nvm.sh`를 명시적으로 source한 뒤 Python을 실행한다. **비대화형 WSL에서도 WSL 네이티브 Node.js PATH가 살아 있도록 보장**하기 위한 조치.
 - node 미설치 이전에도 Local CI `offline`은 가능하며, `full -InstallDeps`에만 Node/npm이 필요. 테스트 목적의 dependency download 외 운영 DB/실 KIS/운영 MiniPC에는 영향 없음.
 - 추가 단위 테스트 `test_powershell_launcher_initializes_wsl_native_nvm`로 Windows 실행기의 경로 주입 계약을 정적 검사. 신규 로컬 안전 테스트 기대 **8개**이며 실 WSL/Full CI PASS는 아직 보고되지 않았다.
+
+
+## 첫 실제 실행 결과 — 2026-11-23 WSL2 사용자 확인
+- 검증 소스 **`2f322e4b8da7d2ac0aa66502d3d398fd87a69b39`**. GitHub 검토 브랜치 `review/local-ci-wsl-gate-20261123` 의 *검증 당시* HEAD, Windows 인증으로 안전하게 받은 Git bundle을 WSL의 `/home/changhyunjeon/folio-sentry-localci`에 별도 clone한 뒤 고정 SHA로 실행.
+- Offline `stdlib_contracts=PASS`, `kis_synthetic=PASS`, `FOLIOSENTRY_LOCAL_CI_OFFLINE_PASS` 및 `NO_PRODUCTION_MUTATION=YES`. 증거 JSON: `/home/changhyunjeon/folio-sentry-local-ci-reports/20261123T053433Z-2f322e4b8da7/report.json`.
+- 최초 Full은 WSL의 Python 3.14 `ensurepip` 미설치로 `create_temp_venv=FAIL` (환경 문제). 이후 사용자 Windows PowerShell에서 WSL `python3.14-venv` (`python3-pip-whl`, `python3-setuptools-whl` 포함) 설치 완료.
+- **최종 Full 전체 10단계 모두 PASS**: `stdlib_contracts`, `kis_synthetic`, `create_temp_venv`, `install_backend_dependencies`, `backend_pytest`, `backend_compile`, `frontend_npm_ci`, `frontend_test`, `frontend_typecheck`, `frontend_build`. `FULL_CI_EXIT=0`, `FOLIOSENTRY_LOCAL_CI_FULL_PASS`, `FOLIOSENTRY_LOCAL_CI_NO_PRODUCTION_MUTATION=YES`.
+- Full 증거 JSON: `/home/changhyunjeon/folio-sentry-local-ci-reports/20261123T054254Z-2f322e4b8da7/report.json`. 별도 CI stdout·test stderr 등은 해당 사용자의 WSL 로컬에만 저장되며 GitHub 업로드·로그 내용 열람 없음.
+- WSL 도구: Python **3.14.4**, Git **2.53.0**, Linux native Node **22.17.0** (`~/.nvm/versions/node/v22.17.0/bin/node`), Linux npm **10.9.2**, `python3.14-venv` 설치 확인.
+- **엄격한 검증 범위:** 해당 SHA에서 각 단계 종료 코드 0(PASS) 확인. 새로운 GitHub 문서-only 커밋 이후의 HEAD와 구분할 것. PostgreSQL/Docker 실제 migration·GitHub-hosted Actions required check·운영 KIS API/운영 MiniPC·배포 **미검증/미실행**.
+- PowerShell launcher의 `wslpath` 직접 Windows 경로 처리 신뢰성 및 Windows↔WSL 인증 연동은 **해당 Full CI에서 실사용·검증하지 않음**. 실제 성공한 경로는 Windows Git bundle → WSL clone → WSL Ubuntu 직접 `python3 -B ... --mode full --install-deps`. 임의로 launcher 검증 PASS 판정하지 않음.

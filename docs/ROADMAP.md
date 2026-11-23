@@ -363,8 +363,8 @@ Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 �
 - [x] WSL2 기반 SHA 검증/Private origin 확인/clean worktree 확인/임시 git archive 격리 방식 Local CI Python gate 작성
 - [x] PowerShell WSL2 launcher, 오프라인 unittest 계약 테스트 7개, 안전 매뉴얼 작성
 - [x] 기본 offline 테스트와 명시적 `full -InstallDeps`의 테스트 범위·의존성 다운로드·리포트/미검증 PostgreSQL 경계 분리
-- [ ] WSL2(Ubuntu) 실제 오프라인 Gate PASS 검증 후 Local CI 도구 최종 판정
-- [ ] Windows WSL2 Node 22.17+/Python 3.12+ 설치 환경 확인 및 full gate Backend pytest/Frontend 빌드 PASS
+- [x] WSL2(Ubuntu) 실제 오프라인 Gate PASS 검증 — SHA `2f322e4b8da7d2ac0aa66502d3d398fd87a69b39`
+- [x] Windows WSL2 Linux Node 22.17.0 / Python 3.14.4 + python3.14-venv 환경에서 full gate Backend pytest/Frontend 빌드 PASS
 - [ ] 이후 사용자 별도 승인 뒤 CI → PR #24 → PR #25 → PR #26 각 SHA 검증/실제 병합, 필요 시 별도 격리 PostgreSQL 검사
 - [x] 이번 브랜치 검토 작업에서 기존 main/PR/운영 MiniPC/KIS·DB/유료 GitHub Actions 변경 없음
 - 상세 `docs/LOCAL_CI_WSL.md`
@@ -374,6 +374,15 @@ Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 �
 - [x] 사용자 WSL 실사: Python 3.14.4, Git 2.53.0, WSL2 정상, Linux node 미설치·Windows npm 경로 확인
 - [x] Windows PowerShell launcher가 nvm 초기화 없이 Linux Python을 직접 실행하는 문제 수정: Bash login shell + `~/.nvm/nvm.sh` 명시적 로딩
 - [x] PowerShell launcher 계약 테스트 1개 추가 (Local Gate 자체 테스트 8개 예상)
-- [ ] WSL Linux 네이티브 Node 22.17.0 설치·실제 경로 `~/.nvm/versions/node/...` 확인
-- [ ] SHA pinned WSL Local CI `offline` 및 `full -InstallDeps` 첫 실행 PASS
+- [x] WSL Linux 네이티브 Node 22.17.0 설치·실제 경로 `~/.nvm/versions/node/...` 확인
+- [x] SHA pinned WSL Local CI `offline` 및 `full -InstallDeps` 첫 실행 PASS
 - [x] 모든 변경은 별도 검토 브랜치. 기존 main/PR/운영 Docker·DB/KIS/Actions 불변
+
+
+## OPS-LOCAL-CI03 — 최초 WSL Full CI PASS 증거 확정 (2026-11-23)
+- [x] SHA `2f322e4b8da7d2ac0aa66502d3d398fd87a69b39`: Offline CI PASS, Full CI **10/10 단계 PASS**, 종료 코드 0, NO_PRODUCTION_MUTATION=YES
+- [x] Python 3.14.4 + `python3.14-venv`, Linux Node 22.17.0/npm 10.9.2 확인; 초기 ensurepip/venv 오류 해결
+- [x] WSL report JSON `20261123T054254Z-2f322e4b8da7/report.json` 경로 문서화 (보고서 파일은 사용자 Windows WSL에 보관, GitHub에 업로드하지 않음)
+- [ ] Windows PowerShell launcher의 WSL 경로 변환을 별도로 수정·실행 검증. 기존 수동 WSL 커맨드는 PASS, launcher까지 PASS한 것은 아님
+- [ ] PostgreSQL 실제 isolated migration, required status check, Hosted Actions 및 main 배포는 각기 별도 검증/승인 필요
+- [ ] 원본 CI 개선 → PR #24 → PR #25 → PR #26 병합은 각 최신 SHA Local CI 검증 후 사용자 **별도 명시적 승인** 필요; 기존 완료는 병합 승인 아님

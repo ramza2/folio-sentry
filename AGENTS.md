@@ -369,7 +369,7 @@
 - GitHub-hosted Actions 사용량 한도 소진은 개발 중단 사유가 아님. Private Windows 전용 별도 clone + WSL2(Ubuntu, Python >=3.12)에서 `scripts/ci/local-gate.ps1` 또는 `python3 scripts/ci/local_gate.py` 실행. `backend/app/kis_shared_state.py`가 Linux `fcntl.flock`를 사용하므로 **네이티브 Windows Python 전체 KIS PASS 금지**.
 - 로컬 게이트는 GitHub 공식 origin/40자리 HEAD SHA/clean tracked source를 확인하고, git archive 스냅샷을 Linux 임시 폴더에 격리한 후 작업. 운영 MiniPC와 사용자 worktree, GitHub main/기존 PR, 실제 DB·KIS·토큰·Docker 접근 없음.
 - `offline`: GitHub CI stdlib 안전계약/병합 계약 + 합성 KIS 테스트. `full --install-deps`: 명시적 pip/npm 인터넷 의존성 다운로드 허용 후 임시 Backend pytest/compileall, Frontend npm test/typecheck/build 추가. 설치는 임시 공간에서만. 실 PostgreSQL migration, 운영 배포, GitHub Runner status는 **N/A**.
-- 비밀정보 환경변수 상속 금지, 차단된 로컬 DB host/port 설정, 로컬 로그(0600)/SHA-명시 JSON 요약, 실패 시 nonzero. 네트워크가 OS 방화벽 수준으로 격리되는 것은 아님. 실제 테스트 PASS는 **아직 미실행**; `docs/LOCAL_CI_WSL.md` 참고.
+- 비밀정보 환경변수 상속 금지, 차단된 로컬 DB host/port 설정, 로컬 로그(0600)/SHA-명시 JSON 요약, 실패 시 nonzero. 네트워크가 OS 방화벽 수준으로 격리되는 것은 아님. 최초 테스트는 후속 OPS-LOCAL-CI03에서 PASS 확인; `docs/LOCAL_CI_WSL.md` 참고.
 - Cursor Agent에 전체 코드 탐색/빌드를 맡기지 말고 ChatGPT에서 GitHub 코드 관리 및 단일 터미널 명령 제시. `main`/PR 병합 및 운영 DB/키/배포는 사용자 별도 승인 필수, Private 유지.
 
 
@@ -377,3 +377,12 @@
 - 사용자 Windows WSL2에 Git/Python은 있으나 Linux `node` 없음, Windows `npm` shim만 PATH에 있음. WSL용 Node.js `22.17.0`을 공식 nvm으로 사용자 로컬 `~/.nvm`에 설치하도록 안내.
 - `scripts/ci/local-gate.ps1` 실행기는 직접 `wsl -- python3` 대신 Bash login shell을 시작해 `~/.nvm/nvm.sh`를 명시적으로 source한다. Windows npm 사용을 Linux Node 검증이라고 주장하지 않는다. 관련 정적 안전 테스트 1개 추가(총 8개 기대).
 - 이 수정은 전용 Local CI 검토 브랜치에서만 수행. 원본 CI/MD02/MD03 PR, `main`, 운영 MiniPC, 실 KIS/DB·GitHub Actions 그대로. WSL 실제 PASS 확인 전에는 완료 판정 금지.
+
+
+## OPS-LOCAL-CI03 — Windows WSL2 Local CI 최초 Full PASS (2026-11-23)
+- 검증된 정확한 소스 SHA **`2f322e4b8da7d2ac0aa66502d3d398fd87a69b39`**. WSL2 Ubuntu `/home/changhyunjeon/folio-sentry-localci`의 별도 private clone, Git archive 고정 스냅샷. 원본 Windows Git 인증으로 받은 bundle을 사용하므로 WSL 자체 GitHub 인증 없이 검증 완료.
+- 사용자 실행 결과: **Offline PASS**, 이어서 **Full 10/10 단계 PASS**, `FULL_CI_EXIT=0`, `FOLIOSENTRY_LOCAL_CI_NO_PRODUCTION_MUTATION=YES`. WSL JSON `~/folio-sentry-local-ci-reports/20261123T054254Z-2f322e4b8da7/report.json`.
+- 환경: Ubuntu WSL2 Python 3.14.4, python3.14-venv(+ensurepip wheel), Linux Node 22.17.0/npm 10.9.2. 초기 venv 오류는 시스템 패키지 추가로 해결.
+- 실제 성공한 엔트리포인트는 **WSL Bash에서 직접 `python3 -B scripts/ci/local_gate.py --mode full --install-deps`**. Windows PowerShell launcher의 `wslpath` 경로 변환은 테스트되지 않아 **별도 확인 필요**. localhost 방화벽 격리·실 PG migration·실 KIS·hosted Actions를 PASS라고 간주하지 않는다.
+- 이 증거는 *위 SHA의 코드*에만 해당. 그 후 이 문서에만 변경한 신규 GitHub HEAD의 직접 실행 증거는 아님. 코드/테스트 파일 SHA 동일시에는 근거가 되지만 GitHub required checks/운영 승인과 혼동 금지.
+- 이후 GitHub CI/PR #24/#25/#26 실제 병합, 운영 DB 마이그레이션, 실제 계좌/시세/KIS 토큰 및 배포는 각각 사용자 명시 승인 전까지 미실행, Private 유지. 문서/ROADMAP은 현재 상태 기준으로만 현행화.
