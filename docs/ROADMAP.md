@@ -334,3 +334,14 @@ Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 �
 - [ ] 버전드 finality 정책, 조정주가 처리 및 DB VALID 전이 설계는 증빙·운영변경 승인 이후 별도 PR.
 - [ ] MD-04C 실제 API/Frontend 연결·가격 표시/손익·신호/알림은 별도 사용자 승인 전 금지.
 - 상세: docs/MD04B_FINALITY_EVIDENCE.md
+
+
+## MD-04C1 — 실제 등록 종목의 비가격 품질 상태 UI (2026-11-23)
+- [x] MD-04B PR #30 사용자 승인 main 병합: 020e065, post-merge GitHub CI #45137148434 PASS. 운영 미변경.
+- [x] 순수 Backend QuoteMask 계약: MD-04B 결과 None→UNAVAILABLE, PARTIAL→UNFINALIZED, 위조된 finality/promote/형식 차단, 금액·종목·원천시각 노출 없음.
+- [x] Frontend status-only 네 가지(UNAVAILABLE, UNFINALIZED, STALE, ERROR) 엄격 파서·한국어 상태 표시 및 실 목록·폼 유지. 현재 운영 API는 계속 UNAVAILABLE.
+- [x] Backend/Frontend 합성 단위 테스트, API 계약과 AGENTS 문서 작업.
+- [ ] MD-04C1 Draft PR 최신 GitHub-hosted Backend, Frontend, CI gate PASS 확인.
+- [ ] 사용자 별도 병합 승인 이후에만 main 병합. 운영 MiniPC 앱 배포, DB migration, 실 KIS 호출, 실제 가격/손익/신호/알림 연결은 별도 승인.
+- [ ] MD-04C2 인증 상태 전용 API 연계 설계 및 공급자 품질 상태 기록. 검증 완료된 FINAL/CURRENT 가격 공개는 아직 미구현.
+- 세부 docs/MD04C1_QUALITY_UI_CONTRACT.md.

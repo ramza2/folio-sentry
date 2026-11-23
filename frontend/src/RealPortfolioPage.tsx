@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useOwnerAuth } from "./AuthGate";
+import { hiddenQuoteLabel } from "./realQuoteStatus";
 import {
   addInstrument, addTracked, editTracked, loadInstruments, loadTracked, removeTracked,
   type AssetType, type ManualInstrumentInput, type Market,
@@ -245,7 +246,7 @@ export default function RealPortfolioPage() {
                 <div className="real-item-values">
                   <span>수량 <b>{formatPosition(item)}</b></span>
                   <span>평균단가 <b>{item.average_cost ?? "미입력"} {item.average_cost ? item.instrument.currency : ""}</b></span>
-                  <span className="real-muted">시세 없음 · 손익 미계산</span>
+                  <span className="real-muted" aria-label="시세 품질 상태">{hiddenQuoteLabel(item.quote.status)}</span>
                 </div>
                 <div className="real-item-actions">
                   <button type="button" disabled={busy} onClick={() => {

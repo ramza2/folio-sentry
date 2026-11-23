@@ -1,4 +1,5 @@
 /** Live single-owner portfolio adapter (never reads /demo endpoints). */
+import { parseHiddenQuote, type HiddenQuote } from "./realQuoteStatus.ts";
 
 export type Market = "KR" | "US";
 export type TrackedKind = "HOLDING" | "WATCH";
@@ -21,13 +22,7 @@ export interface RealTracked {
   average_cost: string | null;
   alerts_enabled: boolean;
   memo: string | null;
-  quote: {
-    status: "UNAVAILABLE";
-    close: null;
-    change_pct: null;
-    as_of: null;
-    source: null;
-  };
+  quote: HiddenQuote;
   market_value: null;
   unrealized_pnl: null;
   unrealized_pnl_percent: null;
@@ -73,19 +68,16 @@ function parseTracked(raw: unknown): RealTracked {
       !isNullableDecimal(raw.quantity) || !isNullableDecimal(raw.average_cost) ||
       typeof raw.alerts_enabled !== "boolean" ||
       !(raw.memo === null || typeof raw.memo === "string") ||
-      !isRecord(raw.quote) ||
-      raw.quote.status !== "UNAVAILABLE" ||
-      raw.quote.close !== null || raw.quote.change_pct !== null ||
-      raw.quote.as_of !== null || raw.quote.source !== null ||
       raw.market_value !== null || raw.unrealized_pnl !== null ||
       raw.unrealized_pnl_percent !== null) {
     throw new Error("실제 등록 종목 응답 형식이 올바르지 않습니다.");
   }
   const instrument = parseInstrument(raw.instrument);
+  const quote = parseHiddenQuote(raw.quote);
   if (raw.kind === "WATCH" && (raw.quantity !== null || raw.average_cost !== null)) {
     throw new Error("관심 종목 데이터에 보유 수량이 포함되어 있습니다.");
   }
-  return { ...raw, instrument } as RealTracked;
+  return { ...raw, instrument, quote } as RealTracked;
 }
 function parsePage<T>(value: unknown, parseItem: (value: unknown) => T): Paginated<T> {
   if (!isRecord(value) || !Array.isArray(value.items) ||
