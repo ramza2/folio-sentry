@@ -128,3 +128,102 @@ with Session(get_engine()) as db:
         .where(Instrument.normalized_symbol == "000001")
     ) == 0
 print("FOLIOSENTRY_MD03_ISOLATED_ROLLBACK_PASS")
+
+
+# MD-04A: entirely synthetic KR + US KIS transport -> normalization -> strict
+# intake gate -> PARTIAL-only repository. Both instruments and rows rollback.
+# The injected callable is the ONLY transport used. It cannot call KIS/Internet.
+from datetime import date
+from itertools import count
+
+from app.kis_readonly import (
+    KR_DAILY_PATH, US_DAILY_PATH, TOKEN_PATH,
+    KisCredentials, KisReadOnlyDailyProvider,
+)
+from app.md04_intake import inspect_unverified_intake
+
+us_identity = InstrumentIdentity("US", "XNAS", "AAPL", "USD")
+us_row = {
+    "xymd": "20261119", "open": "250.12", "high": "254.34",
+    "low": "249.90", "clos": "252.44", "tvol": "234567",
+}
+synthetic_calls: list[tuple[str, str]] = []
+
+
+def synthetic_transport(method, path, headers, params=None, body=None):
+    synthetic_calls.append((method, path))
+    if (method, path) == ("POST", TOKEN_PATH):
+        assert body and body["grant_type"] == "client_credentials"
+        return {"access_token": "synthetic-token-no-real-credentials-123",
+                "expires_in": 3600}
+    assert method == "GET" and body is None
+    if path == KR_DAILY_PATH:
+        return {"rt_cd": "0", "output2": [sample]}
+    if path == US_DAILY_PATH:
+        return {"rt_cd": "0", "output2": [us_row]}
+    raise AssertionError("UNEXPECTED_SYNTHETIC_TRANSPORT_PATH")
+
+
+# The provider's explicit live flag is used only in this synthetic guarded CI
+# script, with a fake injected callable: NO live network implementation.
+fake_clock = count(1000, 2)
+provider = KisReadOnlyDailyProvider(
+    KisCredentials("synthetic-appkey-for-ci", "synthetic-secret-for-ci"),
+    live_enabled=True, transport=synthetic_transport,
+    monotonic=lambda: next(fake_clock), utcnow=lambda: fetched,
+)
+kr_batch = provider.fetch_daily(
+    identity, date(2026, 11, 19), date(2026, 11, 19), "RAW",
+)
+us_batch = provider.fetch_daily(
+    us_identity, date(2026, 11, 19), date(2026, 11, 19), "RAW",
+)
+for expected, candidate in ((identity, kr_batch), (us_identity, us_batch)):
+    receipt = inspect_unverified_intake(expected, candidate, now=now)
+    assert receipt.accepted_rows == 1
+    assert receipt.quality_status == "PARTIAL"
+    assert receipt.availability == "UNFINALIZED"
+    assert receipt.is_final is False and receipt.publication_allowed is False
+    assert receipt.automatic_storage_allowed is False
+assert synthetic_calls == [
+    ("POST", TOKEN_PATH), ("GET", KR_DAILY_PATH), ("GET", US_DAILY_PATH)
+]
+
+with Session(get_engine()) as db:
+    try:
+        for candidate_identity, candidate in (
+            (identity, kr_batch), (us_identity, us_batch),
+        ):
+            instrument = Instrument(
+                market=candidate_identity.market,
+                exchange_mic=candidate_identity.exchange_mic,
+                symbol=candidate_identity.symbol,
+                normalized_symbol=candidate_identity.symbol,
+                name="MD04A synthetic only",
+                currency=candidate_identity.currency,
+                asset_type="STOCK",
+                timezone=str(candidate_identity.exchange_timezone),
+            )
+            db.add(instrument)
+            db.flush()
+            inserted = insert_unverified_daily_batch(
+                db, instrument.id, candidate, now=now, allow_write=True,
+            )
+            assert (inserted.inserted, inserted.unchanged) == (1, 0)
+        saved = db.scalars(select(PriceBar)).all()
+        assert len(saved) == 2
+        assert all(item.quality_status == "PARTIAL" and
+                   item.is_final is False and
+                   item.source_observed_at is None for item in saved)
+        print("FOLIOSENTRY_MD04A_SYNTHETIC_KIS_TO_ISOLATED_DB_PASS")
+    finally:
+        db.rollback()
+
+with Session(get_engine()) as db:
+    assert db.scalar(select(func.count()).select_from(PriceBar)) == 0
+    for symbol in (identity.symbol, us_identity.symbol):
+        assert db.scalar(
+            select(func.count()).select_from(Instrument)
+            .where(Instrument.normalized_symbol == symbol)
+        ) == 0
+print("FOLIOSENTRY_MD04A_ROLLBACK_AND_NONPUBLICATION_PASS")
