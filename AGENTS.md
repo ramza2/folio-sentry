@@ -358,3 +358,12 @@
 - 호출자가 요청한 RAW/ADJUSTED와 배치 가격 기준 불일치는 MD04B_REQUESTED_BASIS_MISMATCH로 거부한다. 비가격 진단 결과는 PARTIAL/UNFINALIZED, 허용 플래그 전부 false, BLOCKER 코드만 기록. OHLCV·개인 보유/인증정보 로깅 금지.
 - KIS 국내 inquire-daily-itemchartprice 공식 예제는 FID_ORG_ADJ_PRC 0=수정주가, 1=원주가. 해외 dailyprice의 MODP 선택값 의미는 공급자 원문 상세 증빙 및 결과 기준 추가 확인 전 확정하지 않는다.
 - Public main CI 라우팅, MD03 isolated PostgreSQL test, 기존 schema 체크와 portfolio_api UNAVAILABLE/NULL 계약 유지. 별도 승인 없이는 main 병합, MiniPC DB migration/배포, 실 KIS 호출·새 토큰, 스케줄러, UI/신호/알림/손익 표시 금지.
+
+
+## MD-04B 병합 결과 / MD-04C1 안전한 실 종목 상태 UI (2026-11-23)
+- MD-04B PR #30은 사용자 승인 후 main@020e065 병합 및 hosted CI PASS. 위의 Draft 문구는 당시 기록일 뿐이다.
+- MD-04C1은 운영 API를 변경하지 않고, 프론트 실제 종목 행의 **비가격 상태만** 준비하는 별도 Draft 개발이다. backend/app/quote_visibility.py 순수 함수 및 frontend/src/realQuoteStatus.ts, docs/MD04C1_QUALITY_UI_CONTRACT.md 참조.
+- 현재 운영 응답은 quote.status=UNAVAILABLE만 존재. 향후 UNFINALIZED/STALE/ERROR 품질 메타데이터를 받아도 **close/change_pct/as_of/source 및 모든 PnL null**; 추가 필드나 CURRENT/DEMO/VALID 등의 비계약 상태는 오류로 거부.
+- Frontend 실제 행은 서버에서 받은 status에 따른 한국어 문구만 표시하며, mock 상태/숫자를 실제 사용자 목록에 주입하지 않는다. 백엔드 quote_visibility는 DB, network, FastAPI route에 연결하지 않는다.
+- 기존 인증·CSRF·DEMO 분리, KIS 최초 실호출 1회 마커, MD03 PARTIAL CHECK, Public CI 변경 라우팅·final gate, MiniPC 운영 서비스/백업 타이머 모두 보존.
+- PR 별도 병합 승인 및 실제 MiniPC DB migration/새 KIS 호출·토큰/배포/가격·손익 공개 승인 없이 어떠한 운영 변경도 실행하지 않는다.
