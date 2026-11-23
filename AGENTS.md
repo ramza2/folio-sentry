@@ -367,3 +367,12 @@
 - Frontend 실제 행은 서버에서 받은 status에 따른 한국어 문구만 표시하며, mock 상태/숫자를 실제 사용자 목록에 주입하지 않는다. 백엔드 quote_visibility는 DB, network, FastAPI route에 연결하지 않는다.
 - 기존 인증·CSRF·DEMO 분리, KIS 최초 실호출 1회 마커, MD03 PARTIAL CHECK, Public CI 변경 라우팅·final gate, MiniPC 운영 서비스/백업 타이머 모두 보존.
 - PR 별도 병합 승인 및 실제 MiniPC DB migration/새 KIS 호출·토큰/배포/가격·손익 공개 승인 없이 어떠한 운영 변경도 실행하지 않는다.
+
+
+## MD-04C1 병합 확인 / MD-04C2 인증 상태 전용 GET (2026-11-23)
+- MD-04C1 PR #31은 승인 후 main@9422bea 병합, Hosted CI #45139488106 PASS. 위의 Draft 기록은 과거 상태.
+- MD-04C2는 기존 /api/v1/tracked/{tracked_id}/quote-status 인증 GET + 실제 종목 행의 수동 '상태 확인' 버튼만 추가하는 별도 Draft. 이미 있는 tracked_instrument/instrument의 존재만 SELECT; KIS·price_bar 테이블·운영 데이터·토큰·외부 네트워크 접근 없음.
+- 서버 성공 응답은 등록 ID, quote.status=UNAVAILABLE 및 null close/change_pct/as_of/source로만 한정. Pydantic response_model extra forbid/UNAVAILABLE 고정으로 미승인 공급자 품질 및 가격 노출 차단.
+- 프론트는 사용자가 버튼을 누를 때만 same-origin 쿠키 + no-store GET, 정확한 tracked ID와 quote 구조를 검증. 실패 시 오류 표시 및 기존 상태 유지. DEMO fallback, 자동 API polling, 신호/평가손익 공개 절대 금지.
+- Backend/Frontend 합성 테스트와 GitHub CI 통과까지만 작업. 실제 MiniPC 운영 Frontend/Backend 배포, DB price_bar migration, live KIS/토큰/스케줄러, finality 승격 또는 main 병합은 각각 사용자 승인 필수.
+- 세부 docs/MD04C2_AUTH_QUOTE_STATUS.md.
