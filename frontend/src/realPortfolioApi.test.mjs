@@ -78,6 +78,44 @@ test("price-bearing or DEMO data can never appear in real positions", async () =
   finally { globalThis.fetch = prior; }
 });
 
+test("future quality-only statuses are accepted without financial values", async () => {
+  const prior = globalThis.fetch;
+  try {
+    for (const status of ["UNFINALIZED", "STALE", "ERROR"]) {
+      globalThis.fetch = async () => okJson({
+        items: [{ ...position, quote: { ...position.quote, status } }],
+        next_cursor: null,
+      });
+      const item = (await loadTracked()).items[0];
+      assert.equal(item.quote.status, status);
+      assert.equal(item.quote.close, null);
+      assert.equal(item.market_value, null);
+      assert.equal(item.unrealized_pnl, null);
+      assert.equal(item.unrealized_pnl_percent, null);
+    }
+  } finally { globalThis.fetch = prior; }
+});
+
+test("non-final state cannot smuggle a price, as_of, source or promotion", async () => {
+  const prior = globalThis.fetch;
+  const malicious = [
+    { status: "UNFINALIZED", close: "105" },
+    { status: "STALE", as_of: "2026-11-20" },
+    { status: "ERROR", source: "KIS" },
+    { status: "UNFINALIZED", is_final: true },
+    { status: "CURRENT" },
+  ];
+  try {
+    for (const injected of malicious) {
+      globalThis.fetch = async () => okJson({
+        items: [{ ...position, quote: { ...position.quote, ...injected } }],
+        next_cursor: null,
+      });
+      await assert.rejects(loadTracked());
+    }
+  } finally { globalThis.fetch = prior; }
+});
+
 test("schema failure is not replaced with mock holdings", async () => {
   const prior = globalThis.fetch;
   globalThis.fetch = async () => ({ ok: false, status: 503 });
