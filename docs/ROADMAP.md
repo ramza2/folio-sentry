@@ -235,7 +235,7 @@ Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 �
 ## MD02-MD03-STD01 — 합성 KIS→시세 게이트 독립 로컬 테스트 (2026-11-20)
 - [x] PR #27 통합 Draft를 기준으로 독립 오프라인 리뷰 브랜치 생성, 기존 PR #24/#25/#26·main 불변
 - [x] Python stdlib 10개 단위 테스트 소스 작성: LIVE 기본 거부, 합성 토큰·국내/미국 일봉·PARTIAL, 공유 할당량, 실패 시 예약, 캘린더 보수 정책, price_bar 저장/마이그레이션 계약
-- [ ] 사용자 MiniPC `git archive` 격리 임시 폴더에서 테스트 실행, 결과 PASS 확인 (현재 미실행)
+- [x] 사용자 MiniPC `git archive` 격리 임시 폴더에서 stdlib 테스트 10/10 PASS (2026-11-23)
 - [ ] 정상 GitHub Actions 갱신 후 PR #24→#25→#26 및 CI 최적화 브랜치의 결합 검증
 - [x] Private 유지, 실 KIS 호출/실 DB/Docker/운영 배포/시세 UI 연동 금지 유지
 - 자세한 계획·한계: `docs/MD02_MD03_STDLIB_OFFLINE_GATE.md`
@@ -247,8 +247,8 @@ Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 �
 - [x] 운영 Backend/DB 컨테이너는 image ID만 읽고 새 Python+PostgreSQL 테스트 컨테이너만 사용하도록 분리, 사전점검/명시적 확인 문자열/자동 정리 코드 작성
 - [x] 일회용 DB에 Alembic 20261120_pricebar01 및 저장 멱등·충돌·원자성·finality CHECK·롤백 검증 연결
 - [x] Docker 무실행 정적 검사 및 문서 초안 작성
-- [ ] MiniPC 격리 archive에서 bash -n / Python contract test 및 --preflight PASS 확인
-- [ ] 명시적인 합성 컨테이너 실행으로 격리 PostgreSQL E2E PASS 확인
+- [x] MiniPC 격리 archive에서 Bash 구문·Python 계약 6/6·Docker preflight PASS (2026-11-23)
+- [x] 격리 PostgreSQL E2E PASS (2026-11-23, 합성 데이터만)
 - [ ] GitHub Actions CI 최종 검증·기존 Draft PR 단계적 병합은 무료 사용량 갱신/사용자 별도 승인 뒤 수행
 - [x] Private 유지, 실 KIS 토큰 재발급/운영 마이그레이션·서비스 변경 없음
 
@@ -257,6 +257,17 @@ Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 �
 - [x] 첫 DB E2E는 ModuleNotFoundError: No module named 'app.market_data'로 중단. 미완료/FAIL을 기록.
 - [x] PYTHONPATH=/workspace/backend 고정 및 python -m scripts.test_price_bar_isolated_ci 실행으로 임시 아카이브 소스를 우선 검색하게 수정.
 - [x] Alembic 전에 실제 app 모듈 import 경로 확인. 이전 운영 이미지의 설치 패키지가 검색되면 fail-closed.
-- [ ] 수정 커밋 MiniPC Bash 구문·안전 계약 6/6·사전점검 및 일회용 PostgreSQL E2E 재검증.
-- [ ] 지난 실패의 임시 Docker 컨테이너 잔존 여부 읽기 전용 조회(운영 컨테이너 삭제 금지).
+- [x] 수정 커밋 MiniPC Bash 구문·안전계약 6/6·일회용 PostgreSQL E2E PASS (2026-11-23)
+- [x] 이전 실패의 임시 Docker 컨테이너 잔존 없음 (읽기 전용 조회)
 - [x] Private 유지, main 병합/운영 DB/실 KIS 재호출 없음.
+
+
+## MD03-DB-LOCAL-3 — MiniPC 최종 격리 E2E 완료 (2026-11-23)
+- [x] 수정 커밋 ea260ef 테스트: Bash 구문 PASS, 안전계약 **6/6 PASS**, Docker 운영 이미지 읽기 전용 사전검사 PASS
+- [x] 임시 PostgreSQL 기동 및 마운트된 아카이브 import PASS
+- [x] SAVEPOINT 배치 원자성, 중복 저장·가격 충돌 차단, is_final/quality DB CHECK, ROLLBACK, Alembic 20261120_pricebar01, 남은 가격 행 0건 모두 PASS
+- [x] FOLIOSENTRY_MD03_ISOLATED_POSTGRES_INTEGRATION_PASS / FOLIOSENTRY_MD03_LOCAL_E2E_COMPLETE 사용자 로그 확인
+- [x] 이전/현재 일회용 Docker 컨테이너 라벨 조회 0건. 운영 이미지 ID 조회 외의 운영 서비스 접근 없음
+- [ ] MiniPC 이전 전원 종료·재부팅 의심 현상: 부팅 이력/커널 OOM/thermal/watchdog/하드웨어 및 운영 서비스 건강 상태를 **읽기 전용** 조사, 원인 미확인
+- [ ] 시스템 안정성 확인 전 추가 Docker 부하/운영 배포·DB 마이그레이션 보류
+- [ ] GitHub hosted Actions 최종 검증과 Draft PR 단계적 병합은 별도. Private 유지

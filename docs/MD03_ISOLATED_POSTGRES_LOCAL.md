@@ -41,3 +41,11 @@
 - 더 안전하게 Alembic 이전 app/market_data/price_models/price_repository 모듈의 __file__ 경로가 모두 /workspace/backend/app 아래인지 확인한다. 다른 경로가 섞이면 MD03_WRONG_BACKEND_SOURCE_IMPORT로 중단한다.
 - 1차 실패 후 임시 컨테이너 잔존 여부는 별도 확인 필요. 원래 스크립트의 EXIT trap이 종료 중 docker rm -f -v 실행을 시도했지만 실제 삭제 성공은 독립적으로 확인되지 않았다. 운영 컨테이너·볼륨 정리 금지.
 - 수정본은 새 커밋에서 로컬 무실행 테스트/사전점검/격리 E2E를 다시 확인한다. 이번 수정으로 운영 이미지/DB나 실 KIS 상태는 변경하지 않는다.
+
+
+## 최종 MiniPC 사용자 재실행 PASS (2026-11-23)
+- 소스 커밋 ea260ef41b9277699746660cc5a622e46ae606ce: Bash 구문 및 안전계약 **6/6 PASS**, Docker preflight PASS.
+- 일회용 PostgreSQL READY, FOLIOSENTRY_MD03_ARCHIVED_SOURCE_IMPORT_PASS.
+- FOLIOSENTRY_MD03_BATCH_SAVEPOINT_ATOMICITY_PASS, FOLIOSENTRY_MD03_ISOLATED_INSERT_DUPLICATE_CONFLICT_FINALITY_PASS, FOLIOSENTRY_MD03_ISOLATED_ROLLBACK_PASS, FOLIOSENTRY_MD03_ISOLATED_POSTGRES_REVISION_AND_EMPTY_PASS, FOLIOSENTRY_MD03_ISOLATED_POSTGRES_INTEGRATION_PASS, FOLIOSENTRY_MD03_LOCAL_E2E_COMPLETE.
+- 1차 오류 ModuleNotFoundError는 보정된 임시 Python 소스 경로 사용으로 해결. 테스트 전후 일회용 Docker 컨테이너 label 조회 0건 확인. 운영 DB/미니PC 서비스 건강, 실 KIS 데이터 확정성, hosted GitHub Actions 실행은 별개로 미검증.
+- 이전 MiniPC가 꺼졌거나 재부팅된 것으로 보인 사건의 원인 미상. OOM/thermal/watchdog/부팅 기록을 읽기 전용 확인하기 전까지 추가 부하 작업을 중단한다.

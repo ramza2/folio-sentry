@@ -301,3 +301,9 @@
 - 운영 Backend 이미지를 재사용하되 신규 테스트 컨테이너에만 PYTHONPATH=/workspace/backend를 고정. migration 이전 archive app 전체 import 경로를 검증하고 다른 설치 패키지 경로면 중단한다.
 - 이제 python -m scripts.test_price_bar_isolated_ci를 사용하여 아카이브 기반 단위 스크립트를 실행한다. 실제 KIS 호출/토큰/운영 DB 및 Compose 변경 절대 금지.
 - 수정본 검증 PASS 전 main 병합/운영 배포 금지, Private 유지. 운영 컨테이너는 기존처럼 이미지 ID만 inspect, 테스트 전용 leftover는 읽기 전용 진단.
+
+
+## MD03-DB-LOCAL 재검증 완료 및 기기 안정성 게이트 (2026-11-23)
+- 사용자 MiniPC 최종 실행: bash -n PASS, 오프라인 안전계약 6/6 PASS, 격리 PostgreSQL READY, FOLIOSENTRY_MD03_ARCHIVED_SOURCE_IMPORT_PASS, SAVEPOINT 원자성/중복·충돌/DB 최종성 차단/전체 ROLLBACK/Alembic revision 20261120_pricebar01/잔여 0건 PASS. 최종 FOLIOSENTRY_MD03_ISOLATED_POSTGRES_INTEGRATION_PASS 및 FOLIOSENTRY_MD03_LOCAL_E2E_COMPLETE.
+- 테스트 전후 라벨 기반 일회용 컨테이너 조회 0건. 1차 ModuleNotFoundError는 PYTHONPATH 및 -m 실행 수정으로 해결. 운영 DB/운영 서비스 건강 상태의 독립 확인, 실 KIS API/미국 일봉 최종성, GitHub hosted Actions 실행은 **미검증**.
+- 이전 MiniPC 종료·재부팅 의심 사건의 원인은 미확인. 이전 부팅 커널 OOM/온도/전원/watchdog 로그와 시스템 상태를 읽기 전용 확인 전에는 추가 부하 시험과 운영 마이그레이션·배포 금지. 저장소 Private 유지; main 미병합.
