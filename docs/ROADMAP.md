@@ -367,3 +367,14 @@ Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 �
 - [ ] 사용자 별도 명시적 승인 후 main 병합. MiniPC 운영 DB migration·KIS 호출/토큰·배포·가격/손익 공개 승인은 별도.
 - [ ] 품질 증빙의 외부 출처, 공급자 관측시각, 원주가/수정주가 의미, 기업행동/정정 이력에 대한 승인 가능 근거 수집. 최종성 v2 전이는 증빙 완료 후 별도 PR.
 - 상세 docs/MD04C3_EVIDENCE_STORAGE.md.
+
+
+## MD-04C4 — 자료 출처·버전·정정·철회 이력 (2026-11-23)
+- [x] MD-04C3 PR #33 사용자 승인 main@d281b3b 병합, Hosted CI #45142866026 전체 PASS, 운영 미변경.
+- [x] 신규 가격-분리 evidence_reference_revision 모델/추가형 migration 20261123_quality02, 기존 가격·품질 DB 제약 불변.
+- [x] KIS/거래소 제한 HTTPS 출처·문서 버전·SHA-256 무결성 지문·RECORDED/CORRECTED/RETRACTED 순서/이전 해시 연결 및 철회 후 차단 구현.
+- [x] 명시적 승인형 저장소(동일 기록 멱등, 모순·순서 위조 거부), DB UPDATE/DELETE 트리거, 합성 PostgreSQL rollback 검증 작성.
+- [ ] MD-04C4 Draft PR 최신 Backend/격리 PostgreSQL/CI gate PASS 확인.
+- [ ] 별도 승인 후에만 main 병합. MiniPC DB migration·실 KIS/원문 조회·운영 배포·공개 기능은 각각 별도 승인.
+- [ ] 공급자 관측시각·최종종가·정정 규정·RAW/ADJUSTED·기업행동 근거를 수동 확인하고 독립적으로 검증. 링크/해시 자체는 증명 불가; FINAL 승격 금지.
+- 문서 docs/MD04C4_REFERENCE_HISTORY.md.

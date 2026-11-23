@@ -385,3 +385,13 @@
 - 저장소는 기본 쓰기 차단, caller-owned transaction/explicit allow_write=True/savepoint, price_bar FK·동일 버전 멱등·불일치 충돌 거부. 금액/OHLCV·계좌·종목·자격증명·원본 공급자 응답은 증빙 이력에 저장하지 않는다.
 - GitHub-hosted 127.0.0.1/folio_ci/folio_ci 전용 격리 PostgreSQL에서만 migration/head/합성 KR·US 미확정 이력/DB CHECK/rollback 테스트를 실행한다. 기존 Public CI 라우터·CI gate 유지.
 - MD-04C2 상태 GET은 기존대로 UNAVAILABLE만, Frontend 가격·손익/신호/알림 미연결. 사용자 별도 병합 승인·운영 DB/실 KIS/배포/최종가 공개 승인 없이는 변경·실행 금지. 상세 docs/MD04C3_EVIDENCE_STORAGE.md.
+
+
+## MD-04C3 병합 확인 / MD-04C4 참고자료 출처와 정정 메타데이터 이력 (2026-11-23)
+- MD-04C3 PR #33 사용자 승인 main@d281b3b 병합, Hosted CI #45142866026 8/8 PASS. 위의 Draft 기록은 과거 상태.
+- MD-04C4는 price_quality_evidence에 연결한 **별도 비가격** evidence_reference_revision 테이블/20261123_quality02 migration/명시적 allow_write 참조 이력 저장소다. price_bar/quality_evidence의 PARTIAL/UNVERIFIED/UNATTESTED DB CHECK 변경 금지.
+- 외부 문서 링크, 문서 버전, SHA-256 지문, RECORDED/CORRECTED/RETRACTED revision·이전 이벤트 해시만 관리. 링크/지문은 **공급자 인증·종가 확정·권리·정정이력의 사실 여부를 검증하는 증빙이 아님**. 외부 URL network fetch 금지.
+- reference_url은 제한된 HTTPS 공식 출처 host와 공개 경로만 허용하고 query/fragment/credential/포트·불안전 경로 거부. 민감 문서 본문/OHLCV/계좌/토큰을 이력에 저장·로그 출력 금지.
+- DB 체크로 UNVERIFIED_REFERENCE/publication_allowed=false 고정, PostgreSQL UPDATE/DELETE trigger 추가; caller-owned session+transaction/explicit allow_write만 쓰기. 부모 SELECT FOR UPDATE/중복 멱등/모순 거부, 체인 read-only 검사. 관리자가 트리거를 변경할 수 있어 외부 불변 원장은 아님.
+- 신규 품질 이력 migration + 격리 테스트는 GitHub-hosted folio_ci/127.0.0.1 synthetic DB에서만 실행. main 병합/운영 MiniPC 백업·DB migration/실 KIS API·토큰/프론트·백엔드 운영 배포/가격·손익·신호·알림/스케줄러는 별도 승인.
+- 기존 MD-04C2 인증 GET은 UNAVAILABLE 및 가격·손익 null 유지. 상세 docs/MD04C4_REFERENCE_HISTORY.md.

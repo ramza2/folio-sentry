@@ -167,12 +167,18 @@ jobs:
           md04c3_test = Path("scripts/test_quality_evidence_isolated_ci.py").is_file()
           assert md04c3_migration == md04c3_test, "MD04C3_ISOLATED_INTEGRATION_BLOCKED"
           assert not md04c3_migration or md03_migration, "MD04C3_REQUIRES_MD03"
+          md04c4_migration = Path("migrations/versions/20261123_quality02.py").is_file()
+          md04c4_test = Path("scripts/test_evidence_reference_isolated_ci.py").is_file()
+          assert md04c4_migration == md04c4_test, "MD04C4_ISOLATED_INTEGRATION_BLOCKED"
+          assert not md04c4_migration or md04c3_migration, "MD04C4_REQUIRES_MD04C3"
           required_tables = {"auth_owner", "auth_session", "alembic_version",
                              "instrument", "tracked_instrument"}
           if md03_migration:
               required_tables.add("price_bar")
           if md04c3_migration:
               required_tables.add("price_quality_evidence")
+          if md04c4_migration:
+              required_tables.add("evidence_reference_revision")
           assert required_tables.issubset(tables)
           from decimal import Decimal
           from sqlalchemy.orm import Session
@@ -195,6 +201,7 @@ jobs:
           with get_engine().connect() as conn:
               rev = conn.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
               expected_revision = (
+                  "20261123_quality02" if md04c4_migration else
                   "20261123_quality01" if md04c3_migration else
                   "20261120_pricebar01" if md03_migration else
                   "20261119_portfolio01"
@@ -206,12 +213,16 @@ jobs:
                   assert conn.execute(text("SELECT count(*) FROM price_bar")).scalar_one() == 0
               if md04c3_migration:
                   assert conn.execute(text("SELECT count(*) FROM price_quality_evidence")).scalar_one() == 0
+              if md04c4_migration:
+                  assert conn.execute(text("SELECT count(*) FROM evidence_reference_revision")).scalar_one() == 0
           print("FOLIOSENTRY_AUTH01_ISOLATED_MIGRATION_PASS")
           print("FOLIOSENTRY_PHASE1_PORTFOLIO_MIGRATION_CI_PASS")
           if md03_migration:
               print("FOLIOSENTRY_MD03_ISOLATED_SCHEMA_CI_PASS")
           if md04c3_migration:
               print("FOLIOSENTRY_MD04C3_ISOLATED_SCHEMA_CI_PASS")
+          if md04c4_migration:
+              print("FOLIOSENTRY_MD04C4_ISOLATED_SCHEMA_CI_PASS")
           PY
       - name: MD03 price-bar idempotency and finality guards (when schema exists)
         env:
@@ -239,6 +250,20 @@ jobs:
             exit 1
           else
             echo "FOLIOSENTRY_MD04C3_NOT_PRESENT_PRE_MERGE"
+          fi
+      - name: MD04C4 provenance revisions and tamper guards (isolated DB)
+        env:
+          FOLIOSENTRY_MD04C4_ISOLATED_DB_TEST: "yes"
+        run: |
+          if test -f migrations/versions/20261123_quality02.py; then
+            test -f scripts/test_evidence_reference_isolated_ci.py
+            test -f migrations/versions/20261123_quality01.py
+            python scripts/test_evidence_reference_isolated_ci.py
+          elif test -e scripts/test_evidence_reference_isolated_ci.py; then
+            echo "MD04C4_ISOLATED_INTEGRATION_BLOCKED" >&2
+            exit 1
+          else
+            echo "FOLIOSENTRY_MD04C4_NOT_PRESENT_PRE_MERGE"
           fi
 
   deploy01-production-config:
