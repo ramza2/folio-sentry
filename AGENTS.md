@@ -376,3 +376,12 @@
 - 프론트는 사용자가 버튼을 누를 때만 same-origin 쿠키 + no-store GET, 정확한 tracked ID와 quote 구조를 검증. 실패 시 오류 표시 및 기존 상태 유지. DEMO fallback, 자동 API polling, 신호/평가손익 공개 절대 금지.
 - Backend/Frontend 합성 테스트와 GitHub CI 통과까지만 작업. 실제 MiniPC 운영 Frontend/Backend 배포, DB price_bar migration, live KIS/토큰/스케줄러, finality 승격 또는 main 병합은 각각 사용자 승인 필수.
 - 세부 docs/MD04C2_AUTH_QUOTE_STATUS.md.
+
+
+## MD-04C2 병합 확인 / MD-04C3 품질 증빙 이력 격리 저장 (2026-11-23)
+- PR #32 MD-04C2는 사용자 승인으로 main@77ade4e 병합 및 Hosted CI #45141141642 PASS. 위의 Draft 기록은 과거 시점 문구임.
+- MD-04C3 신규 price_quality_evidence 모델/20261123_quality01 추가형 마이그레이션은 MD-03 price_bar와 **별도 테이블**이며 기존 price_bar PARTIAL/is_final=false/source_observed_at=NULL 제약을 변경하지 않는다. **운영 MiniPC DB에는 승인 없이 적용 금지**.
+- policy_version MD04C3_V1, evidence_status=UNVERIFIED, provider_finality=UNATTESTED, source_observed_at=NULL, basis/correction/corporate-action 증빙 false, publication/analysis 허용 false. reviewed_at은 우리 검사 시각이지 공급자 관측시각이 아니다.
+- 저장소는 기본 쓰기 차단, caller-owned transaction/explicit allow_write=True/savepoint, price_bar FK·동일 버전 멱등·불일치 충돌 거부. 금액/OHLCV·계좌·종목·자격증명·원본 공급자 응답은 증빙 이력에 저장하지 않는다.
+- GitHub-hosted 127.0.0.1/folio_ci/folio_ci 전용 격리 PostgreSQL에서만 migration/head/합성 KR·US 미확정 이력/DB CHECK/rollback 테스트를 실행한다. 기존 Public CI 라우터·CI gate 유지.
+- MD-04C2 상태 GET은 기존대로 UNAVAILABLE만, Frontend 가격·손익/신호/알림 미연결. 사용자 별도 병합 승인·운영 DB/실 KIS/배포/최종가 공개 승인 없이는 변경·실행 금지. 상세 docs/MD04C3_EVIDENCE_STORAGE.md.
