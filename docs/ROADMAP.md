@@ -59,8 +59,8 @@
 - [x] MD-01: 한국투자증권 KIS/Twelve Data/Alpha Vantage 공식 문서 기반 KR·US 시세 공급자 비교 및 호출 전 확인 조건 정리 (2026-11-20, GitHub만)
 - [x] MD-01: KIS KR·US 일봉 OHLCV 비통신 정규화 계약 + Decimal·거래소·시점·품질 경계 합성 테스트 (GitHub만)
 - [x] MD-02: KIS 일봉 전용 GET·토큰 POST·고정 호스트 allowlist·비밀 파일 권한·레이트리밋·합성 transport 테스트 구현 (GitHub 전용, 비활성 기본값, 2026-11-20)
-- [x] MD-02 실제 KIS 승인/키 발급 및 제한적 최초 토큰 POST 1회, KR/US 시세 GET 각 1회 PASS (2026-11-20 사용자 MiniPC 로그; 확정 시세 아님, 운영 미연동)
-- [ ] MD-02D 공유 토큰/다중 프로세스 rate-limit **코드와 합성 테스트** 검증 중(운영 적용 별도); 장마감·지연·조정가격 정책 실측은 미완료
+- [x] MD-02 한국투자증권 Open API 신청·실전 키 발급 확인 및 2026-11-20 사용자 승인 1회성 KR/US 일봉 조회 검증 (자동 수집·시세 표시·DB 저장 미적용)
+- [ ] MD-02 토큰 공유 캐시·다중 프로세스 rate limit·장마감/지연/가격조정 정책 검증 (스케줄러 전에 필요)
 - [ ] MD-03: 확정 검증 데이터용 price_bar DB migration, 적재·멱등·장 마감/품질 판단 (별도 승인)
 - [ ] 외부 공급자 기반 Instrument 검색/식별자 매핑 (별도 공급자 검증)
 - [ ] 국내·미국 일봉 시세 수집/중복 방지/수집 상태 표시
@@ -155,6 +155,102 @@ Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 �
 - 다음 개발은 국내·미국 시세 공급자 검토와 종목 식별자 매핑/시세 상태 모델링을 우선. 실제 종목 행과 CRUD E2E 시험은 합성 데이터 및 별도 명시 승인 이후 진행.
 
 
+## OPS-CI01 — GitHub Actions 무료 할당량/중복 실행 최적화 (2026-11-20)
+- [x] 개인 Billing Actions 포함 컴퓨팅 $12/$12 소진 확인, 결제수단 없이 Private Actions 작업이 실행 전 차단되는 증상 분석
+- [x] 기존 feat/** push + PR 중복 CI 및 매번 6 job 실행 문제 확인
+- [x] Private 상태에서 비용 최적화 독립 브랜치 설계: PR(main)/push(main) 이벤트, concurrency 취소, 영역별 job route + CI gate + 합성 unittest
+- [x] AUTH Chromium browser 수동 실행 전용으로 변경(릴리스 인수검사 때 명시 실행)
+- [ ] 최적화 워크플로 로컬 YAML/라우팅/최종게이트 검사
+- [ ] 정상 GitHub Actions 실행 가능 시 최적화 CI 6 job + 안정 게이트 PASS
+- [ ] 사용자 병합 승인 이후 main 동기화 및 PR #26의 격리 DB migration CI 유지·재검증
+- [x] Public 전환 위험 검토 완료: 운영 정보가 과거 Git 이력에 남아 있고 Actions 로그는 미검사. **최종 결정은 Private 유지**
+- [x] 사용자가 FolioSentry 저장소 Private 유지 확정(2026-11-20). Public 전환·별도 Public 미러 생성 계획 없음
+- 세부: `docs/CI_USAGE_CONTROL.md`. **CI 코드 브랜치 작업만으로 실제 운영 MiniPC/서비스/KIS/DB 변경 없음.**
+
+
+## Public 저장소 전환 사전검사 (2026-11-20)
+- [x] 현재 main 트리 내 홈 MiniPC/DuckDNS/Traefik 구성·운영 문서 노출 가능성 확인
+- [x] Git 과거 객체의 민감한 파일명·자격증명 패턴·운영 주소를 값 노출 없이 분류하는 읽기 전용 로컬 감사 스크립트 작성
+- [x] 공개 전 감사 도구 자체의 합성 unittest 추가(워크플로 경로 테스트와 함께 실행)
+- [x] MiniPC 실제 로컬 이력 감사 및 사용자 결과 확인 (운영 흔적 79 Git blob 버전/12경로, 개인키 헤더 2건은 합성 코드 문자열; Actions 로그는 미검사)
+- [ ] GitHub Actions 전체 과거 로그·아티팩트와 원격 전용 PR refs 추가 확인
+- [x] 사용자 최종 선택은 Private 유지. 추가 공개 검증은 현재 개발의 필수 경로 아님
+
+
+## OPS-CI01 사용자 MiniPC 로컬 재검증 (2026-11-20)
+- [x] 커밋 `239f5c2716f3866b2072c6d5dad22ea8382ed15e`에서 `scripts/ci` Python 단위 테스트 **21/21 PASS**, `FOLIOSENTRY_CI_LOCAL_UNIT_TESTS_PASS` (사용자 제공 MiniPC 실행 로그)
+- [x] `scripts/public-visibility-preflight.py --self-test` PASS, `FOLIOSENTRY_PREPUBLIC_SCANNER_SYNTHETIC_SELFTEST_PASS`
+- [ ] Actions Runner 기반 실 CI는 무료 포함량 소진으로 아직 실행 검증되지 않음. YAML 자체의 별도 파싱/체크 및 GitHub Actions CI-gate 실동작 확인 필요
+- [ ] 무료 할당량 회복/사용자 승인 전 PR 생성·반복 CI 재실행 금지. 기존 main/운영 서비스/키/DB 영향 없음
+
+
+## OPS-CI02 — Private 유지·MD-03 안전 통합 준비 (2026-11-20)
+- [x] 사용자가 저장소 Private 유지 결정. Public 전환 또는 Public 소스 미러 생성 작업 중단.
+- [x] CI 최적화 브랜치에 MD-03 마이그레이션 파일과 격리 테스트 동시 존재 여부 확인(한쪽만 있으면 fail-closed), 가격 테이블/마이그레이션 revision 조건부 검증, 합성 DB 전용 테스트 사전 연결.
+- [x] 오프라인 워크플로 계약 회귀 검사 작성: PR/push 트리거, 변경 영역별 조건, 모든 필수 작업, CI 최종 게이트, 보안상 중요한 PostgreSQL·배포·백업 검증 유지.
+- [x] 보안 감사 스크립트만 수정 시 `changes`·`ci-gate` 위주로 경량 실행(합성 보안 테스트는 `changes`에서 검사).
+- [ ] MiniPC 격리 임시 파일로 오프라인 CI 테스트 재검증(신규 계약 검사 포함), YAML 파서가 있다면 구조 파싱 추가.
+- [ ] Actions 무료 제공량 갱신 후 6/6 hosted 검증 및 사용자 승인에 따른 `main` 병합.
+- [ ] PR #24→#25→#26 통합 및 GitHub hosted 검증(실 KIS 재조회·운영 DB 업데이트·서비스 배포 별도 승인).
+
+
+## OPS-CI02 오프라인 최종 검사 완료 (2026-11-20)
+- [x] `11f6c508e712fd6f83fa73d25d2e69a86425b7ee` MiniPC 독립 임시 디렉터리 로컬 unittest **28/28 PASS**
+- [x] `FOLIOSENTRY_PREPUBLIC_SCANNER_SYNTHETIC_SELFTEST_PASS`
+- [x] `FOLIOSENTRY_YAML_PARSE_PASS` (사용자 MiniPC PyYAML 파싱)
+- [x] `FOLIOSENTRY_CI_OFFLINE_GATE_PASS`
+- [ ] GitHub Actions 무료 할당량 갱신 후 실제 PR CI 및 8개 작업의 선택 실행/최종 Gate 정상 동작 확인
+- [ ] 사용자의 명시적 승인 후 CI 최적화 브랜치 병합 및 PR #24→#25→#26 순차 리뷰/통합
+- [x] 저장소 Private 유지 — 사용자가 최종 확정
+
+
+## OPS-PUBLIC-CI01 — Public 전환 완료 및 GitHub Actions 검증 (2026-11-23)
+- [x] 사용자가 기존 `ramza2/folio-sentry` 저장소를 **직접 Public으로 전환**. GitHub API `private=false`, `visibility=public` 확인. 이전 Private 유지 결정은 변경됨.
+- [x] Windows WSL2 Local CI FolioSentry 전용 폴더·테스트 보고서 삭제 완료. 해당 환경 재구축 불필요.
+- [x] `main`의 `.env`/`.env.*` Git ignore 유지, 공개용 비밀 파일 패턴 보강. 운영 MiniPC의 실제 자격증명·DB·KIS는 GitHub와 분리.
+- [ ] CI 최적화 별도 Draft PR에서 **GitHub-hosted Actions 실 실행**으로 변경 라우터/전체 작업/고정 `ci-gate` PASS 확인.
+- [ ] 사용자 **별도 명시 승인** 후 CI 최적화 PR 병합 → PR #24 → #25 → #26 순차 병합 준비. 각 단계 최신 HEAD CI와 CI workflow/MD03 충돌 해소 필수.
+- [ ] 과거 전체 Git refs 및 Actions 로그/아티팩트 비밀정보 전수 감사 별도. 공개 운영주소/인프라 단서는 현행 소스 일부에 남아 있음. 키 노출 의심 시 교체.
+- [ ] 운영 KIS 자격증명 설치/실조회/시세 저장 및 운영 DB schema migration/배포는 각각 별도 승인.
+
+
+## MD-02B — KIS 최초 실 조회를 위한 일회성 운영자 점검 (2026-11-20)
+- [x] 계좌 및 Open API 신청·App Key/Secret 발급 완료 사용자 확인(2026-11-20; 실전/모의 구분은 미확인)
+- [x] `backend/app/kis_first_probe.py`: 기본 metadata-only 검사, 명시적인 live 승인 문자열, 최초 1회 마커, 국내/미국 각 1개 일봉 조회, 시세·토큰·원문 출력 금지
+- [x] `backend/tests/test_kis_first_probe.py`: 합성 데이터/가짜 전송만, 인증정보·외부 접속 없음
+- [x] KIS 신청·키 발급 완료 사용자 확인(2026-11-20; 비밀원문 미수신)
+- [x] MiniPC 0600 비밀 파일 준비·메타데이터 점검 PASS (2026-11-20 사용자 제공, 실제 API 호출 없음)
+- [x] 사용자 승인 후 국내/미국 실제 조회 전용 최초 호출 성공 — OAuth 1회 / KR 1건 / US 1건, 2026-11-19 거래일 (2026-11-20 사용자 로그)
+- [ ] 다중 프로세스 토큰 캐시/전역 rate limit/장마감 정책 확정; MD-03 가격 저장 이전 필수
+- 문서: `docs/KIS_FIRST_READONLY_PROBE.md`. **이 코드/PR은 실제 API 호출이나 운영 배포 승인이 아니다.**
+
+
+## MD-02C — MiniPC 로컬 KIS 키 등록 준비 (2026-11-20)
+- [x] `scripts/kis-secret-setup.py` 대화형 숨김 입력·0700 폴더/0600 파일·기존파일 덮어쓰기 방지·메타데이터 전용 check 준비
+- [x] `backend/tests/test_kis_secret_setup.py` 합성/오프라인 권한 및 실패 테스트 준비
+- [ ] PR #24 리뷰 및 병합 승인
+- [x] MiniPC 사용자 `setup` + `check` 실행 성공(2026-11-20, `FOLIOSENTRY_KIS_SECRET_SETUP_LOCAL_PASS_NO_NETWORK`, `FOLIOSENTRY_KIS_SECRET_METADATA_PASS_NO_CONTENT_READ_NO_NETWORK`; 사용자 제공 결과, 비밀값 미수신)
+- [x] 사용자 실전용 키 확인 + 별도 실 시세 GET 승인 + 제한적 최초 호출 성공 (2026-11-20; 시세 최종성 미검증)
+- 코드 준비는 운영 MiniPC 변경이나 KIS 실제 호출을 포함하지 않음.
+
+
+## 2026-11-20 실제 KIS 최초 조회 인수 결과 — 사용자 제공 MiniPC 실행 로그
+- 승인: 한국투자증권 **실전투자용** App Key/Secret, 조회 전용 3회(OAuth 토큰 POST 1회, 삼성전자 일봉 GET 1회, 애플 일봉 GET 1회). 사용자 명시 승인.
+- GitHub PR #24 검증 커밋 `01703f507cde8010b99c217ffbf1ae5eb3fccc3a`의 도구를 임시 폴더에서 실행. main 배포·작업트리·DB·Compose 변경 없음.
+- `KIS_PRIVATE_FILES_METADATA_PASS_NO_SECRETS_READ_NO_NETWORK`
+- `KIS_KR_UNFINALIZED_BAR_COUNT=1`, `KIS_US_UNFINALIZED_BAR_COUNT=1`
+- `KIS_FIRST_CALL_STATUS=READONLY_QUOTE_SHAPE_PASS_NOT_PRODUCTION_APPROVAL`, `FOLIOSENTRY_KIS_FIRST_READONLY_PASS`
+- 대상 조회 거래일: 국내·미국 **2026-11-19**, RAW 가격. KIS 실제 OAuth 발급에 대한 한국투자증권 카카오톡 알림 사용자 수신.
+- **성공 판정 범위는 접근 토큰 발급 및 국내/미국 일봉 응답 구조·정규화 성공뿐**. 실제 가격값·장마감 최종성·원주가/수정주가 정합성·실시간 지연·공급자 관측시각·장기조회는 아직 미검증. `is_final=False`, `source_observed_at=None` 유지.
+- KIS 안내 메시지: 토큰 발급 시점부터 유효기간 **24시간**, **1일 1회 발급 원칙**, 잦은 추가 발급 시 이용 제한 가능. **재발급을 위한 probe 재실행 및 1회 마커 삭제 금지**.
+- 후속: 실제 재호출 없이 합성 fixture로 전역 레이트리밋 및 다중 프로세스 토큰 공유·재기동 정책 설계. 본 PR은 여전히 미병합 Draft이며 시세 적재/운영 표시/주문 기능 없음.
+
+## MD-02B/C: Public CI 기반 PR #24 통합 준비 (2026-11-23)
+- [x] Public `main@afd9cb3` 기반 PR #24 코드/테스트 및 기존 검증 기록 보존 방향 확정; AGENTS·ROADMAP 충돌 조정
+- [ ] PR #24 최신 SHA의 GitHub-hosted `CI gate` PASS 확인
+- [ ] 별도 명시 승인 후 PR #24 `main` 병합; 운영 MiniPC·DB·실 KIS 조회는 본 PR 범위에서 제외
+
+
 ## MD-02D — KIS 공유 토큰/호출 예약 기반 (2026-11-20)
 - [x] 2026-11-20 최초 실전 KIS 토큰 POST 1회 및 KR/US 일봉 GET 각 1회 성공 기록(사용자 제공 PASS, 데이터 UNFINALIZED)
 - [x] 공유 상태 파일 모델과 프로세스간 flock, 24시간 토큰 발급 간격, 전역 일봉 간격 1.25초, 24시간 60회 내부 상한, crash-safe 선예약 코드 작성
@@ -172,3 +268,9 @@ Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 �
 - [x] 독립 영속 0600 토큰 발급 시도 마커를 네트워크 전 생성, 파일 소실/복구 시 재발급을 fail closed 차단
 - [x] 합성 회귀 테스트 2개 추가(기존 토큰·발급 실패의 상태 소실) — CI 재검증 대상
 - [ ] 손상/유실 상태의 안전한 수동 복구 절차는 별도 승인·공식 발급 이력 검증 이후 개발
+
+## MD-02D — Public Actions 최신 검증 (2026-11-23)
+- [x] PR #24 `main@9e5cd61` 병합 완료, main Hosted CI `45129177429` PASS.
+- [x] PR #25 공유 상태 기능 코드와 기존 Public/CI/보안 문서 충돌 해소 준비.
+- [ ] PR #25 최신 SHA GitHub Actions Backend/CI gate PASS 확인.
+- [ ] 사용자 별도 승인 후 PR #25 병합. 운영 KIS API/토큰 재발급/시세 수집/DB·Docker 배포는 본 PR 범위 밖.
