@@ -149,7 +149,12 @@ def test_source_catalog_is_bounded_and_data_only():
     for source in PUBLIC_SOURCES:
         assert source.url.startswith("https://github.com/koreainvestment/open-trading-api/")
         assert "?" not in source.url and "#" not in source.url
-        assert "price" not in source.__dict__ if hasattr(source, "__dict__") else True
+        assert "74b0a082fa67a0be5bf53f561719c853890ed2df" in source.url
+        assert len(source.pinned_blob_sha) == 40
+        assert all(char in "0123456789abcdef" for char in source.pinned_blob_sha)
+        assert source.documented_fact_code and source.evidence_scope in (
+            "TARGET_ENDPOINT", "CROSS_ENDPOINT_CONTEXT",
+        )
 
 
 def test_source_inspection_cannot_forge_a_publication_permission():
