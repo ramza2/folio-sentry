@@ -314,3 +314,15 @@ Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 �
 - [x] 병합 순서/필수 게이트 문서 `docs/CI_KIS_MERGE_PLAN.md` 작성 (실 병합 아님)
 - [ ] Actions 무료 할당량 갱신과 사용자의 별도 승인을 전제로 CI → PR #24 → #25 → #26 → 통합 회귀 테스트 순으로 추진
 - [x] FolioSentry Private 유지, 실 KIS 호출/운영 DB 및 MiniPC 변경 없음
+
+
+## OPS-CI05 — GitHub Actions 없이 PR 병합 충돌 실사 준비 (2026-11-23)
+- [x] main·CI·Draft PR #24/#25/#26 및 통합 검토 기준의 고정 SHA와 Private repo 상태 확인
+- [x] 임시 bare Git 저장소에서만 read-only fetch 및 `merge-tree`로 7개 독립 pairwise 충돌을 진단하는 stdlib 스크립트 작성
+- [x] 중요 CI/KIS/MD03 핵심 23개 코드 blob이 통합 검토본과 동일한지 확인하는 보수적 검사 작성
+- [x] 별도 무통신/unittest 계약 테스트 6개·실행 가이드 문서 작성
+- [ ] MiniPC GitHub 읽기 전용 fetch 통한 최신 SHA 검증·pairwise 실제 충돌 파일 목록 수집, 로컬 unittest PASS 결과 확인
+- [ ] 충돌이 있는 경우 **별도 검토 브랜치**에서 해결책 준비하고 최종 CI 통합 검증 반복 (main·기존 PR 미변경)
+- [ ] hosted Actions 계정 할당량 갱신과 사용자의 별도 승인 후 단계적 main 병합 실행
+- [x] Private 유지, 실 KIS 호출/토큰 재발급·운영 DB/컨테이너 변경 금지
+- 상세 `docs/CI_KIS_MERGE_REHEARSAL.md`

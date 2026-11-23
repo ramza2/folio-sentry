@@ -49,3 +49,9 @@
 - [ ] 실제 hosted CI 재개 후 PR별 CI 및 안정적인 ci-gate PASS
 - [ ] 사용자 명시적 병합 승인 후 CI → #24 → #25 → #26 → 통합 테스트 순서로 반영
 - [ ] 운영 DB migration/키 마운트/실전 수집기 및 UI 전환은 별도 승인
+
+
+## 후속 OPS-CI05 독립 3-way Git 충돌 진단
+- 사용자 MiniPC에서 GitHub Private repository의 원본 6개 ref를 읽기 전용으로 가져와 오직 임시 bare repo 내부 `git merge-tree`를 7회(pairwise) 수행하도록 `scripts/ci/merge_rehearsal.py`를 별도 검토 브랜치에 준비했다.
+- 원본 PR #24/#25/#26의 코드와 통합 검토본 간 핵심 23개 Git blob 동일성을 검증한다. 브랜치 SHA 불일치 또는 변경 코드 있으면 중단.
+- 본 검사는 **순차 병합 시뮬레이션이 아니므로 충돌 수=0이 실제 완전 병합 승인/Actions PASS를 뜻하지 않는다**. `docs/CI_KIS_MERGE_REHEARSAL.md` 참고. MiniPC 실제 진단은 미실행.

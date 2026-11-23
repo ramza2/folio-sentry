@@ -334,3 +334,11 @@
 - 검토 브랜치 `review/ci-kis-offline-integration-20261123@d2168a6`를 MiniPC의 별도 임시 archive에서 확인: CI unittest 38/38 PASS, KIS 합성 stdlib 10/10 PASS, YAML 파싱 PASS, 최종 `FOLIOSENTRY_CI_KIS_OFFLINE_GATE_PASS`.
 - 병합 조정 계획 `docs/CI_KIS_MERGE_PLAN.md`: CI 최적화 우선 → Draft #24 → #25 → #26 → 통합 회귀 테스트 보존. 특히 #26의 `.github/workflows/ci.yml` 수정이 CI 최적화 워크플로를 덮어쓰지 못하게 최신 CI를 기준으로 충돌 조정할 것. 문서와 소스 경계 유지.
 - 실제 hosted Actions, PR 승인/병합, 운영 스키마·서비스·실 KIS 연결과는 구분. 새로운 검토 브랜치는 main 병합 금지. Private 유지.
+
+
+## OPS-CI05 — Private PR 병합 사전 시뮬레이션 (2026-11-23)
+- `review/ci-kis-merge-rehearsal-20261123`에서만 `scripts/ci/merge_rehearsal.py`와 순수 unittest 6개, `docs/CI_KIS_MERGE_REHEARSAL.md`를 작성. 원본 결합 검토 브랜치 `review/ci-kis-offline-integration-20261123@0c1c22a`는 변경하지 않음.
+- git2.39+ 사용자 MiniPC 원본 저장소 ROOT에서 실행. 정확한 GitHub private remote 확인 후 `--preflight`는 네트워크/파일 수정 없음, `--run`은 오직 /tmp TemporaryDirectory 내부 별도 bare git에 private GitHub branch **fetch만** 수행.
+- main/CI/PR #24/#25/#26/결합본의 고정 40자리 SHA 검증, 23개 CI 및 KIS 핵심 코드 blob 비교, 7개 독립 `git merge-tree --write-tree --name-only`로 충돌 파일명/개수 진단.
+- **pairwise 분석은 CI→#24→#25→#26의 실제 순차 병합을 재현하지 않음**. 충돌 발견 시 직접 조정 필요. 실제 GitHub merge/push/rebase/Actions dispatch/운영 Docker/KIS API/DB 접근 금지. 현재 검사 코드 작성 상태일 뿐 실 실행 PASS 미확인.
+- 로드맵·병합 계획 최신 내용과 비밀정보/Private 유지 조건 보존. 새 테스트/검토 브랜치는 main에 병합하지 않는다.
