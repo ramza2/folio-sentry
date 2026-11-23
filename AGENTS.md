@@ -405,3 +405,13 @@
 - 문서 URL/해시/검토시각은 공급자 최종 시세·진위 증명 아님. 오프라인 카탈로그 외 사용자 임의 URL 불허, 문서 원문/가격/계좌·토큰 입력·출력·네트워크/DB access 금지.
 - MD04B UNVERIFIED_REASONS 6개 전부 유지, source_observed_at NULL, final/publication/promotion/analysis/automatic_storage false 고정. 기존 MD04C2 quote-status UNAVAILABLE/가격·손익 null, MD03 price_bar PARTIAL 제약 불변.
 - 별도 승인 전 main 병합, MiniPC 운영 배포/DB migration/새 KIS 실호출·토큰, 자동 스케줄러, 가격·손익·신호·알림 공개 금지. 상세 docs/MD04C5_OFFLINE_SOURCE_REVIEW.md.
+
+
+## MD-04C5 병합 확인 / MD-04C6 공급자 최종성 증빙 수집 체크리스트 (2026-11-23)
+- MD-04C5 PR #35 사용자 승인으로 main@cae0695 병합, Hosted CI #45150651288 Backend 289 PASS/CI gate PASS. 위의 Draft 기록은 과거 상태.
+- MD-04C6 신규 `backend/app/md04c6_evidence_handoff.py`는 **공급자/거래소 7개 증빙 요구항목의 수집 후보 메타데이터만 검증하는 순수 오프라인 도구**다. 문서 원문/URL 수집·다운로드, KIS API·토큰, 금융 값·계좌 정보, DB/API/Frontend/스케줄러 접근 금지.
+- MD04C5 문서 검토 결과는 반드시 EVIDENCE_INSUFFICIENT + MD04B UNVERIFIED_REASONS 6개 + final/승격/공개 불가 상태만 허용. 위조 승인 플래그는 거부.
+- 각 증빙 항목은 정확한 endpoint(KR_ITEMCHART/US_DAILYPRICE), 공급자 정책 vs 거래소 일정 분리, reference_code/version/SHA256/UTC-aware collected time, CANDIDATE/RETRACTED 규칙 적용. 시장 달력은 공급자 종가·관측시각·세션범위 증명이 아니다.
+- 모든 참조 후보가 모여도 METADATA_COMPLETE_HUMAN_REVIEW_REQUIRED/HOLD_UNVERIFIED만 가능. source_observed_at NULL, authenticity/human/policy verified false, is_final/publication/promotion/analysis/automatic_storage false. **문서 지문/메타데이터는 실제 서명·진위 검증이나 2인 승인 아님**.
+- 수동 공식 문서 수령→기술 검토→독립 데이터 정책 검토→근거·승인 확인→별도 v2 finality/DB 설계 PR→운영 변경 승인 순서. docs/MD04C6_PROVIDER_EVIDENCE_HANDOFF.md에 상세. 이 PR에서는 누구에게도 공급자 연락·이메일 발송하지 않는다.
+- 기존 MD03 price_bar PARTIAL-only, MD04C3 UNVERIFIED, MD04C4 UNVERIFIED_REFERENCE, MD04C2 UNAVAILABLE/손익 null 유지. 별도 승인 전 main 병합/운영 MiniPC DB migration·배포/실 KIS API·토큰/가격·손익·신호·알림 공개 금지.
