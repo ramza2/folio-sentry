@@ -113,3 +113,11 @@
 - `NUMERIC(24,8)`와 보유/관심 CHECK, 유니크 종목·단일 추적 레코드를 DB 제약으로 보호.
 - 공급자 미확정으로 종목은 사용자 수동 등록(`MANUAL_UNVERIFIED`)만 지원. **시세/price_bar/뉴스/신호 테이블은 미구현**이며 DEMO와 실제 등록정보는 분리한다.
 - 자동 백업 타이머는 사용자가 비활성화했으므로 이 PR은 다시 켜지 않음. 마이그레이션은 별도 승인.
+
+
+## MD-03 price_bar 모델 구현 범위 (2026-11-20)
+- 논리 계약의 `price_bar`를 추가형 Alembic revision `20261120_pricebar01` 및 `PriceBar` ORM으로 구현(운영 미실행).
+- 기존 논리 모델의 `source_observed_at`은 KIS 일봉에 원천 관측 시점 증거가 없으므로 **nullable**로 구현. 이를 `fetched_at`으로 대체해 확정시각이라고 주장하지 않는다.
+- 현재 입력 허용 정책: `timeframe=1d`, `source=KIS`, `quality_status=PARTIAL`, `is_final=false`, `source_observed_at=NULL`. DB CHECK로 강제. 미래 `VALID/final` 승격은 공식 캘린더·공급자 검증과 새 승인된 migration 없이는 불가.
+- 가격 `NUMERIC(24,8)`·거래량 `NUMERIC(28,0)`; 고유키 `instrument_id,timeframe,session_date,price_basis,source` 보존. 중복 동일 값은 NOOP, 값 충돌은 검토 대기로 fail closed.
+- 보유 평가액, 신호, 실제 시세 UI와 연결하지 않는다. 상세 `docs/MD03_PRICE_BAR_STORAGE.md`.

@@ -225,7 +225,7 @@
 - 후속 KIS 실제 호출은 사용자 계정·사용 조건이 충족된 후 별도 PR, 자격증명은 MiniPC 비공개 파일/Docker secret으로만 처리, 로그/커밋에 저장 금지. 주문·잔고 API 금지. DB 마이그레이션·시세 활성화·운영 배포 모두 별도 명시 승인. 자동 백업 timer 비활성화 유지.
 
 ## MD-02 KIS 조회 전용 전송 코드 (2026-11-20)
-- 사용자는 한국투자증권 **계좌를 보유**함. **Open API 신청·App Key/Secret 발급 여부는 미확인**. 값·계좌번호·토큰 원문 절대 요청하거나 GitHub/로그/채팅에 저장하지 않는다. 사용자가 확인할 것은 신청 완료 여부만.
+- 사용자는 한국투자증권 **계좌를 보유**함. **2026-11-20 Open API 신청·실전 App Key/Secret 발급 및 최초 조회 PASS 사용자 확인**. 값·계좌번호·토큰 원문 절대 요청하거나 GitHub/로그/채팅에 저장하지 않는다. 사용자가 확인할 것은 신청 완료 여부만.
 - `backend/app/kis_readonly.py`는 순수 opt-in 전송 모듈: 기본 `live_enabled=False`; KIS 고정 실전 HTTPS 호스트와 허용된 OAuth 토큰 POST/국내·해외 일봉 GET **3개 경로만** 사용. 주문·계좌·잔고 조회 차단.
 - 비밀키는 사용자가 별도 비공개 0600 파일에 저장 후, 승인된 실행시에만 읽는다. HTTP 응답 원문·인증 오류 상세·키/토큰·계좌값 로그 출력 금지.
 - 임시 단일 프로세스 토큰 캐시, 토큰 재발급 최소 6시간/일봉 요청 간 최소 1초/60회 상한. 재시작/병렬 세션 간 제어는 없으므로 **스케줄러/운영 UI/API에 연결하지 않는다**. 실제 호출은 개별 승인.
@@ -233,34 +233,104 @@
 - 기존 Phase 1 운영 배포·Chrome 인수 PASS(7/FAIL 0/N/A 2)와 별개로 GitHub 코드/CI만 개발. MiniPC 서비스·DB·Traefik/PinckNext·백업 타이머 불변. 참고 `docs/PHASE1_MARKET_DATA_ADAPTER.md`.
 
 
-## CI 월간 사용량·공개 전 보안 게이트 (2026-11-20)
-- ramza2/folio-sentry는 **Private**이며 사용자 Billing의 2026-11 Actions 무료 포함 $12/$12 소진으로 신규 CI 실행 차단. 코드 CI 실패와 호스티드 Runner 시작 전 예산 차단을 혼동하지 않는다. **중단된 CI를 무한 재실행하지 않는다**.
-- 독립 브랜치 `ci/usage-control-20261120`: PR main 및 push main만 CI 실행, `feat/**` push 중복 실행 제거, concurrency 이전 작업 취소, `scripts/ci/impact.py` fail-closed 선택 검증, `CI gate` 필수 안정 결과. 문서 변경은 라우팅+gate만, 인증·DB 변경은 격리 DB 검사. 워크플로/라우터/미분류 파일은 전체 6종. 별도 AUTH browser E2E는 수동 실행.
-- **이 CI 최적화는 아직 Runner 실제 실행 PASS 아님**. 정상 GitHub Actions로 CI 6개 작업/게이트가 확인되기 전 운영/보호규칙을 변경하지 않는다. PR #26의 MD-03 격리 가격 DB 테스트는 이후 워크플로 병합 때 반드시 유지.
-- Public 전환 시 표준 GitHub-hosted Ubuntu Runner는 요금 무료지만 Git 커밋 전체 이력과 Actions 로그도 공개될 수 있다. 개인 MiniPC 운영 도메인/포트/인증·백업 설정 노출 검토 및 전체 히스토리 비밀 스캔 전에 저장소 visibility 변경 금지. 실전 KIS App Key/Secret은 MiniPC 로컬 비밀파일에만 유지.
-- 모든 FolioSentry PR에서 불필요한 작은 커밋·문서만 커밋에 전체 CI를 돌리지 말고 합성 로컬 검사 우선. 자세한 사용량/검증/보안 정책은 `docs/CI_USAGE_CONTROL.md` 참조.
+## MD-03 — 비확정 KIS 일봉 저장 경계 (2026-11-20)
+- MD-03 코드는 독립 Draft PR로만 작성. PR #24/#25는 main 미병합이며 MD-03에서 강제 병합·배포하지 않는다. 실제 KIS 재조회·MiniPC 운영 DB 변경/마이그레이션은 **별도 명시 승인 없이는 금지**.
+- `app.price_quality`: 공식 확인된 거래일별 KRX/미국 마감시각 + 보수적 2시간 대기, TZ/DST 검증, 주말·미래·오래된 데이터 거부. **공식 휴장·조기종료/공급자 관측시간 확인 전 finality 증명 아님**.
+- `app.price_models.PriceBar`: 새 migration `20261120_pricebar01` 생성 코드. DB CHECK로 `quality_status='PARTIAL'`, `is_final=false`, `source_observed_at IS NULL` 강제. 운영 DB에는 설치하지 않는다.
+- `app.price_repository`: 기본 쓰기 거부(`allow_write=False`), SQLAlchemy Session 외부 주입, 명시적 isolated-only 테스트, 멱등 INSERT 충돌은 같은 값만 NOOP, 다른 OHLCV는 보류·검토. 내부 commit·실 API 호출 없음.
+- `analysis_eligible`은 항상 False. 부분 데이터로 포트폴리오 손익·실 시세·매매 신호·알림 노출 금지. 프론트 DEMO와 실 종목 가격 없음 표시 그대로 유지.
+- CI 합성 DB에는 `folio_ci` loopback 전용 가드, migration 전후 isolated transaction/rollback 검증. 운영 MiniPC에서 `alembic upgrade head` 금지. 참조: `docs/MD03_PRICE_BAR_STORAGE.md`.
+
+## MD-03B 공식 거래소 예외 일정 안전 기준
+- 2026-11-19 KRX KOSPI/KOSDAQ은 수능으로 10:00~16:30 KST(일반 15:30이 아님). 한국거래소 KIND 공식 자료를 `app.exchange_calendar`에 기록했다.
+- 미국 NYSE/Nasdaq 공식 자료: 2026-11-26 휴장, 2026-11-27 및 2026-12-24 13:00 ET 조기마감. 증빙 없는 날짜는 절대 개장/최종시세로 추정하지 않고 `PRICE_SESSION_CALENDAR_UNVERIFIED` 거부.
+- 현재 명시된 날짜는 소수의 확인된 세션만 포함한 목록으로 전체 시장 달력으로 오인하면 안 된다. `PARTIAL`/is_final=false 유지. 실제 KIS/DB/운영 재검증 없이 새 날짜를 자동 허용하지 않는다.
+
+## MD-02B KIS 첫 시세 조회 도구 게이트
+- `backend/app/kis_first_probe.py`는 metadata-only 점검을 기본 권장한다. 네트워크는 `live` + 정확한 승인 문자열 + 개인 0600 비밀파일 + 단일 실행 마커를 만족한 경우에만 실행한다.
+- 합성 테스트는 실제 KIS API를 호출하지 않는다. 키/토큰/가격/계좌 정보는 출력·저장·커밋하지 않는다. `live`는 사용자의 **별도 명시 승인** 없이 MiniPC에서 실행하지 않는다.
+- 실패 및 빈 일봉 응답을 성공으로 간주하지 않고, 1회 시도 마커를 지우거나 자동 재시도하지 않는다. 다른 프로세스와 공유하는 토큰/전역 레이트리밋은 아직 미구현이며 운영 스케줄러·DB·UI에 연결하지 않는다.
+- `docs/KIS_FIRST_READONLY_PROBE.md` 참고. 개인 MiniPC/Traefik/기존 운영/백업 정책 불변.
 
 
-## Public 전환 전 READ-ONLY 이력 검사
-- `scripts/public-visibility-preflight.py`는 Git 이력의 비밀 패턴 및 홈 운영 주소 등을 분류하여 **건수만** 표시한다. 어떠한 원문 자격증명도 화면/CI/ChatGPT로 내보내지 않는다. MiniPC에서만 실행하며 해당 경로가 main 미병합 상태라면 임시 Git blob 추출로 실행한다.
-- 로컬 역사 검사는 GitHub 과거 Actions 로그·아티팩트·원격 전용 PR ref를 다 검사하지 못한다. 그래서 **출력 0건도 공개 승인 아님**. 운영 중 개인 MiniPC 정보가 포함된 문서/로그를 사람 눈으로 검토한 뒤에만 Visibility 변경.
+## MD-02C MiniPC 로컬 KIS 키 저장 준비
+- `scripts/kis-secret-setup.py`는 GitHub Draft PR #24의 오프라인 도구다. 사용자가 PR을 검토·병합한 뒤 MiniPC 비루트 사용자 SSH에서 키를 **숨김 입력**한다. 0700 개인 폴더·0600 개인 파일을 생성하고 기존 키를 덮어쓰지 않는다.
+- `check`는 메타데이터만 검사하며 키 원문을 읽지 않고 KIS 호출도 하지 않는다. 로그·Git·환경변수·명령행·화면공유·ChatGPT에 키/토큰을 노출하지 않는다.
+- KIS 실전/모의 키는 구별해야 한다. 현 MD-02는 실전 API 도메인만 허용하므로 키 종류 확인 전 실제 호출 금지. 첫 실 API GET은 **별도 사용자 승인** 필수.
+- 운영 서비스·Compose/DB/Frontend/Traefik/백업 타이머 및 MiniPC 파일은 승인 없이 건드리지 않는다. 상세 `docs/KIS_FIRST_READONLY_PROBE.md`.
 
 
-## CI01 오프라인 인수 기록 (2026-11-20)
-- 사용자 MiniPC에서 CI 경로선택·최종게이트·공개 전 진단 단위 테스트 21/21 PASS(`239f5c2`). 검사기 self-test PASS. GitHub CI는 월간 Actions 포함량 소진으로 실행/검증되지 않았으므로 PASS로 표시하지 말 것.
-- 결제·Public 전환·main 병합·운영 MiniPC 배포 및 실제 시세 요청 없이 진행. 별도 PR #26 Alembic 격리 CI 변경과 충돌 시 가격 DB 검증을 반드시 보존.
+## MD-02 실전 KIS 최초 호출 검증 결과 (2026-11-20)
+- 사용자는 실전투자용 키임을 확인하고 토큰 POST 1회, KR/US 일봉 GET 각 1회를 승인. MiniPC 일회성 조회 로그: KR 비확정 bar 1건, US 비확정 bar 1건, `FOLIOSENTRY_KIS_FIRST_READONLY_PASS`. KIS 토큰 발급 카카오톡 안내 수신.
+- KIS 안내에 따르면 접근 토큰 24시간 유효, 1일 1회 발급 원칙. **추가 API 호출·토큰 재발급 금지(별도 승인 전), 최초 일회성 마커 삭제 금지.**
+- 실제 응답 경로/정규화만 PASS. `is_final=False`/관측시각 없음 유지, 실제 시세 표시·손익 계산·DB 저장 금지. 스케줄러 전에 프로세스 간 토큰 재사용 및 글로벌 레이트리밋 구현 필요.
+- PR #24 Draft 유지, 운영 서비스·MiniPC 배포/DB 변경 없음. 상세 기록: `docs/KIS_FIRST_READONLY_PROBE.md`.
 
 
-## 2026-11-20 최종 저장소 공개 범위 결정
-- **사용자 확정: FolioSentry는 Private 유지.** 이후 Public으로 변경하거나 별도 Public 미러 저장소를 생성하지 않는다. 이전 Public 검토는 보안 감사 기록일 뿐 미결 액션이 아니다.
-- 무료 Actions 포함량 소진 중에는 실 GitHub Actions 결과를 PASS라 주장하거나 무한 재실행하지 않는다. 문서/가벼운 보안 감사 코드는 최소 `changes` + `ci-gate`만 사용. CI YAML/라우터 변경은 전체 테스트로 fail-closed.
-- PR #26 MD-03 코드 병합 시 `20261120_pricebar01` Alembic, `price_bar` 불확정 저장 제한, `backend/scripts/test_price_bar_isolated_ci.py` 통합 검증을 유지해야 한다. 현재 최적화 워크플로에는 MD03 파일 감지 및 누락 시 fail-closed 게이트를 사전 구현했다.
-- 변경된 워크플로 정적 계약 테스트 `scripts/ci/test_workflow_contract.py`는 오프라인 테스트이고 실제 GitHub Actions/YAML 파서 검증의 대체물이 아니다.
+## MD-02D KIS 토큰 공유 상태 안전 게이트 (2026-11-20)
+- GitHub 신규 파일 backend/app/kis_shared_state.py는 Linux 한 호스트/한 사용자/한 안전한 로컬 파일시스템에서만 flock 기반 토큰 및 API 호출 이력 제어를 제공한다. 상태파일에는 민감한 Bearer 토큰이 0600 권한으로 저장되므로 홈 백업 암호화/접근통제 필수.
+- **기본 새 토큰 발급 거부**. 프로세스 재시작 후 토큰 공유는 새 상태 파일로 발급한 이후에만 가능하며 2026-11-20 최초 실호출 토큰은 이전 프로세스 종료로 재사용 불가. 그날 토큰을 재발급하지 않는다. 허용 플래그 활성화는 별도 사용자 승인 전 금지.
+- 24h 토큰 발급 억제, 1.25초 일봉 간격, 최근 24h 요청 60회는 보수적 앱 내부 제한이며 KIS 전체 계정/다른 호스트 한도 보장 아님. 발급/요청 시도는 네트워크 이전에 영속화, 실패해도 자동 재시도 금지.
+- MD-02D 코드는 live API/스케줄러/DB/Frontend/MiniPC에 연결하지 않고 합성 테스트만 허용. 운영 KIS 실제 요청·Compose 파일/볼륨 변경·DB migration/배포는 별도 승인. 상세 docs/KIS_SHARED_TOKEN_GATE.md.
 
 
-## OPS-CI02 오프라인 최종 인수 — 2026-11-20
-- 사용자 MiniPC의 임시 추출 경로에서 `11f6c508e712fd6f83fa73d25d2e69a86425b7ee` 대상 **unittest 28개 전부 PASS** (`Ran 28 tests ... OK`).
-- 사전 공개 감사기 합성 self-test PASS: `FOLIOSENTRY_PREPUBLIC_SCANNER_SYNTHETIC_SELFTEST_PASS`.
-- PyYAML YAML 파싱 PASS(`FOLIOSENTRY_YAML_PARSE_PASS`) 및 최종 `FOLIOSENTRY_CI_OFFLINE_GATE_PASS` 확인. 운영 Git 작업트리 변경/실 KIS 조회/DB 작업 없음.
-- 이번 PASS는 오프라인 계약·형식·경로 분기 검사에 한정. **GitHub-hosted CI 8개 job의 실제 실행 PASS는 아직 미확인**. Actions 무료 포함량 갱신/호스팅 Runner 정상화 후 검증, `main` 반영은 별도 승인.
-- FolioSentry 저장소 **Private 유지** 결정 지속. Public visibility 변경 금지.
+## REVIEW ONLY: PR #24+#25+#26 임시 통합
+- 이 브랜치는 각 Draft PR이 동시에 빌드·테스트 가능한지 확인하는 GitHub 리뷰용. main 병합/릴리스/실전 재요청/운영 DB migration 및 CLI 실행 지시 금지.
+
+
+## 병합 전 코드 리뷰 수정 결과 — 2026-11-20
+- PR #25: 공유 토큰 캐시 JSON이 유실된 뒤 기존 발급 이력이 사라지는 위험 수정. 별도 0600 `kis-ever-attempted-token.marker`를 토큰 요청 전에 영속화하고 상태 소실 시 `KIS_SHARED_STATE_LOST_AFTER_ISSUE`로 신규 요청 차단. 자동 복구/재발급 금지.
+- PR #26: 한 배치의 앞쪽 price_bar INSERT 후 뒤쪽 가격 충돌 시 부분 저장이 남을 위험 수정. 내부 `session.begin_nested()` SAVEPOINT로 해당 배치 전체를 원자적으로 롤백. 외부 트랜잭션 commit은 여전히 호출자 제어.
+- PR #27 합성 통합에서 두 위험의 추가 회귀 테스트를 함께 검증한다. 독립 Draft PR 병합과 운영 변경은 별도 승인. `docs/MD02_MD03_INTEGRATION_REVIEW.md` 참고.
+
+
+## MD-02/03 오프라인 통합 품질 게이트 (2026-11-20)
+- 검토 전용 PR #27 코드 스냅샷에서 분기한 `review/md02-md03-stdlib-offline-gate-20261120`에 `scripts/ci/md02_md03_offline_acceptance.py`를 작성했다. Python 3.12 표준 라이브러리만, 임시 파일 및 합성 키/transport만, socket.connect 차단. 실 계좌·KIS HTTP·운영 DB·Docker·로그인 API 접근 금지.
+- `docs/MD02_MD03_STDLIB_OFFLINE_GATE.md` 참고. 저장소는 Private 유지. **로컬 테스트 실행 PASS 전까지 완료로 단정하지 말 것**. GitHub Actions 실제 실행 PASS, Alembic/실 PostgreSQL 검증을 대체하지 않는다.
+
+ 
+## MD-03 임시 PostgreSQL 격리 테스트 도구 (2026-11-23)
+- MD02/MD03 stdlib 합성 통합검증 10/10 PASS(사용자 MiniPC 제공 로그). 이것은 실제 PostgreSQL 동작 검증이 아니며 실 KIS API 호출도 아니다.
+- scripts/ci/run-md03-isolated-docker.sh는 무조건 /tmp 격리 git archive에서만 실행. 기본 --preflight는 운영 docker image ID 읽기 전용 검사만, --run은 APPROVE_MD03_EPHEMERAL_DOCKER_ONLY 확인 문자열이 있어야 일회용 PostgreSQL+새 Python 테스트 컨테이너 2개를 실행한다.
+- 운영 foliosentry-prod 컨테이너에서 실행/재시작/DB접속/환경변수·비밀파일 접근 금지. 운영 이미지 ID만 확인, 신규 PostgreSQL --network none, tmpfs, host port 없음. Python 테스트가 일회용 namespace만 공유한다.
+- Docker pull/build/pip install/실 KIS·실 계좌/운영 마이그레이션/운영 Compose/배포 금지. scripts/ci/test_md03_isolated_docker_contract.py는 실행 명령의 핵심 안전 계약만 검사한다. 최신 지침 docs/MD03_ISOLATED_POSTGRES_LOCAL.md 참조.
+- 이 스크립트는 아직 MiniPC 실행 PASS를 확인받지 못함. 따라서 실제 PostgreSQL 격리 E2E 결과는 미검증. 사용자가 승인하지 않으면 main, 운영 환경, KIS 토큰, 가격 시세·UI 불변. Private 유지.
+
+## MD03-DB-LOCAL 1차 실패 및 재실행 게이트 (2026-11-23)
+- 사용자 MiniPC: 격리 PostgreSQL READY와 사전 안전 계약 5/5 PASS, 그러나 가격 저장 테스트 시작에서 app.market_data ModuleNotFoundError 발생. 실 격리 DB E2E는 아직 PASS 아님.
+- 운영 Backend 이미지를 재사용하되 신규 테스트 컨테이너에만 PYTHONPATH=/workspace/backend를 고정. migration 이전 archive app 전체 import 경로를 검증하고 다른 설치 패키지 경로면 중단한다.
+- 이제 python -m scripts.test_price_bar_isolated_ci를 사용하여 아카이브 기반 단위 스크립트를 실행한다. 실제 KIS 호출/토큰/운영 DB 및 Compose 변경 절대 금지.
+- 수정본 검증 PASS 전 main 병합/운영 배포 금지, Private 유지. 운영 컨테이너는 기존처럼 이미지 ID만 inspect, 테스트 전용 leftover는 읽기 전용 진단.
+
+
+## MD03-DB-LOCAL 재검증 완료 및 기기 안정성 게이트 (2026-11-23)
+- 사용자 MiniPC 최종 실행: bash -n PASS, 오프라인 안전계약 6/6 PASS, 격리 PostgreSQL READY, FOLIOSENTRY_MD03_ARCHIVED_SOURCE_IMPORT_PASS, SAVEPOINT 원자성/중복·충돌/DB 최종성 차단/전체 ROLLBACK/Alembic revision 20261120_pricebar01/잔여 0건 PASS. 최종 FOLIOSENTRY_MD03_ISOLATED_POSTGRES_INTEGRATION_PASS 및 FOLIOSENTRY_MD03_LOCAL_E2E_COMPLETE.
+- 테스트 전후 라벨 기반 일회용 컨테이너 조회 0건. 1차 ModuleNotFoundError는 PYTHONPATH 및 -m 실행 수정으로 해결. 운영 DB/운영 서비스 건강 상태의 독립 확인, 실 KIS API/미국 일봉 최종성, GitHub hosted Actions 실행은 **미검증**.
+- 이전 MiniPC 종료·재부팅 의심 사건의 원인은 미확인. 이전 부팅 커널 OOM/온도/전원/watchdog 로그와 시스템 상태를 읽기 전용 확인 전에는 추가 부하 시험과 운영 마이그레이션·배포 금지. 저장소 Private 유지; main 미병합.
+
+
+## MiniPC 2026-11-23 부팅 복구 읽기 전용 점검 결과
+- 사용자가 제공한 uptime/journalctl: 직전 부팅 기록 최종 2026-11-23 09:52:19 KST, 현재 부팅 시작 11:24:21 KST. 기록 간 1시간 32분 공백이 있으나 전원 종료/재시작/부팅 실패 원인은 **불명**. last 명령 미설치(별도 설치 불필요).
+- 12:12 KST 기준 memory 14GiB 중 available 12GiB, swap 사용 0B. 운영 foliosentry-prod frontend/backend/db 3개 컨테이너가 모두 약 46분 Up(healthy). MD03 테스트용 라벨 컨테이너 0건.
+- 이전 커널 경고 grep에서 현재 사고 직전 OOM/panic/열폭주 로그는 확인되지 않음. 출력된 11월 1일 초기 NMI watchdog 및 TSC 불안정 문구는 **11월 23일 사고 원인 증거가 아님**. 현재 메모리 여유가 사고 당시 OOM 가능성을 배제하지도 않음.
+- 정지 원인 조사 전 신규 격리 Docker 부하 E2E/운영 마이그레이션/배포 금지. 09:40~09:55 KST 이전 부팅의 종료·OOM·watchdog·전원/디스크 오류 로그 추가 확인 후 안전 판단. 이번 MiniPC 자체 재부팅은 MD03 격리 DB E2E PASS와 별도 사건. Private 유지.
+
+
+## MiniPC 2026-11-23 재부팅 추가 증거 (읽기 전용)
+- 이전 부팅 09:40~09:55 종료/전원/OOM/커널 패닉/과열 로그 grep 결과 특이 이벤트 없음(그 범위·패턴 한정). 현재 부팅 11:24:26 KST systemd-journald가 system.journal corrupted or uncleanly shut down, renaming and replacing 경고 출력.
+- 이는 시스템 저널의 비정상 종료/손상 정황이지 정전·하드웨어 고장·Docker 부하가 원인이라는 **확정 증거가 아님**. 커널/저널이 기록 못 하는 갑작스런 정지·강제 리셋 가능성도 남음.
+- 추가 진단은 journalctl 읽기 전용과 네트워크/서비스 상태 관찰만. 신규 Docker 부하 테스트·운영 DB migration·배포 중지. Private 저장소 및 운영 서비스 유지.
+
+
+## OPS-CI03 — CI × KIS 검토 스냅샷 (2026-11-23)
+- 원본 CI `ci/usage-control-20261120@6843092`, MD02/MD03 검토 소스 `review/md02-md03-stdlib-offline-gate-20261120@20631a9`. 별도 **review/ci-kis-offline-integration-20261123** 브랜치에서만 소스 병합 미리보기. `main`/기존 PR #24~#27 미병합·Private 유지.
+- CI 8 job: `changes` → 6개 선택 작업 → `ci-gate`. `changes`에서 기존 CI stdlib 단위 테스트 외 합성 KIS 통합 10개를 자동 실행하도록 결합(실 키·HTTP·DB 없음). MD03 임시 PostgreSQL CI 및 DB 최종성 차단 유지. AUTH browser는 수동 전용.
+- `scripts/ci/test_ci_kis_combined_contract.py` 신규 4개 정적 계약 포함. 사용자 MiniPC에서 결합 스냅샷 unittest **38/38 PASS**, 별도 KIS 합성 **10/10 PASS**, YAML **PASS** 확인 (2026-11-23). hosted GitHub Actions 실행과는 별개.
+- `docs/CI_KIS_COMBINED_REVIEW.md`가 통합 기준. 임시 검토 브랜치를 CI 복구 전에 PR 생성하지 않고, 유료 Runner·GitHub Actions 동작 검증을 주장하지 않는다. 실전 KIS 토큰·Quote·실계좌/잔고/주문, 운영 Docker/DB/Traefik/백업, live 시세·손익 UI 불변.
+- 전원 문제는 가족 연락으로 집 전원 스위치가 꺼져 있었고 복구됐다는 정보 확보. **외부 전원 차단이 가장 유력**하지만 추정과 완전한 하드웨어 진단은 구분한다.
+
+
+## OPS-CI04 38/38 + 10/10 최종 검증과 Draft 병합 경계 (2026-11-23)
+- 검토 브랜치 `review/ci-kis-offline-integration-20261123@d2168a6`를 MiniPC의 별도 임시 archive에서 확인: CI unittest 38/38 PASS, KIS 합성 stdlib 10/10 PASS, YAML 파싱 PASS, 최종 `FOLIOSENTRY_CI_KIS_OFFLINE_GATE_PASS`.
+- 병합 조정 계획 `docs/CI_KIS_MERGE_PLAN.md`: CI 최적화 우선 → Draft #24 → #25 → #26 → 통합 회귀 테스트 보존. 특히 #26의 `.github/workflows/ci.yml` 수정이 CI 최적화 워크플로를 덮어쓰지 못하게 최신 CI를 기준으로 충돌 조정할 것. 문서와 소스 경계 유지.
+- 실제 hosted Actions, PR 승인/병합, 운영 스키마·서비스·실 KIS 연결과는 구분. 새로운 검토 브랜치는 main 병합 금지. Private 유지.

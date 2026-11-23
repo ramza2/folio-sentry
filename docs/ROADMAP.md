@@ -59,7 +59,7 @@
 - [x] MD-01: 한국투자증권 KIS/Twelve Data/Alpha Vantage 공식 문서 기반 KR·US 시세 공급자 비교 및 호출 전 확인 조건 정리 (2026-11-20, GitHub만)
 - [x] MD-01: KIS KR·US 일봉 OHLCV 비통신 정규화 계약 + Decimal·거래소·시점·품질 경계 합성 테스트 (GitHub만)
 - [x] MD-02: KIS 일봉 전용 GET·토큰 POST·고정 호스트 allowlist·비밀 파일 권한·레이트리밋·합성 transport 테스트 구현 (GitHub 전용, 비활성 기본값, 2026-11-20)
-- [ ] MD-02 실제 KIS Open API 신청 상태 확인 및 사용자 승인 후 제한적 최초 실 시세 GET 검증 (운영 미적용)
+- [x] MD-02 KIS Open API 신청/실전 키 발급 후 최초 토큰 POST·KR/US 일봉 GET 각 1회 사용자 검증 PASS (2026-11-20, 기존 Draft PR에 별도 기록, 운영 미연동)
 - [ ] MD-02 토큰 공유 캐시·다중 프로세스 rate limit·장마감/지연/가격조정 정책 검증 (스케줄러 전에 필요)
 - [ ] MD-03: 확정 검증 데이터용 price_bar DB migration, 적재·멱등·장 마감/품질 판단 (별도 승인)
 - [ ] 외부 공급자 기반 Instrument 검색/식별자 매핑 (별도 공급자 검증)
@@ -155,50 +155,162 @@ Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 �
 - 다음 개발은 국내·미국 시세 공급자 검토와 종목 식별자 매핑/시세 상태 모델링을 우선. 실제 종목 행과 CRUD E2E 시험은 합성 데이터 및 별도 명시 승인 이후 진행.
 
 
-## OPS-CI01 — GitHub Actions 무료 할당량/중복 실행 최적화 (2026-11-20)
-- [x] 개인 Billing Actions 포함 컴퓨팅 $12/$12 소진 확인, 결제수단 없이 Private Actions 작업이 실행 전 차단되는 증상 분석
-- [x] 기존 feat/** push + PR 중복 CI 및 매번 6 job 실행 문제 확인
-- [x] Private 상태에서 비용 최적화 독립 브랜치 설계: PR(main)/push(main) 이벤트, concurrency 취소, 영역별 job route + CI gate + 합성 unittest
-- [x] AUTH Chromium browser 수동 실행 전용으로 변경(릴리스 인수검사 때 명시 실행)
-- [ ] 최적화 워크플로 로컬 YAML/라우팅/최종게이트 검사
-- [ ] 정상 GitHub Actions 실행 가능 시 최적화 CI 6 job + 안정 게이트 PASS
-- [ ] 사용자 병합 승인 이후 main 동기화 및 PR #26의 격리 DB migration CI 유지·재검증
-- [x] Public 전환 위험 검토 완료: 운영 정보가 과거 Git 이력에 남아 있고 Actions 로그는 미검사. **최종 결정은 Private 유지**
-- [x] 사용자가 FolioSentry 저장소 Private 유지 확정(2026-11-20). Public 전환·별도 Public 미러 생성 계획 없음
-- 세부: `docs/CI_USAGE_CONTROL.md`. **CI 코드 브랜치 작업만으로 실제 운영 MiniPC/서비스/KIS/DB 변경 없음.**
+## MD-03 — 일봉 시세 품질·격리 저장 경계 (2026-11-20)
+- [x] KRX/미국 거래소 시간대 및 보수적 장마감+2h 제한, 미국 DST·미래/주말·결측/오래된 시세 품질검사 오프라인 코드 작성. 확정 거래일/종가 인정은 미구현
+- [x] `price_bar` SQLAlchemy 모델 + 추가형 `20261120_pricebar01` migration 코드 작성 (기존 표/행 불변, 최종시세 DB CHECK 차단)
+- [x] 멱등 단일 거래세션 INSERT: 동일 시세 NOOP, 다른 시세 충돌 발생, 불확정 PARTIAL 고정, 실제 신호/UI 노출 금지
+- [x] 합성 PostgreSQL CI 격리 migration 및 롤백 테스트 코드 준비 (전용 `folio_ci`만 허용)
+- [x] MD-03 GitHub Actions CI 6/6 PASS 및 격리 PostgreSQL 마이그레이션·멱등·DB 확정시세 차단·롤백 검증 완료 (2026-11-20)
+- [ ] MD-03 코드 리뷰와 병합 승인
+- [ ] PR #24/#25 병합 게이트와 후속 통합 검토 (현재 둘 다 Draft/미병합)
+- [ ] 공식 휴장/조기 종료 및 공급자 시세 관측/확정/수정주가 검증
+- [ ] **별도 승인 후에만** MiniPC 백업→격리 복원→운영 DB migration 및 배포
+- [ ] 확정된 시세만 포트폴리오 화면/손익·신호로 노출 (MD-03에서는 불가)
+- 상세: `docs/MD03_PRICE_BAR_STORAGE.md`
+
+## MD-03B — 공식 시장일정 예외 검토 (2026-11-20)
+- [x] 한국거래소 KIND 근거 2026-11-19 수능일 정규장 종료 16:30(KST) 반영, 기존 15:30 가정 교정
+- [x] NYSE/Nasdaq 근거 2026-11-26 휴장, 2026-11-27·12-24 13:00(ET) 조기 종료 일정 검증·코드 작성
+- [x] 미증빙 거래일 전면 차단하는 제한적 명시 세션 화이트리스트, EST/EDT 변환 테스트 작성
+- [ ] 전체 휴장·특수 거래일 캘린더와 공급자 시세 최종성 검증 — 현재 소수 날짜만 검증
+- [ ] PR #26 통합 CI 및 코드 리뷰, 운영 변경은 별도 승인
+
+## MD-02B — KIS 최초 실 조회를 위한 일회성 운영자 점검 (2026-11-20)
+- [x] 계좌 및 Open API 신청·App Key/Secret 발급 완료 사용자 확인(2026-11-20; 실전/모의 구분은 미확인)
+- [x] `backend/app/kis_first_probe.py`: 기본 metadata-only 검사, 명시적인 live 승인 문자열, 최초 1회 마커, 국내/미국 각 1개 일봉 조회, 시세·토큰·원문 출력 금지
+- [x] `backend/tests/test_kis_first_probe.py`: 합성 데이터/가짜 전송만, 인증정보·외부 접속 없음
+- [x] KIS 신청·키 발급 완료 사용자 확인(2026-11-20; 비밀원문 미수신)
+- [x] MiniPC 0600 비밀 파일 준비·메타데이터 점검 PASS (2026-11-20 사용자 제공, 실제 API 호출 없음)
+- [x] 사용자 승인 후 국내/미국 실제 조회 전용 최초 호출 성공 — OAuth 1회 / KR 1건 / US 1건, 2026-11-19 거래일 (2026-11-20 사용자 로그)
+- [ ] 다중 프로세스 토큰 캐시/전역 rate limit/장마감 정책 확정; MD-03 가격 저장 이전 필수
+- 문서: `docs/KIS_FIRST_READONLY_PROBE.md`. **이 코드/PR은 실제 API 호출이나 운영 배포 승인이 아니다.**
 
 
-## Public 저장소 전환 사전검사 (2026-11-20)
-- [x] 현재 main 트리 내 홈 MiniPC/DuckDNS/Traefik 구성·운영 문서 노출 가능성 확인
-- [x] Git 과거 객체의 민감한 파일명·자격증명 패턴·운영 주소를 값 노출 없이 분류하는 읽기 전용 로컬 감사 스크립트 작성
-- [x] 공개 전 감사 도구 자체의 합성 unittest 추가(워크플로 경로 테스트와 함께 실행)
-- [x] MiniPC 실제 로컬 이력 감사 및 사용자 결과 확인 (운영 흔적 79 Git blob 버전/12경로, 개인키 헤더 2건은 합성 코드 문자열; Actions 로그는 미검사)
-- [ ] GitHub Actions 전체 과거 로그·아티팩트와 원격 전용 PR refs 추가 확인
-- [x] 사용자 최종 선택은 Private 유지. 추가 공개 검증은 현재 개발의 필수 경로 아님
+## MD-02C — MiniPC 로컬 KIS 키 등록 준비 (2026-11-20)
+- [x] `scripts/kis-secret-setup.py` 대화형 숨김 입력·0700 폴더/0600 파일·기존파일 덮어쓰기 방지·메타데이터 전용 check 준비
+- [x] `backend/tests/test_kis_secret_setup.py` 합성/오프라인 권한 및 실패 테스트 준비
+- [ ] PR #24 리뷰 및 병합 승인
+- [x] MiniPC 사용자 `setup` + `check` 실행 성공(2026-11-20, `FOLIOSENTRY_KIS_SECRET_SETUP_LOCAL_PASS_NO_NETWORK`, `FOLIOSENTRY_KIS_SECRET_METADATA_PASS_NO_CONTENT_READ_NO_NETWORK`; 사용자 제공 결과, 비밀값 미수신)
+- [x] 사용자 실전용 키 확인 + 별도 실 시세 GET 승인 + 제한적 최초 호출 성공 (2026-11-20; 시세 최종성 미검증)
+- 코드 준비는 운영 MiniPC 변경이나 KIS 실제 호출을 포함하지 않음.
 
 
-## OPS-CI01 사용자 MiniPC 로컬 재검증 (2026-11-20)
-- [x] 커밋 `239f5c2716f3866b2072c6d5dad22ea8382ed15e`에서 `scripts/ci` Python 단위 테스트 **21/21 PASS**, `FOLIOSENTRY_CI_LOCAL_UNIT_TESTS_PASS` (사용자 제공 MiniPC 실행 로그)
-- [x] `scripts/public-visibility-preflight.py --self-test` PASS, `FOLIOSENTRY_PREPUBLIC_SCANNER_SYNTHETIC_SELFTEST_PASS`
-- [ ] Actions Runner 기반 실 CI는 무료 포함량 소진으로 아직 실행 검증되지 않음. YAML 자체의 별도 파싱/체크 및 GitHub Actions CI-gate 실동작 확인 필요
-- [ ] 무료 할당량 회복/사용자 승인 전 PR 생성·반복 CI 재실행 금지. 기존 main/운영 서비스/키/DB 영향 없음
+## 2026-11-20 실제 KIS 최초 조회 인수 결과 — 사용자 제공 MiniPC 실행 로그
+- 승인: 한국투자증권 **실전투자용** App Key/Secret, 조회 전용 3회(OAuth 토큰 POST 1회, 삼성전자 일봉 GET 1회, 애플 일봉 GET 1회). 사용자 명시 승인.
+- GitHub PR #24 검증 커밋 `01703f507cde8010b99c217ffbf1ae5eb3fccc3a`의 도구를 임시 폴더에서 실행. main 배포·작업트리·DB·Compose 변경 없음.
+- `KIS_PRIVATE_FILES_METADATA_PASS_NO_SECRETS_READ_NO_NETWORK`
+- `KIS_KR_UNFINALIZED_BAR_COUNT=1`, `KIS_US_UNFINALIZED_BAR_COUNT=1`
+- `KIS_FIRST_CALL_STATUS=READONLY_QUOTE_SHAPE_PASS_NOT_PRODUCTION_APPROVAL`, `FOLIOSENTRY_KIS_FIRST_READONLY_PASS`
+- 대상 조회 거래일: 국내·미국 **2026-11-19**, RAW 가격. KIS 실제 OAuth 발급에 대한 한국투자증권 카카오톡 알림 사용자 수신.
+- **성공 판정 범위는 접근 토큰 발급 및 국내/미국 일봉 응답 구조·정규화 성공뿐**. 실제 가격값·장마감 최종성·원주가/수정주가 정합성·실시간 지연·공급자 관측시각·장기조회는 아직 미검증. `is_final=False`, `source_observed_at=None` 유지.
+- KIS 안내 메시지: 토큰 발급 시점부터 유효기간 **24시간**, **1일 1회 발급 원칙**, 잦은 추가 발급 시 이용 제한 가능. **재발급을 위한 probe 재실행 및 1회 마커 삭제 금지**.
+- 후속: 실제 재호출 없이 합성 fixture로 전역 레이트리밋 및 다중 프로세스 토큰 공유·재기동 정책 설계. 본 PR은 여전히 미병합 Draft이며 시세 적재/운영 표시/주문 기능 없음.
+
+## MD-02D — KIS 공유 토큰/호출 예약 기반 (2026-11-20)
+- [x] 2026-11-20 최초 실전 KIS 토큰 POST 1회 및 KR/US 일봉 GET 각 1회 성공 기록(사용자 제공 PASS, 데이터 UNFINALIZED)
+- [x] 공유 상태 파일 모델과 프로세스간 flock, 24시간 토큰 발급 간격, 전역 일봉 간격 1.25초, 24시간 60회 내부 상한, crash-safe 선예약 코드 작성
+- [x] 기본 발급 거부 및 독립 optional shared_state 연계로 기존 운영 미변경, 진짜 토큰/호출 없음
+- [x] PR #25 GitHub CI 6/6 PASS (2026-11-20, synthetic tests only)
+- [ ] PR #25 리뷰 및 병합 승인
+- [ ] 운영 MiniPC 공유 상태 디렉터리/보안/암호화 백업 검토(별도 승인)
+- [ ] KIS 최신 정책/실 사용량 외부 확인 후 토큰 발급/실 호출 별도 승인
+- [ ] MD-03 장마감 최종성·price_bar DB 모델/적재·스케줄러 승인
+- 상세: docs/KIS_SHARED_TOKEN_GATE.md
 
 
-## OPS-CI02 — Private 유지·MD-03 안전 통합 준비 (2026-11-20)
-- [x] 사용자가 저장소 Private 유지 결정. Public 전환 또는 Public 소스 미러 생성 작업 중단.
-- [x] CI 최적화 브랜치에 MD-03 마이그레이션 파일과 격리 테스트 동시 존재 여부 확인(한쪽만 있으면 fail-closed), 가격 테이블/마이그레이션 revision 조건부 검증, 합성 DB 전용 테스트 사전 연결.
-- [x] 오프라인 워크플로 계약 회귀 검사 작성: PR/push 트리거, 변경 영역별 조건, 모든 필수 작업, CI 최종 게이트, 보안상 중요한 PostgreSQL·배포·백업 검증 유지.
-- [x] 보안 감사 스크립트만 수정 시 `changes`·`ci-gate` 위주로 경량 실행(합성 보안 테스트는 `changes`에서 검사).
-- [ ] MiniPC 격리 임시 파일로 오프라인 CI 테스트 재검증(신규 계약 검사 포함), YAML 파서가 있다면 구조 파싱 추가.
-- [ ] Actions 무료 제공량 갱신 후 6/6 hosted 검증 및 사용자 승인에 따른 `main` 병합.
-- [ ] PR #24→#25→#26 통합 및 GitHub hosted 검증(실 KIS 재조회·운영 DB 업데이트·서비스 배포 별도 승인).
+## MD-02~03 임시 통합 CI 게이트
+- [x] PR #24 최초 조회/로컬 키 관리, #25 공유 토큰, #26 비확정 price_bar 세 기능 간 충돌 점검용 소스 조합 작성
+- [ ] 단일 통합 GitHub CI 전체 PASS
+- [ ] 개별 PR 리뷰/명시적 병합 승인 전 main/운영에 반영 금지
 
 
-## OPS-CI02 오프라인 최종 검사 완료 (2026-11-20)
-- [x] `11f6c508e712fd6f83fa73d25d2e69a86425b7ee` MiniPC 독립 임시 디렉터리 로컬 unittest **28/28 PASS**
-- [x] `FOLIOSENTRY_PREPUBLIC_SCANNER_SYNTHETIC_SELFTEST_PASS`
-- [x] `FOLIOSENTRY_YAML_PARSE_PASS` (사용자 MiniPC PyYAML 파싱)
-- [x] `FOLIOSENTRY_CI_OFFLINE_GATE_PASS`
-- [ ] GitHub Actions 무료 할당량 갱신 후 실제 PR CI 및 8개 작업의 선택 실행/최종 Gate 정상 동작 확인
-- [ ] 사용자의 명시적 승인 후 CI 최적화 브랜치 병합 및 PR #24→#25→#26 순차 리뷰/통합
-- [x] 저장소 Private 유지 — 사용자가 최종 확정
+## 통합 리뷰 보완/게이트 (2026-11-20)
+- [x] PR #25 캐시 상태 파일 유실 후 기존 토큰 발급 기록 보호: 독립 영속 마커 + 실 키 없는 합성 회귀 테스트
+- [x] PR #26 중간 가격 충돌 시 한 배치 부분 INSERT 방지: 내부 SAVEPOINT + PostgreSQL 격리 테스트
+- [ ] PR #27 수정본 통합 CI 6/6 최종 확인
+- [ ] PR #24→#25→#26 개별 리뷰·병합 승인. AGENTS/ROADMAP 문서 충돌 조정 필요
+- [ ] 공식 거래소 전체 캘린더·가격 확정 정책 검증, 실 API/KIS/운영 DB/배포 별도 승인
+
+
+## MD02-MD03-STD01 — 합성 KIS→시세 게이트 독립 로컬 테스트 (2026-11-20)
+- [x] PR #27 통합 Draft를 기준으로 독립 오프라인 리뷰 브랜치 생성, 기존 PR #24/#25/#26·main 불변
+- [x] Python stdlib 10개 단위 테스트 소스 작성: LIVE 기본 거부, 합성 토큰·국내/미국 일봉·PARTIAL, 공유 할당량, 실패 시 예약, 캘린더 보수 정책, price_bar 저장/마이그레이션 계약
+- [x] 사용자 MiniPC `git archive` 격리 임시 폴더에서 stdlib 테스트 10/10 PASS (2026-11-23)
+- [ ] 정상 GitHub Actions 갱신 후 PR #24→#25→#26 및 CI 최적화 브랜치의 결합 검증
+- [x] Private 유지, 실 KIS 호출/실 DB/Docker/운영 배포/시세 UI 연동 금지 유지
+- 자세한 계획·한계: `docs/MD02_MD03_STDLIB_OFFLINE_GATE.md`
+
+ 
+## MD03-DB-LOCAL — MiniPC 완전 격리 PostgreSQL 저장 E2E (2026-11-23)
+- [x] MD02/MD03 합성 KIS·PARTIAL 연동 stdlib 검사 10/10 PASS (사용자 MiniPC 실행 결과 확인)
+- [x] 임시 합성 PostgreSQL 컨테이너의 --network none, tmpfs 저장소, 포트 없음 및 운영 image ID 재사용 설계
+- [x] 운영 Backend/DB 컨테이너는 image ID만 읽고 새 Python+PostgreSQL 테스트 컨테이너만 사용하도록 분리, 사전점검/명시적 확인 문자열/자동 정리 코드 작성
+- [x] 일회용 DB에 Alembic 20261120_pricebar01 및 저장 멱등·충돌·원자성·finality CHECK·롤백 검증 연결
+- [x] Docker 무실행 정적 검사 및 문서 초안 작성
+- [x] MiniPC 격리 archive에서 Bash 구문·Python 계약 6/6·Docker preflight PASS (2026-11-23)
+- [x] 격리 PostgreSQL E2E PASS (2026-11-23, 합성 데이터만)
+- [ ] GitHub Actions CI 최종 검증·기존 Draft PR 단계적 병합은 무료 사용량 갱신/사용자 별도 승인 뒤 수행
+- [x] Private 유지, 실 KIS 토큰 재발급/운영 마이그레이션·서비스 변경 없음
+
+## MD03-DB-LOCAL-2 — 아카이브 Python import 검증 (2026-11-23)
+- [x] 첫 실행: Bash 구문 PASS, Docker 안전계약 5/5 PASS, 일회용 PostgreSQL READY.
+- [x] 첫 DB E2E는 ModuleNotFoundError: No module named 'app.market_data'로 중단. 미완료/FAIL을 기록.
+- [x] PYTHONPATH=/workspace/backend 고정 및 python -m scripts.test_price_bar_isolated_ci 실행으로 임시 아카이브 소스를 우선 검색하게 수정.
+- [x] Alembic 전에 실제 app 모듈 import 경로 확인. 이전 운영 이미지의 설치 패키지가 검색되면 fail-closed.
+- [x] 수정 커밋 MiniPC Bash 구문·안전계약 6/6·일회용 PostgreSQL E2E PASS (2026-11-23)
+- [x] 이전 실패의 임시 Docker 컨테이너 잔존 없음 (읽기 전용 조회)
+- [x] Private 유지, main 병합/운영 DB/실 KIS 재호출 없음.
+
+
+## MD03-DB-LOCAL-3 — MiniPC 최종 격리 E2E 완료 (2026-11-23)
+- [x] 수정 커밋 ea260ef 테스트: Bash 구문 PASS, 안전계약 **6/6 PASS**, Docker 운영 이미지 읽기 전용 사전검사 PASS
+- [x] 임시 PostgreSQL 기동 및 마운트된 아카이브 import PASS
+- [x] SAVEPOINT 배치 원자성, 중복 저장·가격 충돌 차단, is_final/quality DB CHECK, ROLLBACK, Alembic 20261120_pricebar01, 남은 가격 행 0건 모두 PASS
+- [x] FOLIOSENTRY_MD03_ISOLATED_POSTGRES_INTEGRATION_PASS / FOLIOSENTRY_MD03_LOCAL_E2E_COMPLETE 사용자 로그 확인
+- [x] 이전/현재 일회용 Docker 컨테이너 라벨 조회 0건. 운영 이미지 ID 조회 외의 운영 서비스 접근 없음
+- [ ] MiniPC 이전 전원 종료·재부팅 의심 현상: 부팅 이력/커널 OOM/thermal/watchdog/하드웨어 및 운영 서비스 건강 상태를 **읽기 전용** 조사, 원인 미확인
+- [ ] 시스템 안정성 확인 전 추가 Docker 부하/운영 배포·DB 마이그레이션 보류
+- [ ] GitHub hosted Actions 최종 검증과 Draft PR 단계적 병합은 별도. Private 유지
+
+
+## OPS-STABILITY-01 — MiniPC 비예정 재부팅 분석 (2026-11-23)
+- [x] MiniPC 부팅 이력 확인: 이전 journal 09:52:19 종료, 새 부팅 11:24:21 KST. 중간 시간대 원인 불명
+- [x] 현재 RAM 14GiB/가용 12GiB, Swap 0B; 운영 Frontend/Backend/PostgreSQL 컨테이너 **healthy** 3개 (상태 조회 기준)
+- [x] 이전 부팅 커널 경고 검색에서 해당 사건 직전 명시적 OOM/Kernel Panic 확인되지 않음. 발견된 NMI watchdog/TSC 초기화 기록은 **11월 1일**, 사건 관련 증거 아님
+- [x] 일회용 MD03 라벨 Docker 컨테이너 잔존 0건. `last` 명령은 미설치이므로 설치하지 않고 journalctl로 확인
+- [ ] 사건 전후 2026-11-23 09:40~09:55 이전 부팅 journal의 shutdown/OOM/thermal/watchdog/I-O 관련 로그 읽기 전용 확인
+- [ ] 예상치 못한 shutdown·전원 문제의 재발 여부 관찰; 필요하면 BIOS/전원/시스템 로그를 별도 검토
+- [ ] 시스템 안정성 확보 전 추가 격리 Docker 부하 테스트/운영 DB 마이그레이션/운영 배포 보류
+
+
+## OPS-STABILITY-01 후속 로그 확인 (2026-11-23)
+- [x] 이전 부팅 09:40~09:55 KST shutdown/OOM/kernel panic/thermal/watchdog/I/O error 키워드 검사에서 해당 패턴 로그 미검출(로그 없다는 의미 아님)
+- [x] 현재 부팅 11:24:26 KST `systemd-journald: system.journal corrupted or uncleanly shut down, renaming and replacing` 확인 — **이전 저널 비정상 종료/손상 정황**
+- [ ] 정확한 원인 미확정: 정전/전원 어댑터/강제 리셋/시스템 멈춤/저널 손상 등 감별. OS 비정상 종료와 Docker E2E의 인과관계 증거 없음
+- [ ] 이전 저널 마지막 메시지·정상 shutdown 시퀀스, 현재 저장장치 오류·시스템 부팅 상태 읽기 전용 추가 검토(로그에 비밀 노출 주의)
+- [ ] 안정성 확인 전 부하가 있는 Docker E2E, 운영 DB schema 변경/배포 중단. Private 유지
+
+
+## OPS-CI03 — CI 최적화·KIS MD02/03 결합 검토 (2026-11-23)
+- [x] CI 단독 브랜치 12개 변경 경로, KIS 검토 브랜치 29개 변경 경로 및 공통 충돌 후보 `.github/workflows/ci.yml`, `AGENTS.md`, ROADMAP 확인
+- [x] 검토 소스 기반 신규 `review/ci-kis-offline-integration-20261123` 생성, CI 브랜치 파일만 선별해 결합
+- [x] 6개 선택 검사와 stable final gate 유지, MD03 price_bar PostgreSQL 분리 검사 유지 및 KIS 순수 stdlib 10개 검사 자동 추가
+- [x] 신규 통합 정적 계약 4개 작성. MiniPC 통합 unittest **38/38 PASS**, 합성 KIS **10/10 PASS** (2026-11-23)
+- [x] MiniPC 격리 임시 archive에서 stdlib **38/38**, KIS 합성 **10/10**, YAML 파싱 **PASS**, 최종 FOLIOSENTRY_CI_KIS_OFFLINE_GATE_PASS
+- [ ] 할당량 회복 후 GitHub-hosted Actions 실제 CI 라우팅/스킵/6개 선택 job/MD03 migration 및 final gate 검증
+- [ ] 사용자 명시적 승인 뒤 적절한 순서로 CI 브랜치 및 PR #24/#25/#26 병합; PR #27은 검토 Draft일 뿐 병합 대상 아님
+- [x] Private 유지, KIS 자동 수집/운영 DB/시세 UI/배포 변경 없음
+- 참고 `docs/CI_KIS_COMBINED_REVIEW.md`
+
+## OPS-STABILITY-01 전원 차단 정황 보완 (2026-11-23)
+- [x] 가족 연락에서 집 전원 스위치가 꺼진 것을 확인하고 전원을 다시 켰다는 정보 확보 → 비정상 저널 종료 및 재부팅 시간대와 부합, 외부 전원 차단이 가장 유력
+- [x] 복구 후 운영 Frontend/Backend/DB Healthy, 일회용 테스트 Docker 잔존 없음
+- [ ] 가정 전원 스위치가 재차 내려가지 않도록 물리적 표식/전원 케이블 고정/필요하면 UPS 별도 검토. Docker 또는 앱 장애 단정 금지
+
+
+## OPS-CI04 — 병합 계획 작성 (2026-11-23)
+- [x] PR #24/#25/#26/#27 독립 Draft와 CI 최적화 브랜치 변경 파일 확인, 충돌 후보 구분
+- [x] PR #25 공유 토큰 상태 복구 마커, PR #26 가격 SAVEPOINT 및 DB 테스트가 결합본과 동일한지 확인
+- [x] 병합 순서/필수 게이트 문서 `docs/CI_KIS_MERGE_PLAN.md` 작성 (실 병합 아님)
+- [ ] Actions 무료 할당량 갱신과 사용자의 별도 승인을 전제로 CI → PR #24 → #25 → #26 → 통합 회귀 테스트 순으로 추진
+- [x] FolioSentry Private 유지, 실 KIS 호출/운영 DB 및 MiniPC 변경 없음

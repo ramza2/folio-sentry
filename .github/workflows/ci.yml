@@ -33,6 +33,11 @@ jobs:
           fetch-depth: 0
       - name: Validate impact router and stable gate (offline stdlib)
         run: python3 -m unittest discover -s scripts/ci -p 'test_*.py'
+      - name: Validate integrated KIS read-only and partial-price safety (stdlib)
+        run: |
+          if test -f scripts/ci/md02_md03_offline_acceptance.py; then
+            PYTHONDONTWRITEBYTECODE=1 python3 -I -B scripts/ci/md02_md03_offline_acceptance.py
+          fi
       - name: Route changed areas (unknown means full)
         id: route
         env:
