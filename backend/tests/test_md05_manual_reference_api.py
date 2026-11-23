@@ -112,7 +112,9 @@ def test_auth_required_before_any_capability_or_provider(monkeypatch):
     monkeypatch.setattr(md05, "_provider", forbid)
     monkeypatch.setattr(md05, "get_engine", forbid)
     assert client.get("/api/v1/market-data/capabilities").status_code == 401
-    assert client.post(f"{BASE}/{uuid4()}/daily-reference").status_code == 401
+    assert client.post(f"{BASE}/{uuid4()}/daily-reference", headers={
+        "Origin": "http://testserver",
+    }).status_code == 401
 
 
 def test_bad_csrf_and_origin_do_not_attempt_kis(monkeypatch):
