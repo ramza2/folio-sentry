@@ -378,3 +378,14 @@ Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 �
 - [ ] 별도 승인 후에만 main 병합. MiniPC DB migration·실 KIS/원문 조회·운영 배포·공개 기능은 각각 별도 승인.
 - [ ] 공급자 관측시각·최종종가·정정 규정·RAW/ADJUSTED·기업행동 근거를 수동 확인하고 독립적으로 검증. 링크/해시 자체는 증명 불가; FINAL 승격 금지.
 - 문서 docs/MD04C4_REFERENCE_HISTORY.md.
+
+
+## MD-04C5 — API별 공식자료/가격조정/최종성 증빙 결손 오프라인 검토 (2026-11-23)
+- [x] MD-04C4 PR #34 승인·병합 main@1a9f95c, post-merge CI #45146478310 PASS. MiniPC 미배포.
+- [x] KIS 공식 upstream commit 74b0a082fa67a0be5bf53f561719c853890ed2df 고정 후 KR itemchart와 US dailyprice 공식 예제/설정/백테스터에 대한 5개 소스·Blob SHA 검토.
+- [x] 다른 KR 일자별 엔드포인트의 FID_ORG_ADJ_PRC 설명 불일치 감지, US MODP 값별 공급자 증빙 부재 문서화. 이력 링크/해시는 가격·최종성 증명이 아님.
+- [x] endpoint scoped 수동 문서 메타데이터 검토 입력 검증, MD04B 결손 6개 유지, FINAL/VALID/공개 불허 순수 진단·오프라인 합성 테스트 작성.
+- [ ] MD-04C5 Draft PR 최신 Backend pytest/compile 및 hosted CI gate PASS 확인.
+- [ ] 별도 사용자 승인 후에만 main 병합. MiniPC DB migration/운영 배포/실 KIS 호출/가격·손익 공개는 각각 별도 승인.
+- [ ] 실제 API/거래소별 수정주가·최종 종가 정책/원천 관측/정정·기업행동의 공급자 문서와 개별 종목 처리 1차 근거 확보. 근거 없는 finality 승격 금지.
+- 상세 docs/MD04C5_OFFLINE_SOURCE_REVIEW.md.
