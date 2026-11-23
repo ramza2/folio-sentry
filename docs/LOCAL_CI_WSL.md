@@ -57,3 +57,11 @@ FolioSentry Private 저장소에서 GitHub-hosted Actions 무료 할당량에 �
 - [ ] WSL2에 Python/Node/npm/네트워크 연결 확인 후 Full Mode 테스트 PASS
 - [ ] 전체 GitHub Actions required checks 충족 여부는 별도 확인
 - [ ] main/운영 DB/실제 KIS/배포는 별도 명시 승인
+
+
+## WSL 환경 실사 및 nvm 실행기 보정 (2026-11-23)
+- 사용자 Windows WSL2 Ubuntu: `python3 3.14.4`, `git 2.53.0`, Linux `node`·`nodejs` **미설치**. `npm 11.16.0`은 `/mnt/c/Program Files/nodejs/npm` (Windows 실행 파일)에서 참조됨.
+- **WSL Ubuntu에 Linux용 Node.js 설치 필요**. 프로젝트 GitHub-hosted CI가 Node `22.17.0`을 사용하므로 동일 버전을 권장. 공식 nvm-sh/nvm `v0.41.0` Git 저장소를 WSL 사용자 `~/.nvm`에 설치하고 `nvm install 22.17.0`, `nvm alias default 22.17.0`을 수행한다. Windows Node/npm은 변경하지 않는다.
+- 수정된 `scripts/ci/local-gate.ps1`은 직접 `wsl -- python3`로 Python을 시작하지 않고 `wsl -- bash -lc`를 통해 `~/.nvm/nvm.sh`를 명시적으로 source한 뒤 Python을 실행한다. **비대화형 WSL에서도 WSL 네이티브 Node.js PATH가 살아 있도록 보장**하기 위한 조치.
+- node 미설치 이전에도 Local CI `offline`은 가능하며, `full -InstallDeps`에만 Node/npm이 필요. 테스트 목적의 dependency download 외 운영 DB/실 KIS/운영 MiniPC에는 영향 없음.
+- 추가 단위 테스트 `test_powershell_launcher_initializes_wsl_native_nvm`로 Windows 실행기의 경로 주입 계약을 정적 검사. 신규 로컬 안전 테스트 기대 **8개**이며 실 WSL/Full CI PASS는 아직 보고되지 않았다.

@@ -368,3 +368,12 @@ Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 �
 - [ ] 이후 사용자 별도 승인 뒤 CI → PR #24 → PR #25 → PR #26 각 SHA 검증/실제 병합, 필요 시 별도 격리 PostgreSQL 검사
 - [x] 이번 브랜치 검토 작업에서 기존 main/PR/운영 MiniPC/KIS·DB/유료 GitHub Actions 변경 없음
 - 상세 `docs/LOCAL_CI_WSL.md`
+
+
+## OPS-LOCAL-CI02 — WSL 네이티브 Node 준비 및 실행기 경로 보정 (2026-11-23)
+- [x] 사용자 WSL 실사: Python 3.14.4, Git 2.53.0, WSL2 정상, Linux node 미설치·Windows npm 경로 확인
+- [x] Windows PowerShell launcher가 nvm 초기화 없이 Linux Python을 직접 실행하는 문제 수정: Bash login shell + `~/.nvm/nvm.sh` 명시적 로딩
+- [x] PowerShell launcher 계약 테스트 1개 추가 (Local Gate 자체 테스트 8개 예상)
+- [ ] WSL Linux 네이티브 Node 22.17.0 설치·실제 경로 `~/.nvm/versions/node/...` 확인
+- [ ] SHA pinned WSL Local CI `offline` 및 `full -InstallDeps` 첫 실행 PASS
+- [x] 모든 변경은 별도 검토 브랜치. 기존 main/PR/운영 Docker·DB/KIS/Actions 불변

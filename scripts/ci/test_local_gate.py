@@ -130,5 +130,19 @@ class LocalGateTests(unittest.TestCase):
         self.assertNotIn('"push",', source)
 
 
+    def test_powershell_launcher_initializes_wsl_native_nvm(self):
+        """Windows npm shim must not stand in for a WSL Node binary."""
+        ps1 = Path(__file__).with_name("local-gate.ps1").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn('NVM_DIR="$HOME/.nvm"', ps1)
+        self.assertIn('[ -s "$NVM_DIR/nvm.sh" ]', ps1)
+        self.assertIn('. "$NVM_DIR/nvm.sh"', ps1)
+        self.assertIn("'bash', '-lc', $BashScript", ps1)
+        self.assertIn("'folio-local-ci', $ExpectedSha, $Mode", ps1)
+        self.assertIn('--expected-sha "$1" --mode "$2"', ps1)
+        self.assertIn("'--install-deps'", ps1)
+
+
 if __name__ == "__main__":
     unittest.main()

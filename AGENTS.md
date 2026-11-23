@@ -371,3 +371,9 @@
 - `offline`: GitHub CI stdlib 안전계약/병합 계약 + 합성 KIS 테스트. `full --install-deps`: 명시적 pip/npm 인터넷 의존성 다운로드 허용 후 임시 Backend pytest/compileall, Frontend npm test/typecheck/build 추가. 설치는 임시 공간에서만. 실 PostgreSQL migration, 운영 배포, GitHub Runner status는 **N/A**.
 - 비밀정보 환경변수 상속 금지, 차단된 로컬 DB host/port 설정, 로컬 로그(0600)/SHA-명시 JSON 요약, 실패 시 nonzero. 네트워크가 OS 방화벽 수준으로 격리되는 것은 아님. 실제 테스트 PASS는 **아직 미실행**; `docs/LOCAL_CI_WSL.md` 참고.
 - Cursor Agent에 전체 코드 탐색/빌드를 맡기지 말고 ChatGPT에서 GitHub 코드 관리 및 단일 터미널 명령 제시. `main`/PR 병합 및 운영 DB/키/배포는 사용자 별도 승인 필수, Private 유지.
+
+
+## OPS-LOCAL-CI01 WSL Node 경로 보정 (2026-11-23)
+- 사용자 Windows WSL2에 Git/Python은 있으나 Linux `node` 없음, Windows `npm` shim만 PATH에 있음. WSL용 Node.js `22.17.0`을 공식 nvm으로 사용자 로컬 `~/.nvm`에 설치하도록 안내.
+- `scripts/ci/local-gate.ps1` 실행기는 직접 `wsl -- python3` 대신 Bash login shell을 시작해 `~/.nvm/nvm.sh`를 명시적으로 source한다. Windows npm 사용을 Linux Node 검증이라고 주장하지 않는다. 관련 정적 안전 테스트 1개 추가(총 8개 기대).
+- 이 수정은 전용 Local CI 검토 브랜치에서만 수행. 원본 CI/MD02/MD03 PR, `main`, 운영 MiniPC, 실 KIS/DB·GitHub Actions 그대로. WSL 실제 PASS 확인 전에는 완료 판정 금지.

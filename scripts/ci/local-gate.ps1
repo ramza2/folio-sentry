@@ -28,10 +28,12 @@ if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace(($LinuxPath -join '')))
 }
 $LinuxPath = ($LinuxPath | Select-Object -First 1).Trim()
 
+# WSL direct-process invocation does not load the user's nvm Node PATH.
+# Source nvm in Linux before calling Python; never use the Windows npm shim.
+$BashScript = 'NVM_DIR="$HOME/.nvm"; if [ -s "$NVM_DIR/nvm.sh" ]; then . "$NVM_DIR/nvm.sh"; fi; exec python3 -B scripts/ci/local_gate.py --expected-sha "$1" --mode "$2" "${@:3}"'
 $ArgsToWsl = @(
-    '--cd', $LinuxPath, '--', 'python3', '-B',
-    'scripts/ci/local_gate.py', '--expected-sha', $ExpectedSha,
-    '--mode', $Mode
+    '--cd', $LinuxPath, '--', 'bash', '-lc', $BashScript,
+    'folio-local-ci', $ExpectedSha, $Mode
 )
 if ($InstallDeps) {
     $ArgsToWsl += '--install-deps'
