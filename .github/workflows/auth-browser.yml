@@ -1,9 +1,13 @@
 name: AUTH-01 Browser Acceptance
 
+# Expensive browser + PostgreSQL + font-install acceptance runs only when
+# the maintainer explicitly requests it. No automatic duplicate branch runs.
 on:
-  push:
-    branches: ["feat/auth01-*"]
   workflow_dispatch:
+
+concurrency:
+  group: foliosentry-auth-browser-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
