@@ -322,3 +322,15 @@ Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 �
 - [ ] MD-04C 인증 시세 조회 API/Frontend/손익 UI와 오래된·불확정 가격 차단 E2E.
 - [ ] 운영 DB 백업/격리 복원/마이그레이션, KIS 실조회, 자동수집/배포는 각각 별도 승인.
 - 참조 docs/MD04A_OFFLINE_INTAKE.md.
+
+
+## MD-04B — 공급자 최종성 증빙 결손 진단 (2026-11-23)
+- [x] MD-04A PR #29 사용자 승인 병합: main@23399f6, Hosted CI #45135554431 PASS. 운영 환경 미변경.
+- [x] KIS 국내 기간별시세 원주가/수정주가 요청값과 해외 MODP 설명의 공식 샘플 확인. 해외 값 의미와 공급자 관측·정정 정책은 추가 증빙 필요.
+- [x] MD-04B 순수 비가격 FinalityGapReport 및 요청 RAW/ADJUSTED 불일치 차단 코드·합성 단위 테스트 작성.
+- [ ] MD-04B Draft PR GitHub-hosted backend/CI gate PASS 및 리뷰.
+- [ ] 사용자 명시 승인으로 MD-04B main 병합 (운영 MiniPC DB/시세 접근/배포 제외).
+- [ ] KIS 원천 관측시각·최종 종가 확정·정정 가능 기간·기업행동·시세 접근권한 1차 근거 확보.
+- [ ] 버전드 finality 정책, 조정주가 처리 및 DB VALID 전이 설계는 증빙·운영변경 승인 이후 별도 PR.
+- [ ] MD-04C 실제 API/Frontend 연결·가격 표시/손익·신호/알림은 별도 사용자 승인 전 금지.
+- 상세: docs/MD04B_FINALITY_EVIDENCE.md
