@@ -231,3 +231,44 @@
 - 임시 단일 프로세스 토큰 캐시, 토큰 재발급 최소 6시간/일봉 요청 간 최소 1초/60회 상한. 재시작/병렬 세션 간 제어는 없으므로 **스케줄러/운영 UI/API에 연결하지 않는다**. 실제 호출은 개별 승인.
 - 해외 `MODP=1` 수정주가/`0` 원주가, 국내 `FID_ORG_ADJ_PRC=0` 수정주가/`1` 원주가. 기존 정규화 `is_final=False` 유지. 출처·시각·원주가/수정주가·장마감 검증 전 가격/차트/평가손익 노출 불가.
 - 기존 Phase 1 운영 배포·Chrome 인수 PASS(7/FAIL 0/N/A 2)와 별개로 GitHub 코드/CI만 개발. MiniPC 서비스·DB·Traefik/PinckNext·백업 타이머 불변. 참고 `docs/PHASE1_MARKET_DATA_ADAPTER.md`.
+
+
+## CI 월간 사용량·공개 전 보안 게이트 (2026-11-20)
+- ramza2/folio-sentry는 **Private**이며 사용자 Billing의 2026-11 Actions 무료 포함 $12/$12 소진으로 신규 CI 실행 차단. 코드 CI 실패와 호스티드 Runner 시작 전 예산 차단을 혼동하지 않는다. **중단된 CI를 무한 재실행하지 않는다**.
+- 독립 브랜치 `ci/usage-control-20261120`: PR main 및 push main만 CI 실행, `feat/**` push 중복 실행 제거, concurrency 이전 작업 취소, `scripts/ci/impact.py` fail-closed 선택 검증, `CI gate` 필수 안정 결과. 문서 변경은 라우팅+gate만, 인증·DB 변경은 격리 DB 검사. 워크플로/라우터/미분류 파일은 전체 6종. 별도 AUTH browser E2E는 수동 실행.
+- **이 CI 최적화는 아직 Runner 실제 실행 PASS 아님**. 정상 GitHub Actions로 CI 6개 작업/게이트가 확인되기 전 운영/보호규칙을 변경하지 않는다. PR #26의 MD-03 격리 가격 DB 테스트는 이후 워크플로 병합 때 반드시 유지.
+- Public 전환 시 표준 GitHub-hosted Ubuntu Runner는 요금 무료지만 Git 커밋 전체 이력과 Actions 로그도 공개될 수 있다. 개인 MiniPC 운영 도메인/포트/인증·백업 설정 노출 검토 및 전체 히스토리 비밀 스캔 전에 저장소 visibility 변경 금지. 실전 KIS App Key/Secret은 MiniPC 로컬 비밀파일에만 유지.
+- 모든 FolioSentry PR에서 불필요한 작은 커밋·문서만 커밋에 전체 CI를 돌리지 말고 합성 로컬 검사 우선. 자세한 사용량/검증/보안 정책은 `docs/CI_USAGE_CONTROL.md` 참조.
+
+
+## Public 전환 전 READ-ONLY 이력 검사
+- `scripts/public-visibility-preflight.py`는 Git 이력의 비밀 패턴 및 홈 운영 주소 등을 분류하여 **건수만** 표시한다. 어떠한 원문 자격증명도 화면/CI/ChatGPT로 내보내지 않는다. MiniPC에서만 실행하며 해당 경로가 main 미병합 상태라면 임시 Git blob 추출로 실행한다.
+- 로컬 역사 검사는 GitHub 과거 Actions 로그·아티팩트·원격 전용 PR ref를 다 검사하지 못한다. 그래서 **출력 0건도 공개 승인 아님**. 운영 중 개인 MiniPC 정보가 포함된 문서/로그를 사람 눈으로 검토한 뒤에만 Visibility 변경.
+
+
+## CI01 오프라인 인수 기록 (2026-11-20)
+- 사용자 MiniPC에서 CI 경로선택·최종게이트·공개 전 진단 단위 테스트 21/21 PASS(`239f5c2`). 검사기 self-test PASS. GitHub CI는 월간 Actions 포함량 소진으로 실행/검증되지 않았으므로 PASS로 표시하지 말 것.
+- 결제·Public 전환·main 병합·운영 MiniPC 배포 및 실제 시세 요청 없이 진행. 별도 PR #26 Alembic 격리 CI 변경과 충돌 시 가격 DB 검증을 반드시 보존.
+
+
+## 2026-11-20 최종 저장소 공개 범위 결정
+- **사용자 확정: FolioSentry는 Private 유지.** 이후 Public으로 변경하거나 별도 Public 미러 저장소를 생성하지 않는다. 이전 Public 검토는 보안 감사 기록일 뿐 미결 액션이 아니다.
+- 무료 Actions 포함량 소진 중에는 실 GitHub Actions 결과를 PASS라 주장하거나 무한 재실행하지 않는다. 문서/가벼운 보안 감사 코드는 최소 `changes` + `ci-gate`만 사용. CI YAML/라우터 변경은 전체 테스트로 fail-closed.
+- PR #26 MD-03 코드 병합 시 `20261120_pricebar01` Alembic, `price_bar` 불확정 저장 제한, `backend/scripts/test_price_bar_isolated_ci.py` 통합 검증을 유지해야 한다. 현재 최적화 워크플로에는 MD03 파일 감지 및 누락 시 fail-closed 게이트를 사전 구현했다.
+- 변경된 워크플로 정적 계약 테스트 `scripts/ci/test_workflow_contract.py`는 오프라인 테스트이고 실제 GitHub Actions/YAML 파서 검증의 대체물이 아니다.
+
+
+## OPS-CI02 오프라인 최종 인수 — 2026-11-20
+- 사용자 MiniPC의 임시 추출 경로에서 `11f6c508e712fd6f83fa73d25d2e69a86425b7ee` 대상 **unittest 28개 전부 PASS** (`Ran 28 tests ... OK`).
+- 사전 공개 감사기 합성 self-test PASS: `FOLIOSENTRY_PREPUBLIC_SCANNER_SYNTHETIC_SELFTEST_PASS`.
+- PyYAML YAML 파싱 PASS(`FOLIOSENTRY_YAML_PARSE_PASS`) 및 최종 `FOLIOSENTRY_CI_OFFLINE_GATE_PASS` 확인. 운영 Git 작업트리 변경/실 KIS 조회/DB 작업 없음.
+- 이번 PASS는 오프라인 계약·형식·경로 분기 검사에 한정. **GitHub-hosted CI 8개 job의 실제 실행 PASS는 아직 미확인**. Actions 무료 포함량 갱신/호스팅 Runner 정상화 후 검증, `main` 반영은 별도 승인.
+- FolioSentry 저장소 **Private 유지** 결정 지속. Public visibility 변경 금지.
+
+
+## 2026-11-23 Public 전환 및 CI 정책 확정 (최신 사용자 결정)
+- 사용자 GitHub에서 `ramza2/folio-sentry`를 **Public으로 직접 변경**, GitHub API에서 `private=false`/`visibility=public` 검증. 과거 'Private 유지' 기록은 과거 결정이며 이 섹션에서 대체한다. **새 공개 미러를 만들지 않는다.**
+- Windows WSL2 FolioSentry Local CI 전용 저장소·보고서는 사용자가 정리 PASS. 로컬 CI 재구축 금지. 개발 검증은 표준 GitHub-hosted `ubuntu-latest` Actions CI를 사용한다. 비용절약용 push/PR 중복실행 제한과 안정적인 `CI gate`를 보존한다.
+- **절대 공개·커밋 금지**: 실제 KIS App Key/Secret, token cache, 계좌번호/계좌 보유내역, DB credential, 백업 데이터·TLS 키·쿠키, Windows/운영 MiniPC의 개인 `.env`/비밀 파일. `.gitignore`는 실수 방지일 뿐 과거 이력·강제 `git add -f`·로그 노출을 막지 못한다. CI PR에는 실제 secrets 제공하지 않고 synthetic 데이터만 사용한다. KIS 파일은 홈 `.config/foliosentry` 등 저장소 외부 0700/0600로 유지.
+- Public이라도 운영 IP/도메인·포트/내부 도커 네트워크 구조가 공개되므로 배포 설정은 최소 권한·비밀 분리·인증 보호 유지. 기존 이력·Actions 로그를 전수 감사한 결과는 아직 없음. 실제 비밀이 이력에 노출됐다면 즉시 해당 키 교체 후 대응.
+- 이 브랜치의 GitHub CI 확인을 위한 **Draft PR 생성 허용 범위는 검증까지만**. `main` 병합, Draft PR #24/#25/#26 변경·병합, 운영 DB migration/실 KIS 조회/배포는 사용자의 별도 명시적 승인 필요.
