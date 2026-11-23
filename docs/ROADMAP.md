@@ -202,3 +202,13 @@ Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 �
 - [ ] GitHub Actions 무료 할당량 갱신 후 실제 PR CI 및 8개 작업의 선택 실행/최종 Gate 정상 동작 확인
 - [ ] 사용자의 명시적 승인 후 CI 최적화 브랜치 병합 및 PR #24→#25→#26 순차 리뷰/통합
 - [x] 저장소 Private 유지 — 사용자가 최종 확정
+
+
+## OPS-PUBLIC-CI01 — Public 전환 완료 및 GitHub Actions 검증 (2026-11-23)
+- [x] 사용자가 기존 `ramza2/folio-sentry` 저장소를 **직접 Public으로 전환**. GitHub API `private=false`, `visibility=public` 확인. 이전 Private 유지 결정은 변경됨.
+- [x] Windows WSL2 Local CI FolioSentry 전용 폴더·테스트 보고서 삭제 완료. 해당 환경 재구축 불필요.
+- [x] `main`의 `.env`/`.env.*` Git ignore 유지, 공개용 비밀 파일 패턴 보강. 운영 MiniPC의 실제 자격증명·DB·KIS는 GitHub와 분리.
+- [ ] CI 최적화 별도 Draft PR에서 **GitHub-hosted Actions 실 실행**으로 변경 라우터/전체 작업/고정 `ci-gate` PASS 확인.
+- [ ] 사용자 **별도 명시 승인** 후 CI 최적화 PR 병합 → PR #24 → #25 → #26 순차 병합 준비. 각 단계 최신 HEAD CI와 CI workflow/MD03 충돌 해소 필수.
+- [ ] 과거 전체 Git refs 및 Actions 로그/아티팩트 비밀정보 전수 감사 별도. 공개 운영주소/인프라 단서는 현행 소스 일부에 남아 있음. 키 노출 의심 시 교체.
+- [ ] 운영 KIS 자격증명 설치/실조회/시세 저장 및 운영 DB schema migration/배포는 각각 별도 승인.

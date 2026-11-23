@@ -264,3 +264,11 @@
 - PyYAML YAML 파싱 PASS(`FOLIOSENTRY_YAML_PARSE_PASS`) 및 최종 `FOLIOSENTRY_CI_OFFLINE_GATE_PASS` 확인. 운영 Git 작업트리 변경/실 KIS 조회/DB 작업 없음.
 - 이번 PASS는 오프라인 계약·형식·경로 분기 검사에 한정. **GitHub-hosted CI 8개 job의 실제 실행 PASS는 아직 미확인**. Actions 무료 포함량 갱신/호스팅 Runner 정상화 후 검증, `main` 반영은 별도 승인.
 - FolioSentry 저장소 **Private 유지** 결정 지속. Public visibility 변경 금지.
+
+
+## 2026-11-23 Public 전환 및 CI 정책 확정 (최신 사용자 결정)
+- 사용자 GitHub에서 `ramza2/folio-sentry`를 **Public으로 직접 변경**, GitHub API에서 `private=false`/`visibility=public` 검증. 과거 'Private 유지' 기록은 과거 결정이며 이 섹션에서 대체한다. **새 공개 미러를 만들지 않는다.**
+- Windows WSL2 FolioSentry Local CI 전용 저장소·보고서는 사용자가 정리 PASS. 로컬 CI 재구축 금지. 개발 검증은 표준 GitHub-hosted `ubuntu-latest` Actions CI를 사용한다. 비용절약용 push/PR 중복실행 제한과 안정적인 `CI gate`를 보존한다.
+- **절대 공개·커밋 금지**: 실제 KIS App Key/Secret, token cache, 계좌번호/계좌 보유내역, DB credential, 백업 데이터·TLS 키·쿠키, Windows/운영 MiniPC의 개인 `.env`/비밀 파일. `.gitignore`는 실수 방지일 뿐 과거 이력·강제 `git add -f`·로그 노출을 막지 못한다. CI PR에는 실제 secrets 제공하지 않고 synthetic 데이터만 사용한다. KIS 파일은 홈 `.config/foliosentry` 등 저장소 외부 0700/0600로 유지.
+- Public이라도 운영 IP/도메인·포트/내부 도커 네트워크 구조가 공개되므로 배포 설정은 최소 권한·비밀 분리·인증 보호 유지. 기존 이력·Actions 로그를 전수 감사한 결과는 아직 없음. 실제 비밀이 이력에 노출됐다면 즉시 해당 키 교체 후 대응.
+- 이 브랜치의 GitHub CI 확인을 위한 **Draft PR 생성 허용 범위는 검증까지만**. `main` 병합, Draft PR #24/#25/#26 변경·병합, 운영 DB migration/실 KIS 조회/배포는 사용자의 별도 명시적 승인 필요.

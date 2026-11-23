@@ -100,3 +100,11 @@
 - PyYAML 성공은 YAML 구조 파싱 검증만 의미하며 **실제 GitHub Actions Runner 동작, PR 이벤트/required checks, Docker/PostgreSQL E2E 수행을 보증하지 않는다**.
 - 검증 이후 문서만 갱신하는 커밋은 검증 코드와 분리. GitHub Actions 사용량/결제 제한 해소 전 신규 Actions 실행, 임의 병합, 운영 MiniPC 배포, KIS 추가 실호출은 하지 않는다.
 - 사용자 결론: FolioSentry GitHub 저장소 **Private 유지**.
+
+
+## 2026-11-23 저장소 공개 전환 완료 — 이전 Private 정책 최신화
+- 사용자 직접 `ramza2/folio-sentry`를 **Public**으로 변경. GitHub API `private=false`, `visibility=public` 확인. 본 문서 위의 'Private 유지/전환 금지'는 2026-11-20 당시 결정 기록으로서 **현재 정책이 아님**.
+- FolioSentry WSL2 Local CI 전용 경로는 사용자 정리 완료. 앞으로 Private 예산 회복 대기 대신 표준 GitHub-hosted Ubuntu Actions를 CI 기본으로 사용. `pull_request(main)` 한 번, `push(main)` 사후 검사, 브라우저 수동 실행 등 기존 비용·중복 방지 구조 유지.
+- 공개용 repo는 `.env`, `.env.*`, `kis_appkey`, `kis_appsecret`, `.secrets/`, 개인 키/백업 파일을 Git에서 제외한다. 실제 키·DB·계좌 정보는 MiniPC의 저장소 외부에만 보관. GitHub Actions는 synthetic credential만 사용.
+- 공개 전 과거 Git 이력/Actions logs를 완전히 감사한 적은 없으며 운영 주소/호스트 관련 문서가 이미 공개됨. `.gitignore`는 기존 이력을 지우지 않는다. 실제 민감키가 유출됐다면 즉시 폐기·교체.
+- 다음 증빙은 이 변경 브랜치의 신규 Draft PR에 대한 GitHub-hosted CI PASS로 확보하고, 그 후 별도 사용자 승인 없이 `main`/원본 PR #24~#26을 병합하지 않는다.
