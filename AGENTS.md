@@ -349,3 +349,12 @@
 - Public 경량 CI 라우터와 CI gate는 유지. 실제 KIS 키/토큰·계좌·DB 백업을 GitHub/로그에 입력하지 않는다. 합성 transport만 테스트에서 허용.
 - MiniPC 운영 DB에 20261120_pricebar01 적용 여부 미확인. 별도 승인 없이 alembic upgrade head, KIS 재조회/토큰 발급, 운영 배포, 백업타이머 변경, 실 가격 UI 노출 금지.
 - KRX 특수일정과 KIS 최종 종가/원천 관측시각/RAW·ADJUSTED 근거가 준비되기 전 VALID 전이 구현 금지. 상세 docs/MD04A_OFFLINE_INTAKE.md.
+
+
+## MD-04A 병합 확인 및 MD-04B 최종성 증빙 결손 게이트 (2026-11-23)
+- MD-04A PR #29은 사용자 승인으로 main@23399f6 병합, GitHub-hosted 후속 CI PASS. 위의 Draft 상태는 과거 기록이다.
+- MD-04B는 합성 KIS 일봉에 대해 **거래소 세션 검증과 공급자 최종 종가 증명은 서로 다른 조건**임을 코드와 테스트로 고정한다. backend/app/md04_finality.py, backend/tests/test_md04_finality.py 및 docs/MD04B_FINALITY_EVIDENCE.md 참조.
+- 종목/시장·거래일·가격 품질 검증을 통과해도 원천 관측시각, 공급자 종가 확정, RAW/ADJUSTED 매핑·정정·기업행동 이력 증빙이 없으면 FINAL/VALID 판정 금지.
+- 호출자가 요청한 RAW/ADJUSTED와 배치 가격 기준 불일치는 MD04B_REQUESTED_BASIS_MISMATCH로 거부한다. 비가격 진단 결과는 PARTIAL/UNFINALIZED, 허용 플래그 전부 false, BLOCKER 코드만 기록. OHLCV·개인 보유/인증정보 로깅 금지.
+- KIS 국내 inquire-daily-itemchartprice 공식 예제는 FID_ORG_ADJ_PRC 0=수정주가, 1=원주가. 해외 dailyprice의 MODP 선택값 의미는 공급자 원문 상세 증빙 및 결과 기준 추가 확인 전 확정하지 않는다.
+- Public main CI 라우팅, MD03 isolated PostgreSQL test, 기존 schema 체크와 portfolio_api UNAVAILABLE/NULL 계약 유지. 별도 승인 없이는 main 병합, MiniPC DB migration/배포, 실 KIS 호출·새 토큰, 스케줄러, UI/신호/알림/손익 표시 금지.
