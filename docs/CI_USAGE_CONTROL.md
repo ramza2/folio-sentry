@@ -108,3 +108,10 @@
 - 공개용 repo는 `.env`, `.env.*`, `kis_appkey`, `kis_appsecret`, `.secrets/`, 개인 키/백업 파일을 Git에서 제외한다. 실제 키·DB·계좌 정보는 MiniPC의 저장소 외부에만 보관. GitHub Actions는 synthetic credential만 사용.
 - 공개 전 과거 Git 이력/Actions logs를 완전히 감사한 적은 없으며 운영 주소/호스트 관련 문서가 이미 공개됨. `.gitignore`는 기존 이력을 지우지 않는다. 실제 민감키가 유출됐다면 즉시 폐기·교체.
 - 다음 증빙은 이 변경 브랜치의 신규 Draft PR에 대한 GitHub-hosted CI PASS로 확보하고, 그 후 별도 사용자 승인 없이 `main`/원본 PR #24~#26을 병합하지 않는다.
+
+
+## 2026-11-23 Public GitHub Runner 최초 실행: 합성 PostgreSQL 초기화 경쟁 보완
+- Draft PR #28 Public CI 첫 run `45124193477`: `changes`, `backend`, `frontend`, `compose-config`, `auth-db-migration`, `deploy01-production-config` **6개 PASS**. `deploy02-backup-e2e`만 합성 PostgreSQL의 `database "folio" does not exist`로 FAIL, 이에 따라 `CI gate`도 FAIL.
+- 해당 CI 백업 스크립트는 `pg_isready`의 `healthy` 판정 직후 `POSTGRES_DB=folio` 생성이 완료됐다고 가정했으나, PostgreSQL 초기화 과정에서 잠시 불일치할 수 있음. **원인 추정은 로그와 코드에 근거한 초기화 경쟁 조건**이며 실 MiniPC DB 장애라는 증거는 없음.
+- 보완: CI 전용 `scripts/test-backup-ci.sh`에서 `SELECT 1` SQL 성공을 최대 40초 대기한 뒤 DDL/합성 백업/격리 복원 테스트 시작. 오류 시 자격증명/DB 데이터 로그를 내보내지 않으며 기존 일회용 Docker 정리 유지.
+- `scripts/ci/test_workflow_contract.py`에 SQL-ready 가드 순서 검증 1개 추가. 재실행은 새로운 PR SHA에서 실제 Runner 결과로 확인하며, 수정 전 테스트의 FAIL을 PASS라 표기하지 않음.

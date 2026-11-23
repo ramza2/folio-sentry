@@ -124,6 +124,22 @@ class WorkflowCostAndSafetyContract(unittest.TestCase):
         ):
             self.assertIn(check, self.jobs[job])
 
+    def test_backup_ci_waits_for_real_sql_readiness(self):
+        """pg_isready may pass before POSTGRES_DB exists in entrypoint init."""
+        backup_ci = (ROOT / "scripts/test-backup-ci.sh").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("GITHUB_ACTIONS_ONLY", backup_ci)
+        self.assertIn('[[ "$health" == "healthy" ]]', backup_ci)
+        self.assertIn('sql_ready=0', backup_ci)
+        self.assertIn("-c 'SELECT 1' >/dev/null 2>&1", backup_ci)
+        self.assertIn('[[ "$sql_ready" == 1 ]]', backup_ci)
+        self.assertIn("FOLIOSENTRY_CI_DB_SQL_READY_PASS", backup_ci)
+        self.assertLess(
+            backup_ci.index("FOLIOSENTRY_CI_DB_SQL_READY_PASS"),
+            backup_ci.index("CREATE TABLE public.alembic_version"),
+        )
+
     def test_chromium_browser_acceptance_manual_only(self):
         header = self.browser.split("\njobs:\n", 1)[0]
         self.assertIn("on:\n  workflow_dispatch:", header)

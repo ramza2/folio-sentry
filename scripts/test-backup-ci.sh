@@ -31,6 +31,22 @@ for _ in $(seq 1 40); do
 done
 [[ "$health" == "healthy" ]] || { echo "ERROR=CI_DB_NOT_HEALTHY" >&2; exit 1; }
 
+# pg_isready can succeed while the postgres entrypoint is still creating
+# POSTGRES_DB/POSTGRES_USER. Require a real SQL connection before schema DDL.
+# This is ONLY a synthetic GitHub Actions container, never the MiniPC DB.
+sql_ready=0
+for _ in $(seq 1 40); do
+  if docker exec -i "$cid" \
+      psql -X -w -q -At -v ON_ERROR_STOP=1 -U folio -d folio \
+      -c 'SELECT 1' >/dev/null 2>&1; then
+    sql_ready=1
+    break
+  fi
+  sleep 1
+done
+[[ "$sql_ready" == 1 ]] || { echo "ERROR=CI_DB_SQL_NOT_READY" >&2; exit 1; }
+echo "FOLIOSENTRY_CI_DB_SQL_READY_PASS"
+
 docker exec -i "$cid" psql -X -w -q -v ON_ERROR_STOP=1 -U folio -d folio <<'SQL'
 CREATE TABLE public.alembic_version (version_num varchar(32) NOT NULL);
 INSERT INTO public.alembic_version VALUES ('20261119_auth01');
