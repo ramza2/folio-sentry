@@ -47,8 +47,18 @@ class Md03IsolatedDockerContract(unittest.TestCase):
         self.assertIn('target=/workspace/backend,readonly', s)
         self.assertIn("FOLIOSENTRY_MD03_ISOLATED_DB_TEST=yes", s)
         self.assertIn("python -m alembic upgrade head", s)
-        self.assertIn("python scripts/test_price_bar_isolated_ci.py", s)
+        self.assertIn("python -m scripts.test_price_bar_isolated_ci", s)
+        self.assertIn("--env PYTHONPATH=/workspace/backend", s)
         self.assertIn("FOLIOSENTRY_MD03_ISOLATED_POSTGRES_INTEGRATION_PASS", s)
+
+    def test_reused_image_must_import_mounted_review_code(self):
+        s = self.source
+        self.assertIn("FOLIOSENTRY_MD03_ARCHIVED_SOURCE_IMPORT_PASS", s)
+        self.assertIn("MD03_WRONG_BACKEND_SOURCE_IMPORT", s)
+        self.assertIn("location.is_relative_to(root)", s)
+        self.assertIn("python -m alembic upgrade head", s)
+        self.assertIn("python -m scripts.test_price_bar_isolated_ci", s)
+        self.assertNotIn("python scripts/test_price_bar_isolated_ci.py", s)
 
     def test_no_key_read_or_network_download(self):
         s = self.source

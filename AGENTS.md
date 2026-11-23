@@ -295,3 +295,9 @@
 - 운영 foliosentry-prod 컨테이너에서 실행/재시작/DB접속/환경변수·비밀파일 접근 금지. 운영 이미지 ID만 확인, 신규 PostgreSQL --network none, tmpfs, host port 없음. Python 테스트가 일회용 namespace만 공유한다.
 - Docker pull/build/pip install/실 KIS·실 계좌/운영 마이그레이션/운영 Compose/배포 금지. scripts/ci/test_md03_isolated_docker_contract.py는 실행 명령의 핵심 안전 계약만 검사한다. 최신 지침 docs/MD03_ISOLATED_POSTGRES_LOCAL.md 참조.
 - 이 스크립트는 아직 MiniPC 실행 PASS를 확인받지 못함. 따라서 실제 PostgreSQL 격리 E2E 결과는 미검증. 사용자가 승인하지 않으면 main, 운영 환경, KIS 토큰, 가격 시세·UI 불변. Private 유지.
+
+## MD03-DB-LOCAL 1차 실패 및 재실행 게이트 (2026-11-23)
+- 사용자 MiniPC: 격리 PostgreSQL READY와 사전 안전 계약 5/5 PASS, 그러나 가격 저장 테스트 시작에서 app.market_data ModuleNotFoundError 발생. 실 격리 DB E2E는 아직 PASS 아님.
+- 운영 Backend 이미지를 재사용하되 신규 테스트 컨테이너에만 PYTHONPATH=/workspace/backend를 고정. migration 이전 archive app 전체 import 경로를 검증하고 다른 설치 패키지 경로면 중단한다.
+- 이제 python -m scripts.test_price_bar_isolated_ci를 사용하여 아카이브 기반 단위 스크립트를 실행한다. 실제 KIS 호출/토큰/운영 DB 및 Compose 변경 절대 금지.
+- 수정본 검증 PASS 전 main 병합/운영 배포 금지, Private 유지. 운영 컨테이너는 기존처럼 이미지 ID만 inspect, 테스트 전용 leftover는 읽기 전용 진단.

@@ -251,3 +251,12 @@ Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 �
 - [ ] 명시적인 합성 컨테이너 실행으로 격리 PostgreSQL E2E PASS 확인
 - [ ] GitHub Actions CI 최종 검증·기존 Draft PR 단계적 병합은 무료 사용량 갱신/사용자 별도 승인 뒤 수행
 - [x] Private 유지, 실 KIS 토큰 재발급/운영 마이그레이션·서비스 변경 없음
+
+## MD03-DB-LOCAL-2 — 아카이브 Python import 검증 (2026-11-23)
+- [x] 첫 실행: Bash 구문 PASS, Docker 안전계약 5/5 PASS, 일회용 PostgreSQL READY.
+- [x] 첫 DB E2E는 ModuleNotFoundError: No module named 'app.market_data'로 중단. 미완료/FAIL을 기록.
+- [x] PYTHONPATH=/workspace/backend 고정 및 python -m scripts.test_price_bar_isolated_ci 실행으로 임시 아카이브 소스를 우선 검색하게 수정.
+- [x] Alembic 전에 실제 app 모듈 import 경로 확인. 이전 운영 이미지의 설치 패키지가 검색되면 fail-closed.
+- [ ] 수정 커밋 MiniPC Bash 구문·안전 계약 6/6·사전점검 및 일회용 PostgreSQL E2E 재검증.
+- [ ] 지난 실패의 임시 Docker 컨테이너 잔존 여부 읽기 전용 조회(운영 컨테이너 삭제 금지).
+- [x] Private 유지, main 병합/운영 DB/실 KIS 재호출 없음.

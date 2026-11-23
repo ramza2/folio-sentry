@@ -139,11 +139,24 @@ docker run --rm --pull never \
   --env FOLIOSENTRY_DB_NAME=folio_ci \
   --env FOLIOSENTRY_DB_PASSWORD=ci-only-not-a-real-secret \
   --env FOLIOSENTRY_MD03_ISOLATED_DB_TEST=yes \
+  --env PYTHONPATH=/workspace/backend \
   --env PYTHONDONTWRITEBYTECODE=1 \
   --env PYTHONUNBUFFERED=1 \
   "$BACKEND_IMAGE" sh -eu -c '
+    # The reused operating image has an older installed app. Force and verify
+    # all application imports from the read-only Git archive BEFORE migration.
+    python -c "
+from pathlib import Path
+import app
+from app import market_data, price_models, price_repository
+root = Path(\"/workspace/backend/app\").resolve()
+for module in (app, market_data, price_models, price_repository):
+    location = Path(module.__file__).resolve()
+    assert location.is_relative_to(root), \"MD03_WRONG_BACKEND_SOURCE_IMPORT\"
+print(\"FOLIOSENTRY_MD03_ARCHIVED_SOURCE_IMPORT_PASS\")
+"
     python -m alembic upgrade head
-    python scripts/test_price_bar_isolated_ci.py
+    python -m scripts.test_price_bar_isolated_ci
     python -c "
 from sqlalchemy import text
 from app.database import get_engine
