@@ -415,3 +415,14 @@
 - 모든 참조 후보가 모여도 METADATA_COMPLETE_HUMAN_REVIEW_REQUIRED/HOLD_UNVERIFIED만 가능. source_observed_at NULL, authenticity/human/policy verified false, is_final/publication/promotion/analysis/automatic_storage false. **문서 지문/메타데이터는 실제 서명·진위 검증이나 2인 승인 아님**.
 - 수동 공식 문서 수령→기술 검토→독립 데이터 정책 검토→근거·승인 확인→별도 v2 finality/DB 설계 PR→운영 변경 승인 순서. docs/MD04C6_PROVIDER_EVIDENCE_HANDOFF.md에 상세. 이 PR에서는 누구에게도 공급자 연락·이메일 발송하지 않는다.
 - 기존 MD03 price_bar PARTIAL-only, MD04C3 UNVERIFIED, MD04C4 UNVERIFIED_REFERENCE, MD04C2 UNAVAILABLE/손익 null 유지. 별도 승인 전 main 병합/운영 MiniPC DB migration·배포/실 KIS API·토큰/가격·손익·신호·알림 공개 금지.
+
+
+## 사용자 방향 전환 / MD-05A 실제 KIS 수동 일봉 참고값 (2026-11-23)
+- 사용자 결정: **MD-04C7 공식 공급자 증빙 요청서 생략, MD-05 실제 가격/보유 종목 기능 우선**. MD-04B~C6 코드는 폐기하지 않되 새 문서 검증 절차만 반복하지 않는다. MD04C6 PR #36 사용자 승인 main@cc9a4ec 병합, Hosted CI #45152250929 Backend 344 PASS/CI gate PASS.
+- MD05A는 **실제 KIS 과거 일봉 수동 조회**를 위한 첫 수직 기능. `backend/app/md05_manual_reference.py` 인증/CSRF POST와 기능 capability GET, `frontend/src/RealPortfolioPage.tsx` 각 실제 종목 수동 참고 종가 버튼, `frontend/src/realPortfolioApi.ts` 엄격 응답 스키마. 기본 두 운영 플래그가 없으면 버튼 비활성/POST 503, **비밀 파일·DB·KIS 접근 없음**.
+- 실 KIS 실제 호출은 **별도 승인 전 금지**. 운영 설정 `FOLIOSENTRY_MD05_MANUAL_READ_ENABLED=yes` 및 `FOLIOSENTRY_MD05_REFERENCE_DISPLAY_ENABLED=yes` (둘 다 설정 시 활성), 신규 토큰 발급 `FOLIOSENTRY_MD05_NEW_TOKEN_ISSUE_ALLOWED=yes` 는 **독립 승인** 대상. 이 PR에서 운영 변수 설정·비밀 파일/볼륨 mount·실조회/토큰 발급·MiniPC 배포 금지.
+- 기존 공유된 `KisSharedState`로 교차 프로세스 호출 24시간 60회, 최소 간격 1.25초 및 24시간 토큰 발급 간격·내구성 마커 유지. 브라우저 버튼은 명시적 POST+CSRF 1회만, 자동 fetch/poll/retry/스케줄러 금지. KIS 일봉을 `현재가`/확정 종가로 표현하거나 기업행동·정정 보증을 추정하지 않는다.
+- 요청시장 로컬 기준 어제 이하 일봉 14일 조회, 최신 5일을 넘은 stale은 금액 null, no data도 null. `REFERENCE`에 표시되는 실수신 가격은 수동 조회 **과거 일봉 참고값**이고 `is_final=false`; 별도 브라우저 임시 상태에만 저장, 실제 종목 `quote=UNAVAILABLE` 및 PnL null 유지. JS float 계산 금지.
+- MD03 price_bar PARTIAL-only, MD04C3/4 UNVERIFIED, 기존 quote-status no price 유지; DB schema/migration 변경 없음. 리포/CI의 테스트는 synthetic KIS 제공자와 격리 SQLite만 사용.
+- 최종 목표는 실제 보유/관심 현재가·평가손익·알림. MD05B는 현재가 API 계약/수동 조회, MD05C는 소수점 안전한 통화별 평가손익 등. 배포/실호출/가격·손익 공개/자동 알림은 각각 사용자 명시 승인.
+- 상세 docs/MD05A_MANUAL_KIS_DAILY_REFERENCE.md.
