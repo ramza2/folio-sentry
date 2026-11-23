@@ -20,3 +20,16 @@ frontend/dist/
 .DS_Store
 .idea/
 .vscode/
+
+# Private credentials and runtime data (never commit to Public repo)
+kis_appkey
+kis_appsecret
+.secrets/
+.private/
+.pgpass
+*.pem
+*.p12
+*.pfx
+*.key
+*.dump
+*.bak
