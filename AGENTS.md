@@ -446,3 +446,10 @@
 - 최근 앱 수신 5분만 계산, 수신시각 미래 5초 초과·비정상 값·시세 출처/통화/최종성 불일치 차단. 이는 공급자 체결시각/실시간 시세 보증 아님. 수량/원가 미입력, 관심종목 및 미조회/만료 제외, 원가 없는 종목은 평가금액만 표시. 현재가 재조회 실패/목록 갱신 시 임시 값 제거. 로컬 시간 타이머만, 자동 KIS 폴링 금지.
 - 통화별 집계는 로드된 보유 목록의 참고 부분 집계(평가금액·손익 포함 건수/시각 범위, pagination 안내)이며 실제 계좌 잔고 아님. 세금/수수료/환율/실현손익/기업행동 보정 제외. 기존 GET 목록 quote=UNAVAILABLE/PnL null 및 MD03/MD04 저장 제약 불변; DEMO·신호·알림 독립.
 - 다음은 코드 병합 후 **MiniPC 배포 및 실제 KIS 연동 점검**에 집중. 운영 플래그·토큰·배포·가격/손익 활성화는 별도 명시 승인. Cursor 불필요.
+
+## MD-05 운영 준비 — 2026-11-24
+- MD05C PR #39 main@ed04fdd 병합, postmerge CI #45309448621 SUCCESS (437 backend / 46 frontend).
+- 사용자 MiniPC 읽기 전용 확인: main@84e94cf clean, 3 서비스 healthy, DB 20261119_portfolio01/owner 1, 백업 2개/최신 115.9h/checksum+TOC PASS/portfolio 포함 미확인, timer inactive/disabled, KIS 파일 metadata PASS/first probe marker present/shared-state 미발견, backend uid 0, disk 37GB free.
+- backup-db.sh 및 verify-backup-restore.sh에 알려진 5개 revision과 필요한 테이블 존재 검사. unknown revision 또는 누락 테이블은 fail closed. 합성 backup CI auth01/portfolio01/quality02; actual restore 별도 승인.
+- compose.md05.yml은 명시적으로 선택하는 overlay, backend UID:GID를 호스트 private 파일 소유자와 일치시키고 기존 DB secret 읽기 가능성도 반드시 preflight. KIS 키 2개 RO bind, 기존 또는 별도 승인 생성한 0700 영속 state RW bind, create_host_path=false, cap_drop ALL/no-new-privileges. DB/frontend/Traefik 변경 금지. 모든 MD05 flag 기본 no. UID mapping/rootless 및 DB secret/기존 토큰 상태는 실측 후 승인.
+- 다음 순서: PR CI/병합 승인 → 기존 portfolio01 신규 private backup + 격리 restore(별도 승인) → pinned image build 및 network-none non-root preflight → backend/frontend 교체(별도 승인), DB 컨테이너 유지. MD05 수동 조회는 portfolio01만으로 가능하며 price history schema migration은 별도. KIS 호출/신규 token/시세·손익 활성화는 배포와 분리하여 승인. 기존 최초 probe marker 절대 삭제/재실행 금지. 타이머 현행 inactive/disabled 유지, 복구/재활성 별도.

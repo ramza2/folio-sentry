@@ -438,3 +438,13 @@ Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 �
 - [ ] 실제 KIS 국내/미국 현재가·일봉 수동 조회 및 화면/참고 평가손익 인수검사. 실제 응답 시간·지연 권한 확인; 신규 토큰 승인 및 호출량 제한 유지.
 - [ ] 이후 자동 시세 갱신·차트·신호·알림 단계 진행. 환율환산/세금·수수료/실현손익은 별도.
 - 상세 docs/MD05C_REFERENCE_VALUATION.md.
+
+## MD-05 운영 연동 사전점검 (2026-11-24)
+- [x] PR #39 승인 병합 main@ed04fdd / CI #45309448621 SUCCESS.
+- [x] MiniPC 실측: main@84e94cf clean, 3 services healthy, portfolio01/owner 1, 최신 backup 115.9h/checksum PASS/portfolio 미확인, timer disabled, KIS key metadata PASS, backend UID0, 37GB free.
+- [x] 알려진 schema revision backup/restore 호환 및 optional non-root MD05 Compose overlay 작성. 실 운영 변경 없음.
+- [ ] 최신 PR CI 및 병합 승인.
+- [ ] 새 portfolio01 운영 백업 및 no-network 복원 검증 승인/실행.
+- [ ] UID/GID·DB secret·KIS private bind 및 shared-state 사전점검, image build, rollback 준비.
+- [ ] backend/frontend 배포(운영 DB schema 유지), 실제 KIS 시세/손익 별도 승인 후 인수검사.
+- [ ] price history schema/자동 수집/백업 timer 재활성은 별도 검토.
