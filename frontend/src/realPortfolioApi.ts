@@ -31,6 +31,18 @@ export interface Paginated<T> {
   items: T[];
   next_cursor: string | null;
 }
+/** Separate, owner-triggered KIS historical reference. Never changes RealTracked.quote. */
+export interface ManualDailyReference {
+  status: "REFERENCE" | "STALE" | "UNAVAILABLE";
+  close: string | null;
+  session_date: string | null;
+  fetched_at: string | null;
+  source: "KIS" | null;
+  price_basis: "RAW" | null;
+  currency: "KRW" | "USD";
+  is_final: false;
+}
+
 export type ManualInstrumentInput = Pick<
   RealInstrument, "market" | "exchange_mic" | "symbol" | "name" | "asset_type"
 >;
@@ -168,4 +180,77 @@ export async function editTracked(id: string, data: TrackPatch, csrf: string):
 }
 export async function removeTracked(id: string, csrf: string): Promise<void> {
   await mutation("DELETE", "tracked/" + encodeURIComponent(id), csrf);
+}
+
+/** No provider request; capability only. A missing backend feature must not activate UI. */
+export async function loadManualReferenceCapability(
+  signal?: AbortSignal,
+): Promise<boolean> {
+  const raw = await apiRequest("market-data/capabilities", { signal });
+  if (!isRecord(raw) ||
+      Object.keys(raw).length !== 1 ||
+      typeof raw.manual_daily_reference_enabled !== "boolean") {
+    throw new Error("KIS 참고 시세 기능 상태를 확인할 수 없습니다.");
+  }
+  return raw.manual_daily_reference_enabled;
+}
+
+const referenceKeys = new Set([
+  "status", "close", "session_date", "fetched_at",
+  "source", "price_basis", "currency", "is_final",
+]);
+
+function parseManualDailyReference(raw: unknown): ManualDailyReference {
+  if (!isRecord(raw) ||
+      Object.keys(raw).length !== referenceKeys.size ||
+      Object.keys(raw).some(key => !referenceKeys.has(key)) ||
+      !["REFERENCE", "STALE", "UNAVAILABLE"].includes(String(raw.status)) ||
+      !["KRW", "USD"].includes(String(raw.currency)) ||
+      raw.is_final !== false) {
+    throw new Error("참고 일봉 응답 형식이 올바르지 않습니다.");
+  }
+  if (raw.status === "UNAVAILABLE") {
+    if (raw.close !== null || raw.session_date !== null ||
+        raw.fetched_at !== null || raw.source !== null ||
+        raw.price_basis !== null) {
+      throw new Error("참고 일봉의 비정상 가격 응답을 차단했습니다.");
+    }
+  } else {
+    if (raw.source !== "KIS" || raw.price_basis !== "RAW" ||
+        typeof raw.session_date !== "string" ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(raw.session_date) ||
+        typeof raw.fetched_at !== "string" ||
+        !/^\d{4}-\d{2}-\d{2}T.+(?:Z|[+-]\d{2}:\d{2})$/.test(raw.fetched_at) ||
+        !Number.isFinite(Date.parse(raw.fetched_at))) {
+      throw new Error("참고 일봉의 기준일·조회시각이 올바르지 않습니다.");
+    }
+    if (raw.status === "STALE") {
+      if (raw.close !== null) {
+        throw new Error("오래된 참고 시세의 가격 노출을 차단했습니다.");
+      }
+    } else if (typeof raw.close !== "string" ||
+               !/^(0|[1-9]\d{0,15})(?:\.\d{1,8})?$/.test(raw.close) ||
+               /^0(?:\.0+)?$/.test(raw.close)) {
+      throw new Error("참고 시세의 가격 형식이 올바르지 않습니다.");
+    }
+  }
+  return raw as unknown as ManualDailyReference;
+}
+
+/** Explicit POST + CSRF. One manual KIS attempt; no automatic polling or caching. */
+export async function loadManualDailyReference(
+  trackedId: string, csrf: string,
+): Promise<ManualDailyReference> {
+  if (!csrf || csrf.length < 32) throw new Error("유효한 인증 세션이 필요합니다.");
+  const raw = await apiRequest(
+    "tracked/" + encodeURIComponent(trackedId) + "/daily-reference",
+    { method: "POST", headers: { "X-CSRF-Token": csrf } },
+  );
+  if (!isRecord(raw) ||
+      Object.keys(raw).length !== 2 ||
+      raw.tracked_id !== trackedId ||
+      !Object.hasOwn(raw, "reference")) {
+    throw new Error("참고 일봉 응답의 등록 종목 ID가 일치하지 않습니다.");
+  }
+  return parseManualDailyReference(raw.reference);
 }

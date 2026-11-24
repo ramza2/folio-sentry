@@ -3,9 +3,11 @@ import { useOwnerAuth } from "./AuthGate";
 import { hiddenQuoteLabel } from "./realQuoteStatus";
 import {
   addInstrument, addTracked, editTracked, loadInstruments, loadTracked,
-  loadTrackedQuoteStatus, removeTracked,
+  loadTrackedQuoteStatus, loadManualReferenceCapability,
+  loadManualDailyReference, removeTracked,
   type AssetType, type ManualInstrumentInput, type Market,
   type RealInstrument, type RealTracked, type TrackedKind,
+  type ManualDailyReference,
 } from "./realPortfolioApi";
 
 const NEW_MANUAL: ManualInstrumentInput = {
@@ -117,9 +119,16 @@ export default function RealPortfolioPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [referenceEnabled, setReferenceEnabled] = useState(false);
+  // Reference prices are transient and never mixed into the persisted
+  // RealTracked.quote (which remains UNAVAILABLE and price-free).
+  const [referenceById, setReferenceById] = useState<Record<string, ManualDailyReference>>({});
 
   useEffect(() => {
     const controller = new AbortController();
+    void loadManualReferenceCapability(controller.signal)
+      .then((enabled) => { if (!controller.signal.aborted) setReferenceEnabled(enabled); })
+      .catch(() => { if (!controller.signal.aborted) setReferenceEnabled(false); });
     Promise.all([loadTracked(null, controller.signal), loadInstruments("", null, controller.signal)])
       .then(([tracked, catalog]) => {
         if (controller.signal.aborted) return;
@@ -140,6 +149,7 @@ export default function RealPortfolioPage() {
 
   const refreshRows = async () => {
     const data = await loadTracked();
+    setReferenceById({});
     setRows(data.items);
     setNextRows(data.next_cursor);
   };
@@ -207,7 +217,7 @@ export default function RealPortfolioPage() {
         <div>
           <span className="eyebrow">MY PORTFOLIO · REAL ENTRIES</span>
           <h2>실제 종목 관리</h2>
-          <p>직접 등록한 보유·관심 종목을 관리합니다. 시세와 손익 계산은 아직 연결되지 않았습니다.</p>
+          <p>직접 등록한 보유·관심 종목을 관리합니다. 승인된 경우에만 KIS의 과거 일봉 종가를 수동 조회할 수 있으며, 현재가·평가손익·알림은 아직 제공하지 않습니다.</p>
         </div>
         <button className="button secondary" disabled={busy || loading}
           onClick={() => void execute(async () => { await Promise.all([refreshRows(), refreshCatalog()]); setMessage("목록을 새로고침했습니다."); })}>
@@ -216,8 +226,8 @@ export default function RealPortfolioPage() {
       </div>
 
       <div className="real-warning" role="note">
-        <strong>직접 입력 · 시세 미연동</strong>
-        <span>종목명·거래소 정보는 외부 공급자 검증 전입니다. 가격·평가손익은 표시하지 않으며, DEMO 데이터와 합산하지 않습니다.</span>
+        <strong>직접 입력 · {referenceEnabled ? "참고 일봉 수동 조회" : "KIS 참고 일봉 조회 비활성"}</strong>
+        <span>최근 일봉 종가는 실시간 현재가나 최종 확정가가 아닙니다. 수동 조회는 별도 운영 승인 후 활성화되며, 평가손익·신호·알림 계산에 사용하지 않고 DEMO와도 분리합니다.</span>
       </div>
       {error && <div className="real-error" role="alert">{error}</div>}
       {message && <div className="real-message" role="status">{message}</div>}
@@ -248,8 +258,37 @@ export default function RealPortfolioPage() {
                   <span>수량 <b>{formatPosition(item)}</b></span>
                   <span>평균단가 <b>{item.average_cost ?? "미입력"} {item.average_cost ? item.instrument.currency : ""}</b></span>
                   <span className="real-muted" aria-label="시세 품질 상태">{hiddenQuoteLabel(item.quote.status)}</span>
+                  {referenceById[item.id] && (
+                    <span className="real-muted" role="status" aria-label="KIS 비확정 일봉 참고 가격">
+                      {referenceById[item.id].status === "REFERENCE"
+                        ? `KIS 참고 일봉 종가: ${referenceById[item.id].close} ${referenceById[item.id].currency}`
+                        : referenceById[item.id].status === "STALE"
+                        ? "오래된 KIS 일봉 · 가격 표시 안 함"
+                        : "조회 가능한 일봉 없음"}
+                      {referenceById[item.id].session_date
+                        ? ` · 거래일 ${referenceById[item.id].session_date}` : ""}
+                      {referenceById[item.id].fetched_at
+                        ? ` · 수신 ${new Date(referenceById[item.id].fetched_at!).toLocaleString("ko-KR", { timeZone: "Asia/Seoul", hour12: false })} KST` : ""}
+                      {" · 최종 확정 미검증 · 손익 미계산"}
+                    </span>
+                  )}
                 </div>
                 <div className="real-item-actions">
+                  <button type="button" disabled={busy || !referenceEnabled}
+                    aria-label={item.instrument.name + " KIS 참고 일봉 종가 수동 조회"}
+                    onClick={() => void execute(async () => {
+                      setReferenceById((current) => {
+                        const next = { ...current };
+                        delete next[item.id];
+                        return next;
+                      });
+                      const reference = await loadManualDailyReference(item.id, csrfToken);
+                      if (reference.currency !== item.instrument.currency) {
+                        throw new Error("KIS 참고 시세 통화가 종목 정보와 일치하지 않습니다.");
+                      }
+                      setReferenceById((current) => ({ ...current, [item.id]: reference }));
+                      setMessage("KIS의 과거 일봉 참고값만 조회했습니다. 현재가·최종 종가나 평가손익으로 사용하지 않습니다.");
+                    })}>참고 종가 조회</button>
                   <button type="button" disabled={busy}
                     aria-label={item.instrument.name + " 시세 품질 상태 확인"}
                     onClick={() => void execute(async () => {

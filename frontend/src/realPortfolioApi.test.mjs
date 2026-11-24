@@ -1,7 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  loadInstruments, loadTracked, loadTrackedQuoteStatus, addInstrument, addTracked, editTracked, removeTracked,
+  loadInstruments, loadTracked, loadTrackedQuoteStatus,
+  loadManualReferenceCapability, loadManualDailyReference,
+  addInstrument, addTracked, editTracked, removeTracked,
 } from "./realPortfolioApi.ts";
 
 const csrf = "test-csrf-token-abcdefghijklmnopqrstuvwxyz-0123456789";
@@ -193,5 +195,129 @@ test("authenticated status GET surfaces 401/404/503 without fake fallback", asyn
       globalThis.fetch = async () => ({ ok: false, status: code });
       await assert.rejects(loadTrackedQuoteStatus(position.id), message);
     }
+  } finally { globalThis.fetch = prior; }
+});
+
+const rawReference = {
+  status: "REFERENCE",
+  close: "105.25000000",
+  session_date: "2026-11-20",
+  fetched_at: "2026-11-23T02:15:00+00:00",
+  source: "KIS",
+  price_basis: "RAW",
+  currency: "KRW",
+  is_final: false,
+};
+
+test("manual reference capability is strict, no-store and owner-auth GET", async () => {
+  const prior = globalThis.fetch;
+  const calls = [];
+  globalThis.fetch = async (url, options) => {
+    calls.push([url, options]);
+    return okJson({ manual_daily_reference_enabled: true });
+  };
+  try {
+    assert.equal(await loadManualReferenceCapability(), true);
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0][0], "/api/v1/market-data/capabilities");
+    assert.equal(calls[0][1].credentials, "same-origin");
+    assert.equal(calls[0][1].cache, "no-store");
+    assert.equal(calls[0][1].method, undefined);
+    assert.ok(!calls[0][0].includes("kis"));
+    globalThis.fetch = async () => okJson({ manual_daily_reference_enabled: "true" });
+    await assert.rejects(loadManualReferenceCapability(), /기능 상태/);
+    globalThis.fetch = async () => okJson({ manual_daily_reference_enabled: true, secret: "oops" });
+    await assert.rejects(loadManualReferenceCapability(), /기능 상태/);
+  } finally { globalThis.fetch = prior; }
+});
+
+test("explicit reference request uses POST with CSRF, never modifies hidden quote", async () => {
+  const prior = globalThis.fetch;
+  const calls = [];
+  globalThis.fetch = async (url, options) => {
+    calls.push([url, options]);
+    return okJson({ tracked_id: position.id, reference: rawReference });
+  };
+  try {
+    const reference = await loadManualDailyReference(position.id, csrf);
+    assert.deepEqual(reference, rawReference);
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0][0], "/api/v1/tracked/" + position.id + "/daily-reference");
+    assert.equal(calls[0][1].method, "POST");
+    assert.equal(calls[0][1].headers["X-CSRF-Token"], csrf);
+    assert.equal(calls[0][1].credentials, "same-origin");
+    assert.equal(calls[0][1].cache, "no-store");
+    assert.equal(position.quote.status, "UNAVAILABLE");
+    assert.equal(position.quote.close, null);
+    assert.equal(position.market_value, null);
+    assert.ok(!calls[0][0].includes("demo"));
+    assert.ok(!calls[0][0].includes("kis"));
+  } finally { globalThis.fetch = prior; }
+});
+
+test("manual reference without valid CSRF cannot send any request", async () => {
+  const prior = globalThis.fetch;
+  globalThis.fetch = async () => { throw Error("network must not be called"); };
+  try { await assert.rejects(loadManualDailyReference(position.id, "short"), /유효한 인증/); }
+  finally { globalThis.fetch = prior; }
+});
+
+test("STALE or UNAVAILABLE reference never contains a price", async () => {
+  const prior = globalThis.fetch;
+  try {
+    for (const reference of [
+      { ...rawReference, status: "STALE", close: null },
+      { ...rawReference, status: "UNAVAILABLE", close: null, session_date: null,
+        fetched_at: null, source: null, price_basis: null },
+    ]) {
+      globalThis.fetch = async () => okJson({
+        tracked_id: position.id, reference,
+      });
+      assert.deepEqual(await loadManualDailyReference(position.id, csrf), reference);
+    }
+  } finally { globalThis.fetch = prior; }
+});
+
+test("manual reference rejects injected provider/financial fields and fake finality", async () => {
+  const prior = globalThis.fetch;
+  const invalid = [
+    { ...rawReference, is_final: true },
+    { ...rawReference, status: "CURRENT" },
+    { ...rawReference, status: "FINAL" },
+    { ...rawReference, source: "DEMO" },
+    { ...rawReference, price_basis: "ADJUSTED" },
+    { ...rawReference, close: 105.25 },
+    { ...rawReference, close: "-20" },
+    { ...rawReference, close: "0" },
+    { ...rawReference, session_date: "not-a-date" },
+    { ...rawReference, fetched_at: "not-time" },
+    { ...rawReference, extra: "token" },
+    { ...rawReference, market_value: "105" },
+    { ...rawReference, status: "STALE" },
+    { ...rawReference, status: "UNAVAILABLE", close: "105" },
+  ];
+  try {
+    for (const reference of invalid) {
+      globalThis.fetch = async () => okJson({
+        tracked_id: position.id, reference,
+      });
+      await assert.rejects(loadManualDailyReference(position.id, csrf));
+    }
+    for (const broken of [
+      { tracked_id: manual.id, reference: rawReference },
+      { tracked_id: position.id, reference: rawReference, pnl: "5" },
+      { tracked_id: position.id },
+    ]) {
+      globalThis.fetch = async () => okJson(broken);
+      await assert.rejects(loadManualDailyReference(position.id, csrf));
+    }
+  } finally { globalThis.fetch = prior; }
+});
+
+test("manual reference outage cannot fall back to synthetic price", async () => {
+  const prior = globalThis.fetch;
+  globalThis.fetch = async () => ({ ok: false, status: 503 });
+  try {
+    await assert.rejects(loadManualDailyReference(position.id, csrf), /준비되지/);
   } finally { globalThis.fetch = prior; }
 });

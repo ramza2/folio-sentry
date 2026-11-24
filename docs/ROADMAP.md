@@ -401,3 +401,16 @@ Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 �
 - [ ] 별도 사용자 병합 승인 후에만 main 병합. MiniPC 운영 DB migration·실 KIS 호출/토큰·배포·가격·손익·알림/시그널 공개 승인은 별도.
 - [ ] 실제 KIS 담당자로부터 7개 범주에 대한 1차 근거 확보 및 2인 검토 절차 별도 승인. 근거 미확보 시 현행 MD04B 6개 blocker 모두 HOLD.
 - 상세 docs/MD04C6_PROVIDER_EVIDENCE_HANDOFF.md.
+
+
+## 우선순위 전환 — MD-04C7 생략, MD-05 실제 시세·포트폴리오 구현 (2026-11-23)
+- [x] 사용자 지시로 MD-04C7 공급자 공식 증빙 요청서 개발 **생략**. 개인용 서비스의 실 시세·평가손익·알림 기능 우선.
+- [x] MD-04C6 PR #36 사용자 승인 main@cc9a4ec 병합, Hosted CI #45152250929 PASS; 운영 MiniPC/KIS 실조회 없음.
+- [x] MD-05A 첫 vertical slice: owner/CSRF 보호 수동 KIS 일봉 참고 종가 POST, capability GET, 등록 종목 화면 버튼·비확정/STALE/UNAVAILABLE 표시, 기존 KIS 공유 호출 한도·토큰발급 보호 재사용. 2중 운영 플래그 기본 비활성.
+- [x] 실제 현재가와 과거 일봉의 명칭 분리. 본 단계에서 PnL·실시간 시세·신호·알림·자동 수집·DB migration 구현하지 않음.
+- [x] Backend + Frontend 합성 데이터·인증·게이트·오류·비가격 손익 계약 테스트 및 안전 운영 설정 문서 작성.
+- [ ] MD-05A Draft PR 최신 Backend, Frontend, CI gate PASS 확인.
+- [ ] 별도 사용자 승인으로 main 병합; MiniPC 배포/환경변수 활성/실 KIS 신규 토큰/API/실시세 UI 공개 승인과 구분.
+- [ ] MD-05B 수동 **현재가** API(KR/US 계약·시간외/통화·신선도·호출 제한) 도입, 실응답 안전성/비용·권한 검토.
+- [ ] MD-05C 개별 종목 평가손익 계산(소수 정확도, 통화/환율/기준시각, 입력값 검사), 실 시세와 DEMO 분리, 알림/신호는 별도.
+- 상세 docs/MD05A_MANUAL_KIS_DAILY_REFERENCE.md.

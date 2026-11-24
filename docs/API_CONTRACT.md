@@ -115,3 +115,16 @@
 - 가격테이블 및 KIS 조회 없이 기존 instrument/tracked 테이블의 존재만 SELECT. 이전 Phase 1A의 STALE 가격 허용 계획은 이 구현에 적용되지 않는다.
 - 프론트 개별 상태 확인 버튼은 클릭 시에만 이 GET을 호출하며, tracked_id 불일치/추가 필드/비null 가격/원천 등은 오류로 차단. 기존 실 종목 목록은 변화 없음.
 - 현재 실제 백엔드 배포에는 포함되지 않았다. 코드 PR/CI PASS가 운영 API 존재 또는 live 시세를 의미하지 않음. 상세 docs/MD04C2_AUTH_QUOTE_STATUS.md.
+
+
+## MD-05A — 기본 비활성 수동 KIS 일봉 참고값 (2026-11-23)
+
+**GitHub Draft 코드만 준비. MiniPC 운영 배포·KIS 실호출·가격 공개는 별도 승인 전 금지.** 글로벌 single-owner 인증/CSRF/Origin 미들웨어 및 no-store 적용. 새 경로는 DEMO·자동 폴링·실계좌 주문과 무관하다.
+
+- `GET /api/v1/market-data/capabilities`: 인증 필수. `{"manual_daily_reference_enabled":false}` (기본). 비밀정보/DB/KIS 네트워크 접근하지 않음.
+- `POST /api/v1/tracked/{tracked_id}/daily-reference`: 인증 + CSRF/Origin, 사용자 수동 버튼 클릭에만 요청. 활성화 플래그 2개 모두 정확히 yes가 아니면 **503 MD05_MANUAL_REFERENCE_DISABLED**. 계좌 상태가 아닌 등록 종목 정보만 조회; 기존 공유 KIS token/quote state 필수, 신규 token 발급 독립 기본 비허용.
+- 정상 JSON 필드는 `tracked_id`, `reference`만 허용. `reference` 키는 `status`(`REFERENCE`/`STALE`/`UNAVAILABLE`), `close`(decimal 문자열/null), `session_date`(시장 현지 YYYY-MM-DD/null), `fetched_at`(우리 수신 시각 UTC/null), `source`(`KIS`/null), `price_basis`(`RAW`/null), `currency`(`KRW`/`USD`), `is_final:false` 고정.
+- `REFERENCE`는 **최근 거래일 일봉 참고 종가(미확정)**. 시장 현지 기준 금일 일봉은 제외. `STALE`은 오래된 일봉이며 금액 null. `UNAVAILABLE`은 데이터 없음/null. `fetched_at`은 공급자 원천 관측시각이 아니다.
+- `RealTracked.quote.status=UNAVAILABLE`와 `close/change_pct/as_of/source=null`, `market_value/unrealized_pnl/unrealized_pnl_percent=null` 기존 contract 불변. 별도 수동 reference를 기존 값에 병합하거나 FINAL/실시간 현재가·평가손익/신호 계산에 사용 금지.
+- API 오류(401/403/404/422/503), KIS 속도 제한/미설정, 스키마 위조는 가격 fallback 없이 실패 처리. DB migration·일봉 캐시·스케줄러 없음.
+- 별도 운영 변경 승인과 정확한 세부: docs/MD05A_MANUAL_KIS_DAILY_REFERENCE.md.
