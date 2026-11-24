@@ -65,7 +65,11 @@ class KisSharedState:
     """
 
     def __init__(self, directory: str | Path, *,
-                 clock: Callable[[], float] = time.time):
+                 clock: Callable[[], float] = time.time,
+                 request_cap: int = MAX_HTTP_REQUESTS_24H):
+        if type(request_cap) is not int or not 2 <= request_cap <= MAX_HTTP_REQUESTS_24H:
+            raise KisSharedStateError("KIS_SHARED_INVALID_REQUEST_CAP")
+        self._request_cap = request_cap
         self._dir = Path(directory)
         if not self._dir.is_absolute():
             raise KisSharedStateError("KIS_SHARED_DIR_MUST_BE_ABSOLUTE")
@@ -237,7 +241,7 @@ class KisSharedState:
 
     def _reserve(self, state: dict, now: float):
         recent = [ts for ts in state["requests"] if ts > now - 86400]
-        if len(recent) >= MAX_HTTP_REQUESTS_24H:
+        if len(recent) >= self._request_cap:
             raise KisSharedStateError("KIS_SHARED_DAILY_CAP")
         recent.append(now)
         state["requests"] = recent
@@ -267,6 +271,10 @@ class KisSharedState:
                     and now - state["last_quote_attempt"] < MIN_QUOTE_GAP:
                 raise KisSharedStateError("KIS_SHARED_QUOTE_RATE_LIMIT")
             token = state["token"]
+            needs_token = token is None or state["expires_at"] <= now + 60
+            recent_count = sum(ts > now - 86400 for ts in state["requests"])
+            if recent_count + (2 if needs_token else 1) > self._request_cap:
+                raise KisSharedStateError("KIS_SHARED_DAILY_CAP")
             if token is None or state["expires_at"] <= now + 60:
                 if not allow_new_token:
                     raise KisSharedStateError("KIS_SHARED_TOKEN_MISSING_ISSUE_DENIED")
