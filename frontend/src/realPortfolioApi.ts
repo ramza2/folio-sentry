@@ -347,3 +347,108 @@ export async function loadValuationCapability(signal?: AbortSignal): Promise<boo
   }
   return raw.reference_valuation_enabled;
 }
+
+export type ReferenceHistoryDays = 30 | 90;
+export interface ReferenceHistoryBar {
+  session_date: string;
+  open: string;
+  high: string;
+  low: string;
+  close: string;
+  volume: string;
+  fetched_at: string;
+  is_final: false;
+}
+export interface ReferenceHistory {
+  tracked_id: string;
+  currency: "KRW" | "USD";
+  source: "KIS";
+  price_basis: "RAW";
+  quality_status: "PARTIAL";
+  status: "STORED_REFERENCE" | "EMPTY";
+  days: ReferenceHistoryDays;
+  start_date: string;
+  end_date: string;
+  stored_rows: number;
+  latest_session_date: string | null;
+  latest_receipt: string | null;
+  bars: ReferenceHistoryBar[];
+}
+
+function validDate(value: unknown): value is string {
+  return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)
+    && Number.isFinite(Date.parse(value))
+    && new Date(value).toISOString().slice(0, 10) === value;
+}
+function validReceipt(value: unknown): value is string {
+  return typeof value === "string"
+    && /^\d{4}-\d{2}-\d{2}T.+(?:Z|[+-]\d{2}:\d{2})$/.test(value)
+    && Number.isFinite(Date.parse(value));
+}
+export function priceUnits(value: string): bigint {
+  const [whole, fraction = ""] = value.split(".");
+  return BigInt(whole) * 100000000n + BigInt(fraction.padEnd(8, "0"));
+}
+function validPrice(value: unknown): value is string {
+  return typeof value === "string" && /^(0|[1-9]\d{0,15})(?:\.\d{1,8})?$/.test(value)
+    && priceUnits(value) > 0n;
+}
+
+export function parseReferenceHistory(raw: unknown, trackedId: string,
+  currency: "KRW" | "USD", days: ReferenceHistoryDays): ReferenceHistory {
+  const fail = () => { throw new Error("저장된 참고 일봉 응답이 올바르지 않습니다."); };
+  const keys = ["tracked_id", "currency", "source", "price_basis", "quality_status",
+    "status", "days", "start_date", "end_date", "stored_rows", "latest_session_date",
+    "latest_receipt", "bars"];
+  if (!isRecord(raw) || Object.keys(raw).length !== keys.length ||
+      keys.some(key => !Object.hasOwn(raw, key)) ||
+      raw.tracked_id !== trackedId || raw.currency !== currency ||
+      raw.source !== "KIS" || raw.price_basis !== "RAW" || raw.quality_status !== "PARTIAL" ||
+      raw.days !== days || !validDate(raw.start_date) || !validDate(raw.end_date) ||
+      (Date.parse(raw.end_date) - Date.parse(raw.start_date)) / 86400000 !== days - 1 ||
+      !Array.isArray(raw.bars) || raw.bars.length > days ||
+      raw.stored_rows !== raw.bars.length ||
+      raw.status !== (raw.bars.length ? "STORED_REFERENCE" : "EMPTY")) {
+    return fail() as never;
+  }
+  let prior = "";
+  let latestReceipt = -Infinity;
+  for (const bar of raw.bars) {
+    if (!isRecord(bar) || Object.keys(bar).length !== 8 ||
+        !validDate(bar.session_date) || bar.session_date < raw.start_date ||
+        bar.session_date > raw.end_date || bar.session_date <= prior ||
+        bar.is_final !== false || !validReceipt(bar.fetched_at) ||
+        !validPrice(bar.open) || !validPrice(bar.high) || !validPrice(bar.low) ||
+        !validPrice(bar.close) || typeof bar.volume !== "string" ||
+        !/^(0|[1-9]\d{0,27})$/.test(bar.volume)) return fail() as never;
+    const o = priceUnits(bar.open), h = priceUnits(bar.high);
+    const l = priceUnits(bar.low), c = priceUnits(bar.close);
+    if (l > o || l > c || h < o || h < c || l > h) return fail() as never;
+    prior = bar.session_date;
+    latestReceipt = Math.max(latestReceipt, Date.parse(bar.fetched_at));
+  }
+  if (raw.bars.length) {
+    if (raw.latest_session_date !== prior || !validReceipt(raw.latest_receipt) ||
+        Date.parse(raw.latest_receipt) !== latestReceipt) return fail() as never;
+  } else if (raw.latest_session_date !== null || raw.latest_receipt !== null) {
+    return fail() as never;
+  }
+  return raw as unknown as ReferenceHistory;
+}
+
+export async function loadReferenceHistoryCapability(signal?: AbortSignal): Promise<boolean> {
+  const raw = await apiRequest("market-data/history-capabilities", { signal });
+  if (!isRecord(raw) || Object.keys(raw).length !== 1 ||
+      typeof raw.reference_history_enabled !== "boolean") {
+    throw new Error("참고 차트 기능 상태를 확인할 수 없습니다.");
+  }
+  return raw.reference_history_enabled;
+}
+
+/** DB-only GET. No provider request or storage mutation. */
+export async function loadReferenceHistory(trackedId: string, currency: "KRW" | "USD",
+  days: ReferenceHistoryDays, signal?: AbortSignal): Promise<ReferenceHistory> {
+  const raw = await apiRequest("tracked/" + encodeURIComponent(trackedId) +
+    "/reference-history?days=" + days, { signal });
+  return parseReferenceHistory(raw, trackedId, currency, days);
+}
