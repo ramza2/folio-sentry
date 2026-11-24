@@ -5,7 +5,8 @@ import os
 import pytest
 
 from app.kis_readonly import (
-    KR_DAILY_PATH, US_DAILY_PATH, TOKEN_PATH, KisCredentials,
+    KR_DAILY_PATH, US_DAILY_PATH, KR_CURRENT_PATH, US_CURRENT_PATH,
+    TOKEN_PATH, KisCredentials,
     KisHttpsTransport, KisReadOnlyDailyProvider, KisReadOnlyError,
 )
 from app.market_data import InstrumentIdentity, MarketDataContractError
@@ -215,7 +216,7 @@ def test_transport_rejects_every_nonquote_or_order_path_before_network():
             transport(method, path, headers={})
 
 
-def test_no_db_or_frontend_hook_and_only_two_daily_quote_paths():
+def test_no_db_or_frontend_hook_and_only_explicit_daily_and_current_paths():
     import inspect
     import app.kis_readonly as subject
     source = inspect.getsource(subject)
@@ -225,5 +226,7 @@ def test_no_db_or_frontend_hook_and_only_two_daily_quote_paths():
     assert "/trading/" not in subject.KR_DAILY_PATH
     assert "/trading/" not in subject.US_DAILY_PATH
     assert subject.ALLOWED_CALLS == frozenset({
-        ("POST", TOKEN_PATH), ("GET", KR_DAILY_PATH), ("GET", US_DAILY_PATH)
+        ("POST", TOKEN_PATH),
+        ("GET", KR_DAILY_PATH), ("GET", US_DAILY_PATH),
+        ("GET", KR_CURRENT_PATH), ("GET", US_CURRENT_PATH),
     })
