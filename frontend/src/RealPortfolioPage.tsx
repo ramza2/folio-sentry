@@ -1,12 +1,13 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useOwnerAuth } from "./AuthGate";
+import ReferenceHistoryChart from "./ReferenceHistoryChart";
 import { hiddenQuoteLabel } from "./realQuoteStatus";
 import { calculateValuation, summarizeValuations, formatMoney, formatReturn } from "./referenceValuation";
 import {
   addInstrument, addTracked, editTracked, loadInstruments, loadTracked,
   loadTrackedQuoteStatus, loadManualReferenceCapability,
   loadManualDailyReference, loadManualCurrentCapability,
-  loadManualCurrentQuote, loadValuationCapability, removeTracked,
+  loadManualCurrentQuote, loadValuationCapability, loadReferenceHistoryCapability, removeTracked,
   type AssetType, type ManualInstrumentInput, type Market,
   type RealInstrument, type RealTracked, type TrackedKind,
   type ManualDailyReference, type ManualCurrentQuote,
@@ -124,6 +125,8 @@ export default function RealPortfolioPage() {
   const [referenceEnabled, setReferenceEnabled] = useState(false);
   const [currentEnabled, setCurrentEnabled] = useState(false);
   const [valuationEnabled, setValuationEnabled] = useState(false);
+  const [historyEnabled, setHistoryEnabled] = useState(false);
+  const [chartId, setChartId] = useState<string | null>(null);
   const [nowMs, setNowMs] = useState(() => Date.now());
   // Manual current prices are volatile, never stored in RealTracked or PnL.
   const [currentById, setCurrentById] = useState<Record<string, ManualCurrentQuote>>({});
@@ -139,6 +142,9 @@ export default function RealPortfolioPage() {
     void loadManualCurrentCapability(controller.signal)
       .then((enabled) => { if (!controller.signal.aborted) setCurrentEnabled(enabled); })
       .catch(() => { if (!controller.signal.aborted) setCurrentEnabled(false); });
+    void loadReferenceHistoryCapability(controller.signal)
+      .then(enabled => { if (!controller.signal.aborted) setHistoryEnabled(enabled); })
+      .catch(() => { if (!controller.signal.aborted) setHistoryEnabled(false); });
     void loadValuationCapability(controller.signal)
       .then((enabled) => { if (!controller.signal.aborted) setValuationEnabled(enabled); })
       .catch(() => { if (!controller.signal.aborted) setValuationEnabled(false); });
@@ -176,6 +182,7 @@ export default function RealPortfolioPage() {
   }, [valuationEnabled, currentEnabled]);
 
   const refreshRows = async () => {
+    setChartId(null);
     setReferenceById({});
     setCurrentById({});
     const data = await loadTracked();
@@ -214,7 +221,7 @@ export default function RealPortfolioPage() {
       await Promise.all([refreshRows(), refreshCatalog()]);
       setManual({ ...NEW_MANUAL });
       setPosition({ ...EMPTY_POSITION });
-      setMessage("등록한 종목을 실제 보유·관심 목록에 저장했습니다. 시세는 아직 제공하지 않습니다.");
+      setMessage("등록한 종목을 실제 보유·관심 목록에 저장했습니다. 시세는 조회 또는 수집 후 표시됩니다.");
     });
   };
 
@@ -240,6 +247,7 @@ export default function RealPortfolioPage() {
   };
 
   const filtered = rows.filter((item) => filter === "ALL" || item.kind === filter);
+  const chartItem = historyEnabled ? filtered.find(item => item.id === chartId) : undefined;
   const valuationActive = valuationEnabled && currentEnabled;
   const valuations = new Map(rows.map(item => [
     item.id, calculateValuation(item, currentById[item.id], nowMs, valuationActive),
@@ -367,6 +375,8 @@ export default function RealPortfolioPage() {
                   )}
                 </div>
                 <div className="real-item-actions">
+                  {historyEnabled && <button type="button" disabled={busy} aria-label={item.instrument.name + " 저장 일봉 차트"}
+                    onClick={() => setChartId(item.id)}>일봉 차트</button>}
                   <button type="button" disabled={busy || !currentEnabled}
                     aria-label={item.instrument.name + " KIS 제공 현재가 수동 조회"}
                     onClick={() => void execute(async () => {
@@ -428,6 +438,8 @@ export default function RealPortfolioPage() {
           </>
         )}
       </section>
+
+      {chartItem && <ReferenceHistoryChart key={chartItem.id} item={chartItem} close={() => setChartId(null)} />}
 
       {editing && (
         <section className="card real-card">

@@ -14,6 +14,7 @@ from app.demo_overview import get_demo_overview
 from app.portfolio_api import router as portfolio_router
 from app.md05_manual_reference import router as md05_reference_router
 from app.md05_current_quote import router as md05_current_router
+from app.md07_reference_history import router as md07_history_router
 
 app = FastAPI(
     title="FolioSentry API", version="0.1.0",
@@ -141,3 +142,4 @@ def demo_overview() -> DemoOverviewDTO:
 app.include_router(portfolio_router)
 app.include_router(md05_reference_router)
 app.include_router(md05_current_router)
+app.include_router(md07_history_router)
