@@ -4,10 +4,11 @@ import { hiddenQuoteLabel } from "./realQuoteStatus";
 import {
   addInstrument, addTracked, editTracked, loadInstruments, loadTracked,
   loadTrackedQuoteStatus, loadManualReferenceCapability,
-  loadManualDailyReference, removeTracked,
+  loadManualDailyReference, loadManualCurrentCapability,
+  loadManualCurrentQuote, removeTracked,
   type AssetType, type ManualInstrumentInput, type Market,
   type RealInstrument, type RealTracked, type TrackedKind,
-  type ManualDailyReference,
+  type ManualDailyReference, type ManualCurrentQuote,
 } from "./realPortfolioApi";
 
 const NEW_MANUAL: ManualInstrumentInput = {
@@ -120,6 +121,9 @@ export default function RealPortfolioPage() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [referenceEnabled, setReferenceEnabled] = useState(false);
+  const [currentEnabled, setCurrentEnabled] = useState(false);
+  // Manual current prices are volatile, never stored in RealTracked or PnL.
+  const [currentById, setCurrentById] = useState<Record<string, ManualCurrentQuote>>({});
   // Reference prices are transient and never mixed into the persisted
   // RealTracked.quote (which remains UNAVAILABLE and price-free).
   const [referenceById, setReferenceById] = useState<Record<string, ManualDailyReference>>({});
@@ -129,6 +133,9 @@ export default function RealPortfolioPage() {
     void loadManualReferenceCapability(controller.signal)
       .then((enabled) => { if (!controller.signal.aborted) setReferenceEnabled(enabled); })
       .catch(() => { if (!controller.signal.aborted) setReferenceEnabled(false); });
+    void loadManualCurrentCapability(controller.signal)
+      .then((enabled) => { if (!controller.signal.aborted) setCurrentEnabled(enabled); })
+      .catch(() => { if (!controller.signal.aborted) setCurrentEnabled(false); });
     Promise.all([loadTracked(null, controller.signal), loadInstruments("", null, controller.signal)])
       .then(([tracked, catalog]) => {
         if (controller.signal.aborted) return;
@@ -150,6 +157,7 @@ export default function RealPortfolioPage() {
   const refreshRows = async () => {
     const data = await loadTracked();
     setReferenceById({});
+    setCurrentById({});
     setRows(data.items);
     setNextRows(data.next_cursor);
   };
@@ -217,7 +225,7 @@ export default function RealPortfolioPage() {
         <div>
           <span className="eyebrow">MY PORTFOLIO · REAL ENTRIES</span>
           <h2>실제 종목 관리</h2>
-          <p>직접 등록한 보유·관심 종목을 관리합니다. 승인된 경우에만 KIS의 과거 일봉 종가를 수동 조회할 수 있으며, 현재가·평가손익·알림은 아직 제공하지 않습니다.</p>
+          <p>직접 등록한 종목을 관리합니다. 운영 승인 후 KIS 제공 현재가(지연 가능)와 과거 일봉을 각각 수동 조회할 수 있습니다. 평가손익·알림 계산은 아직 연결하지 않았습니다.</p>
         </div>
         <button className="button secondary" disabled={busy || loading}
           onClick={() => void execute(async () => { await Promise.all([refreshRows(), refreshCatalog()]); setMessage("목록을 새로고침했습니다."); })}>
@@ -226,8 +234,8 @@ export default function RealPortfolioPage() {
       </div>
 
       <div className="real-warning" role="note">
-        <strong>직접 입력 · {referenceEnabled ? "참고 일봉 수동 조회" : "KIS 참고 일봉 조회 비활성"}</strong>
-        <span>최근 일봉 종가는 실시간 현재가나 최종 확정가가 아닙니다. 수동 조회는 별도 운영 승인 후 활성화되며, 평가손익·신호·알림 계산에 사용하지 않고 DEMO와도 분리합니다.</span>
+        <strong>직접 입력 · KIS 현재가 {currentEnabled ? "수동 조회 가능" : "비활성"} · 참고 일봉 {referenceEnabled ? "수동 조회 가능" : "비활성"}</strong>
+        <span>KIS 현재가는 공급자 제공 시점·지연 여부를 보증하지 않습니다. 수동 조회는 별도 운영 승인 후 활성화됩니다. 받은 시세는 평가손익·신호·알림 계산에 사용하지 않고 DEMO와 분리합니다.</span>
       </div>
       {error && <div className="real-error" role="alert">{error}</div>}
       {message && <div className="real-message" role="status">{message}</div>}
@@ -258,6 +266,17 @@ export default function RealPortfolioPage() {
                   <span>수량 <b>{formatPosition(item)}</b></span>
                   <span>평균단가 <b>{item.average_cost ?? "미입력"} {item.average_cost ? item.instrument.currency : ""}</b></span>
                   <span className="real-muted" aria-label="시세 품질 상태">{hiddenQuoteLabel(item.quote.status)}</span>
+                  {currentById[item.id] && (
+                    <span className="real-muted" role="status" aria-label="KIS 제공 현재가 수동 조회 결과">
+                      {currentById[item.id].status === "RECEIVED"
+                        ? `KIS 제공 현재가: ${currentById[item.id].price} ${currentById[item.id].currency}`
+                        : "조회 가능한 현재가 없음"}
+                      {currentById[item.id].fetched_at
+                        ? ` · 앱 수신 ${new Date(currentById[item.id].fetched_at!).toLocaleString("ko-KR", { timeZone: "Asia/Seoul", hour12: false })} KST`
+                        : ""}
+                      {" · 공급자 시각·시세 지연 여부 미확인 · 손익 미계산"}
+                    </span>
+                  )}
                   {referenceById[item.id] && (
                     <span className="real-muted" role="status" aria-label="KIS 비확정 일봉 참고 가격">
                       {referenceById[item.id].status === "REFERENCE"
@@ -274,6 +293,21 @@ export default function RealPortfolioPage() {
                   )}
                 </div>
                 <div className="real-item-actions">
+                  <button type="button" disabled={busy || !currentEnabled}
+                    aria-label={item.instrument.name + " KIS 제공 현재가 수동 조회"}
+                    onClick={() => void execute(async () => {
+                      setCurrentById((current) => {
+                        const next = { ...current };
+                        delete next[item.id];
+                        return next;
+                      });
+                      const received = await loadManualCurrentQuote(item.id, csrfToken);
+                      if (received.currency !== item.instrument.currency) {
+                        throw new Error("KIS 현재가 통화가 등록 종목과 일치하지 않습니다.");
+                      }
+                      setCurrentById((current) => ({ ...current, [item.id]: received }));
+                      setMessage("KIS가 제공한 가격을 수동 조회했습니다. 공급자 시각·지연 여부는 확인되지 않았으며 평가손익에 사용하지 않습니다.");
+                    })}>현재가 조회</button>
                   <button type="button" disabled={busy || !referenceEnabled}
                     aria-label={item.instrument.name + " KIS 참고 일봉 종가 수동 조회"}
                     onClick={() => void execute(async () => {
