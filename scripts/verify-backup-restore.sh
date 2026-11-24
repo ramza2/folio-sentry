@@ -119,7 +119,23 @@ SELECT CASE
   AND to_regclass('public.auth_owner') IS NOT NULL
   AND to_regclass('public.auth_session') IS NOT NULL
   AND (SELECT count(*) FROM public.alembic_version) = 1
-  AND (SELECT max(version_num) FROM public.alembic_version) = '20261119_auth01'
+  AND EXISTS (
+    SELECT 1 FROM public.alembic_version v
+    WHERE v.version_num IN (
+      '20261119_auth01', '20261119_portfolio01',
+      '20261120_pricebar01', '20261123_quality01', '20261123_quality02'
+    )
+    AND (v.version_num = '20261119_auth01' OR (
+      to_regclass('public.instrument') IS NOT NULL
+      AND to_regclass('public.tracked_instrument') IS NOT NULL
+    ))
+    AND (v.version_num NOT IN ('20261120_pricebar01', '20261123_quality01', '20261123_quality02')
+      OR to_regclass('public.price_bar') IS NOT NULL)
+    AND (v.version_num NOT IN ('20261123_quality01', '20261123_quality02')
+      OR to_regclass('public.price_quality_evidence') IS NOT NULL)
+    AND (v.version_num <> '20261123_quality02'
+      OR to_regclass('public.evidence_reference_revision') IS NOT NULL)
+  )
   AND (SELECT count(*) FROM public.auth_owner) = 1
   AND (SELECT count(*) FROM public.auth_owner WHERE id = 1 AND length(password_hash) > 0) = 1
  THEN 'RESTORE_SCHEMA_AND_OWNER_PASS' ELSE 'RESTORE_CONTENT_INVALID' END;
@@ -129,6 +145,15 @@ SQL
 [[ "$state" == "RESTORE_SCHEMA_AND_OWNER_PASS" ]] || {
   echo "ERROR=RESTORED_DATABASE_CONTENT_INVALID" >&2; exit 1;
 }
+# Report only the allowlisted restored migration revision, never row contents.
+revision="$(docker exec "$cid" psql -X -w -q -At -v ON_ERROR_STOP=1 \
+  -U folio_restore_test -d folio_restore_test \
+  -c 'SELECT version_num FROM public.alembic_version')"
+case "$revision" in
+  20261119_auth01|20261119_portfolio01|20261120_pricebar01|20261123_quality01|20261123_quality02) ;;
+  *) echo "ERROR=UNEXPECTED_RESTORE_REVISION" >&2; exit 1 ;;
+esac
+echo "RESTORED_DB_REVISION=$revision"
 echo "FOLIOSENTRY_RESTORE_SCHEMA_AND_OWNER_PASS"
 echo "PRODUCTION_DB_READ_ONLY=YES"
 echo "PRODUCTION_CONTAINERS_MODIFIED=NO"
