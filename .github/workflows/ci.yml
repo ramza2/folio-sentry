@@ -374,6 +374,53 @@ jobs:
           assert sv["backend"]["environment"]["FOLIOSENTRY_ALLOW_HTTP_DEV"] == "false"
           print("FOLIOSENTRY_DEPLOY01_PRIVATE_NETWORK_HTTPS_CONTRACT_PASS")
           PY
+      - name: Validate optional MD05 compose mounts and default-off flags
+        run: |
+          envfile="$RUNNER_TEMP/folio-ci.env"
+          key="$RUNNER_TEMP/kis-ci-key"
+          secret="$RUNNER_TEMP/kis-ci-secret"
+          state="$RUNNER_TEMP/kis-ci-state"
+          printf '%s' 'synthetic-key-only' > "$key"
+          printf '%s' 'synthetic-secret-only' > "$secret"
+          chmod 600 "$key" "$secret"
+          mkdir -m 700 "$state"
+          {
+            echo "FOLIOSENTRY_MD05_RUNTIME_UID=$(id -u)"
+            echo "FOLIOSENTRY_MD05_RUNTIME_GID=$(id -g)"
+            echo "FOLIOSENTRY_MD05_APPKEY_HOST_FILE=$key"
+            echo "FOLIOSENTRY_MD05_APPSECRET_HOST_FILE=$secret"
+            echo "FOLIOSENTRY_MD05_STATE_HOST_DIR=$state"
+          } >> "$envfile"
+          docker compose -p foliosentry-prod --env-file "$envfile" -f compose.production.yml -f compose.traefik.yml -f compose.md05.yml config --format json > "$RUNNER_TEMP/folio-md05-compose.json"
+          python3 - "$RUNNER_TEMP/folio-ci-compose.json" "$RUNNER_TEMP/folio-md05-compose.json" <<'PY'
+          import json, sys, os
+          base, overlay = (json.load(open(p, encoding="utf-8")) for p in sys.argv[1:])
+          assert set(overlay["services"]) == {"db", "backend", "frontend"}
+          for svc in ("db", "frontend"):
+              assert base["services"][svc] == overlay["services"][svc]
+          b = overlay["services"]["backend"]
+          assert b["user"] == f"{os.getuid()}:{os.getgid()}" and os.getuid() != 0
+          assert not b.get("ports")
+          assert b["networks"] == base["services"]["backend"]["networks"]
+          assert b["labels"] == base["services"]["backend"]["labels"]
+          assert b["secrets"] == base["services"]["backend"]["secrets"]
+          mounts = {m["target"]: m for m in b["volumes"]}
+          assert set(mounts) == {"/run/kis/appkey", "/run/kis/appsecret", "/run/kis-state"}
+          for target, m in mounts.items():
+              assert m["type"] == "bind"
+              assert m["bind"]["create_host_path"] is False
+              assert bool(m.get("read_only")) == (target != "/run/kis-state")
+          env = b["environment"]
+          assert env["FOLIOSENTRY_KIS_APPKEY_FILE"] == "/run/kis/appkey"
+          assert env["FOLIOSENTRY_KIS_APPSECRET_FILE"] == "/run/kis/appsecret"
+          assert env["FOLIOSENTRY_KIS_SHARED_STATE_DIR"] == "/run/kis-state"
+          for flag in ("MANUAL_READ_ENABLED", "REFERENCE_DISPLAY_ENABLED",
+                       "CURRENT_READ_ENABLED", "CURRENT_DISPLAY_ENABLED",
+                       "VALUATION_DISPLAY_ENABLED", "NEW_TOKEN_ISSUE_ALLOWED"):
+              assert env["FOLIOSENTRY_MD05_" + flag] == "no"
+          assert "ALL" in b["cap_drop"]
+          print("FOLIOSENTRY_MD05_OVERLAY_CONFIG_PASS")
+          PY
       - name: Build production frontend (Nginx, not Vite dev server)
         run: |
           docker build --file frontend/Dockerfile.prod --tag foliosentry-prod-ci:local frontend
