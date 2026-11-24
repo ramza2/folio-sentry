@@ -458,3 +458,12 @@ Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 �
 - [ ] Latest PR CI and merge approval.
 - [ ] Approved additive DB migration (production portfolio01), updated backend deployment, isolated runtime verification and actual scheduler installation/activation. No new automatic KIS calls until separately approved.
 - [ ] MD06C collection status and chart read API; MD07 chart UI; signals/alerts separate, no automatic orders.
+
+## MD06C/MD07 — stored history and chart
+- [x] PR #41 merged, postmerge CI PASS, MiniPC quality02 migration and MD06 backend deploy PASS.
+- [x] Backup timer daily service execution and retention PASS; postmigration quality02 backup and isolated restore PASS.
+- [ ] First real KR/US collection in valid local windows, reuse cached token only; explicit live call approval.
+- [x] DB-only stored reference coverage API and responsive OHLCV reference chart implementation, separate default-off display gate.
+- [ ] PR CI/review/merge; deploy updated backend/frontend and approve display gate.
+- [ ] MD06C scheduler installation/activation and persisted outcome status; no automatic collection currently enabled.
+- [ ] Chart live browser acceptance (empty and populated states), technical indicator and signal policy separately.
