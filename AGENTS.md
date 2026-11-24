@@ -426,3 +426,13 @@
 - MD03 price_bar PARTIAL-only, MD04C3/4 UNVERIFIED, 기존 quote-status no price 유지; DB schema/migration 변경 없음. 리포/CI의 테스트는 synthetic KIS 제공자와 격리 SQLite만 사용.
 - 최종 목표는 실제 보유/관심 현재가·평가손익·알림. MD05B는 현재가 API 계약/수동 조회, MD05C는 소수점 안전한 통화별 평가손익 등. 배포/실호출/가격·손익 공개/자동 알림은 각각 사용자 명시 승인.
 - 상세 docs/MD05A_MANUAL_KIS_DAILY_REFERENCE.md.
+
+
+## MD-05B — KIS 제공 현재가 수동 조회 (2026-11-24)
+- MD-05A PR #37 사용자 승인 main@a1a4d58 병합, 사후 CI #45303574289 Backend 365 / Frontend 29 PASS. MiniPC 실제 환경 변경 없음.
+- MD05B 실제 KIS REST 현재가 조회: KR `inquire-price` TR `FHKST01010100` (`output.stck_prpr`), US `price` TR `HHDFS00000300` (`output.last`). 공식 upstream commit b0a0d33b7e5f863a8f3c6790f50adb840829c806와 소스 Blob SHA는 docs/MD05B_MANUAL_CURRENT_QUOTE.md 참조.
+- `kis_current.py`는 공유 `KisSharedState` **필수**. 기존 KIS 토큰/시세 60 requests/24h·토큰 간격/1.25초 최소 조회 간격을 MD05A와 공유한다. 정확한 현재가 2개 GET path만 추가, 거래 주문/잔고 API·자동 재시도 금지.
+- 현재가 `provider_observed_at=None`, `realtime_verified=false`, `is_final=false`, `provider_time_status/delay_status/market_session=UNKNOWN`. **앱 fetched_at은 체결시각이 아니고, 미국 시세는 지연될 수 있음.** 현재가라는 표기 이외에 진짜 실시간/확정 종가/시장 개장 보장하지 않는다.
+- 새 소유자 POST `/api/v1/tracked/{id}/current-quote`는 CSRF+Origin·기능 2중 게이트 `FOLIOSENTRY_MD05_CURRENT_READ_ENABLED=yes` / `FOLIOSENTRY_MD05_CURRENT_DISPLAY_ENABLED=yes` **기본 OFF**. 신규 토큰 발급 `FOLIOSENTRY_MD05_NEW_TOKEN_ISSUE_ALLOWED=yes`는 독립 승인, 기본 금지. 기본 OFF일 때 미리 DB/비밀/KIS 접근하지 않는다.
+- 프론트 수동 현재가 조회 버튼은 기존 MD05A 참고 일봉과 분리되고 응답은 일회성 메모리 상태에만 둔다. `RealTracked.quote=UNAVAILABLE`, 가격/손익 null·DEMO 격리, `price_bar` PARTIAL-only, MD04 품질/이력 제약, 알림/신호 차단 유지.
+- PR 병합·MiniPC 서비스 배포·비밀정보 마운트·KIS 실조회·실 가격 노출/평가손익/자동 알림은 별도 승인. 이 PR에서는 GitHub 합성 테스트 외 운영 작업 금지.
