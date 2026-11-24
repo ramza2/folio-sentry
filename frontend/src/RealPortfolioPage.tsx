@@ -1,11 +1,12 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useOwnerAuth } from "./AuthGate";
 import { hiddenQuoteLabel } from "./realQuoteStatus";
+import { calculateValuation, summarizeValuations, formatMoney, formatReturn } from "./referenceValuation";
 import {
   addInstrument, addTracked, editTracked, loadInstruments, loadTracked,
   loadTrackedQuoteStatus, loadManualReferenceCapability,
   loadManualDailyReference, loadManualCurrentCapability,
-  loadManualCurrentQuote, removeTracked,
+  loadManualCurrentQuote, loadValuationCapability, removeTracked,
   type AssetType, type ManualInstrumentInput, type Market,
   type RealInstrument, type RealTracked, type TrackedKind,
   type ManualDailyReference, type ManualCurrentQuote,
@@ -122,6 +123,8 @@ export default function RealPortfolioPage() {
   const [message, setMessage] = useState("");
   const [referenceEnabled, setReferenceEnabled] = useState(false);
   const [currentEnabled, setCurrentEnabled] = useState(false);
+  const [valuationEnabled, setValuationEnabled] = useState(false);
+  const [nowMs, setNowMs] = useState(() => Date.now());
   // Manual current prices are volatile, never stored in RealTracked or PnL.
   const [currentById, setCurrentById] = useState<Record<string, ManualCurrentQuote>>({});
   // Reference prices are transient and never mixed into the persisted
@@ -136,6 +139,9 @@ export default function RealPortfolioPage() {
     void loadManualCurrentCapability(controller.signal)
       .then((enabled) => { if (!controller.signal.aborted) setCurrentEnabled(enabled); })
       .catch(() => { if (!controller.signal.aborted) setCurrentEnabled(false); });
+    void loadValuationCapability(controller.signal)
+      .then((enabled) => { if (!controller.signal.aborted) setValuationEnabled(enabled); })
+      .catch(() => { if (!controller.signal.aborted) setValuationEnabled(false); });
     Promise.all([loadTracked(null, controller.signal), loadInstruments("", null, controller.signal)])
       .then(([tracked, catalog]) => {
         if (controller.signal.aborted) return;
@@ -154,10 +160,25 @@ export default function RealPortfolioPage() {
     return () => controller.abort();
   }, []);
 
+  // UI-local clock only: expires indicative valuations, never polls KIS.
+  useEffect(() => {
+    if (!valuationEnabled || !currentEnabled) return;
+    const tick = () => setNowMs(Date.now());
+    tick();
+    const timer = window.setInterval(tick, 1000);
+    window.addEventListener("focus", tick);
+    document.addEventListener("visibilitychange", tick);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", tick);
+      document.removeEventListener("visibilitychange", tick);
+    };
+  }, [valuationEnabled, currentEnabled]);
+
   const refreshRows = async () => {
-    const data = await loadTracked();
     setReferenceById({});
     setCurrentById({});
+    const data = await loadTracked();
     setRows(data.items);
     setNextRows(data.next_cursor);
   };
@@ -219,13 +240,21 @@ export default function RealPortfolioPage() {
   };
 
   const filtered = rows.filter((item) => filter === "ALL" || item.kind === filter);
+  const valuationActive = valuationEnabled && currentEnabled;
+  const valuations = new Map(rows.map(item => [
+    item.id, calculateValuation(item, currentById[item.id], nowMs, valuationActive),
+  ]));
+  const totals = summarizeValuations([...valuations.values()]);
+  const receiptText = (stamp: string | null) => stamp
+    ? new Date(stamp).toLocaleString("ko-KR", { timeZone: "Asia/Seoul", hour12: false }) + " KST"
+    : "—";
   return (
     <div className="page-stack real-page">
       <div className="page-heading">
         <div>
           <span className="eyebrow">MY PORTFOLIO · REAL ENTRIES</span>
           <h2>실제 종목 관리</h2>
-          <p>직접 등록한 종목을 관리합니다. 운영 승인 후 KIS 제공 현재가(지연 가능)와 과거 일봉을 각각 수동 조회할 수 있습니다. 평가손익·알림 계산은 아직 연결하지 않았습니다.</p>
+          <p>직접 등록한 종목을 관리합니다. KIS 제공 현재가(지연 가능)로 참고 평가손익을 확인할 수 있습니다. 실제 조회와 손익 표시에는 별도 운영 승인이 필요하며 자동 알림은 아직 연결하지 않았습니다.</p>
         </div>
         <button className="button secondary" disabled={busy || loading}
           onClick={() => void execute(async () => { await Promise.all([refreshRows(), refreshCatalog()]); setMessage("목록을 새로고침했습니다."); })}>
@@ -235,11 +264,32 @@ export default function RealPortfolioPage() {
 
       <div className="real-warning" role="note">
         <strong>직접 입력 · KIS 현재가 {currentEnabled ? "수동 조회 가능" : "비활성"} · 참고 일봉 {referenceEnabled ? "수동 조회 가능" : "비활성"}</strong>
-        <span>KIS 현재가는 공급자 제공 시점·지연 여부를 보증하지 않습니다. 수동 조회는 별도 운영 승인 후 활성화됩니다. 받은 시세는 평가손익·신호·알림 계산에 사용하지 않고 DEMO와 분리합니다.</span>
+        <span>KIS 현재가는 공급자 제공 시점·지연 여부를 보증하지 않습니다. 참고 평가손익 {valuationActive ? "활성" : "비활성"} · 최근 5분 내 앱 수신값만 계산하며 수수료·세금·환율·실현손익은 제외합니다. DEMO·신호·알림과 분리합니다.</span>
       </div>
       {error && <div className="real-error" role="alert">{error}</div>}
       {message && <div className="real-message" role="status">{message}</div>}
 
+      {valuationActive && (
+        <section className="card real-card" aria-label="통화별 참고 평가손익 집계">
+          <div className="real-section-title"><h3>통화별 참고 평가손익</h3></div>
+          <p className="real-muted">불러온 보유 종목만 집계합니다{nextRows ? " (추가 목록 있음)" : ""}. 원가가 확인된 종목만 손익에 포함되며 전체 계좌 잔고가 아닙니다.</p>
+          {totals.map(total => (
+            <div key={total.currency} className="real-item">
+              <div className="real-item-main">
+                <strong>{total.currency}</strong>
+                <span>평가금액 {total.valued}/{total.holdings}종목 · 손익 {total.withCost}/{total.holdings}종목</span>
+              </div>
+              <div className="real-item-values">
+                <span>참고 평가금액 <b>{formatMoney(total.marketValue)}</b></span>
+                <span>매입금액 (손익 대상) <b>{formatMoney(total.cost)}</b></span>
+                <span>참고 손익 <b>{formatMoney(total.pnl)}</b></span>
+                <span>참고 수익률 <b>{formatReturn(total.pnl, total.cost)}</b></span>
+                <span className="real-muted">앱 수신 범위 {receiptText(total.oldestReceipt)} ~ {receiptText(total.newestReceipt)}</span>
+              </div>
+            </div>
+          ))}
+        </section>
+      )}
       <section className="card real-card">
         <div className="real-section-title">
           <h3>보유·관심 목록</h3><span>{rows.length}건{nextRows ? " 이상" : ""}</span>
@@ -274,9 +324,33 @@ export default function RealPortfolioPage() {
                       {currentById[item.id].fetched_at
                         ? ` · 앱 수신 ${new Date(currentById[item.id].fetched_at!).toLocaleString("ko-KR", { timeZone: "Asia/Seoul", hour12: false })} KST`
                         : ""}
-                      {" · 공급자 시각·시세 지연 여부 미확인 · 손익 미계산"}
+                      {" · 공급자 시각·시세 지연 여부 미확인"}
                     </span>
                   )}
+                  {valuationActive && item.kind === "HOLDING" && (() => {
+                    const value = valuations.get(item.id)!;
+                    return (
+                      <div className="real-item-values" aria-label="종목별 참고 평가손익">
+                        <span>참고 평가금액 <b>{formatMoney(value.marketValue)}</b> {value.currency}</span>
+                        <span>매입금액 <b>{formatMoney(value.cost)}</b> {value.currency}</span>
+                        <span>참고 평가손익 <b>{formatMoney(value.pnl)}</b> {value.currency}</span>
+                        <span>참고 수익률 <b>{formatReturn(value.pnl, value.cost)}</b></span>
+                        {value.status !== "READY" && <span className="real-muted">
+                          {({
+                            MISSING_COST: "평균 매입단가 미입력 · 손익 미계산",
+                            MISSING_QUANTITY: "보유 수량 미입력",
+                            NO_QUOTE: "현재가 조회 필요",
+                            STALE_RECEIPT: "수신값 만료 또는 시각 불일치 · 현재가 재조회 필요",
+                            INVALID_INPUT: "시세 또는 보유 입력값 확인 필요",
+                            DISABLED: "평가손익 비활성",
+                            WATCH: "관심 종목",
+                          })[value.status]}
+                        </span>}
+                        {value.status === "READY" && value.cost === 0n &&
+                          <span className="real-muted">매입금액 0 · 수익률 미계산</span>}
+                      </div>
+                    );
+                  })()}
                   {referenceById[item.id] && (
                     <span className="real-muted" role="status" aria-label="KIS 비확정 일봉 참고 가격">
                       {referenceById[item.id].status === "REFERENCE"
@@ -305,8 +379,9 @@ export default function RealPortfolioPage() {
                       if (received.currency !== item.instrument.currency) {
                         throw new Error("KIS 현재가 통화가 등록 종목과 일치하지 않습니다.");
                       }
+                      setNowMs(Date.now());
                       setCurrentById((current) => ({ ...current, [item.id]: received }));
-                      setMessage("KIS가 제공한 가격을 수동 조회했습니다. 공급자 시각·지연 여부는 확인되지 않았으며 평가손익에 사용하지 않습니다.");
+                      setMessage("KIS가 제공한 가격을 수동 조회했습니다. 공급자 시각·지연 여부는 미확인이며 활성화된 경우 참고 평가손익만 계산합니다.");
                     })}>현재가 조회</button>
                   <button type="button" disabled={busy || !referenceEnabled}
                     aria-label={item.instrument.name + " KIS 참고 일봉 종가 수동 조회"}
