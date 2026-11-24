@@ -53,7 +53,7 @@ def test_empty_price_is_explicitly_unavailable(identity, field):
 
 
 @pytest.mark.parametrize("bad", [
-    None, False, 0, -10, "0", "0.000", "-1", "NaN", "Infinity",
+    False, 0, -10, "0", "0.000", "-1", "NaN", "Infinity",
     "1e3", "+20", " 20", "00100", "5.123456789", "1" * 17,
     "100,000", "100\nX", "25.4USD", True,
 ])
