@@ -43,6 +43,20 @@ export interface ManualDailyReference {
   is_final: false;
 }
 
+/** KIS's last reported REST price, NOT a verified realtime tick. */
+export interface ManualCurrentQuote {
+  status: "RECEIVED" | "UNAVAILABLE";
+  price: string | null;
+  fetched_at: string | null;
+  currency: "KRW" | "USD";
+  source: "KIS" | null;
+  provider_time_status: "UNKNOWN";
+  delay_status: "UNKNOWN";
+  market_session: "UNKNOWN";
+  realtime_verified: false;
+  is_final: false;
+}
+
 export type ManualInstrumentInput = Pick<
   RealInstrument, "market" | "exchange_mic" | "symbol" | "name" | "asset_type"
 >;
@@ -253,4 +267,73 @@ export async function loadManualDailyReference(
     throw new Error("참고 일봉 응답의 등록 종목 ID가 일치하지 않습니다.");
   }
   return parseManualDailyReference(raw.reference);
+}
+
+/** Capability only; no KIS request, no silent fallback to enabled. */
+export async function loadManualCurrentCapability(
+  signal?: AbortSignal,
+): Promise<boolean> {
+  const raw = await apiRequest("market-data/current-capabilities", { signal });
+  if (!isRecord(raw) || Object.keys(raw).length !== 1 ||
+      typeof raw.manual_current_quote_enabled !== "boolean") {
+    throw new Error("KIS 현재가 조회 기능 상태를 확인할 수 없습니다.");
+  }
+  return raw.manual_current_quote_enabled;
+}
+
+const currentKeys = new Set([
+  "status", "price", "fetched_at", "currency", "source",
+  "provider_time_status", "delay_status", "market_session",
+  "realtime_verified", "is_final",
+]);
+
+function parseManualCurrentQuote(raw: unknown): ManualCurrentQuote {
+  if (!isRecord(raw) ||
+      Object.keys(raw).length !== currentKeys.size ||
+      Object.keys(raw).some((key) => !currentKeys.has(key)) ||
+      !["RECEIVED", "UNAVAILABLE"].includes(String(raw.status)) ||
+      !["KRW", "USD"].includes(String(raw.currency)) ||
+      raw.provider_time_status !== "UNKNOWN" ||
+      raw.delay_status !== "UNKNOWN" ||
+      raw.market_session !== "UNKNOWN" ||
+      raw.realtime_verified !== false ||
+      raw.is_final !== false) {
+    throw new Error("현재가 응답 형식이 올바르지 않습니다.");
+  }
+  if (raw.status === "UNAVAILABLE") {
+    if (raw.price !== null || raw.fetched_at !== null || raw.source !== null) {
+      throw new Error("조회 불가 현재가의 잘못된 가격을 차단했습니다.");
+    }
+  } else {
+    if (raw.source !== "KIS" ||
+        typeof raw.price !== "string" ||
+        !/^(0|[1-9]\d{0,15})(?:\.\d{1,8})?$/.test(raw.price) ||
+        /^0(?:\.0+)?$/.test(raw.price) ||
+        typeof raw.fetched_at !== "string" ||
+        !/^\d{4}-\d{2}-\d{2}T.+(?:Z|[+-]\d{2}:\d{2})$/.test(raw.fetched_at) ||
+        !Number.isFinite(Date.parse(raw.fetched_at))) {
+      throw new Error("KIS 현재가나 수신 시각이 올바르지 않습니다.");
+    }
+  }
+  return raw as unknown as ManualCurrentQuote;
+}
+
+/** Owner-only POST/CSRF: an intentional KIS current-price read, no auto refresh. */
+export async function loadManualCurrentQuote(
+  trackedId: string, csrf: string,
+): Promise<ManualCurrentQuote> {
+  if (!csrf || csrf.length < 32) {
+    throw new Error("유효한 인증 세션이 필요합니다.");
+  }
+  const raw = await apiRequest(
+    "tracked/" + encodeURIComponent(trackedId) + "/current-quote",
+    { method: "POST", headers: { "X-CSRF-Token": csrf } },
+  );
+  if (!isRecord(raw) ||
+      Object.keys(raw).length !== 2 ||
+      raw.tracked_id !== trackedId ||
+      !Object.hasOwn(raw, "current_quote")) {
+    throw new Error("현재가 조회 종목 ID가 일치하지 않습니다.");
+  }
+  return parseManualCurrentQuote(raw.current_quote);
 }

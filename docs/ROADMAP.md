@@ -414,3 +414,15 @@ Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 �
 - [ ] MD-05B 수동 **현재가** API(KR/US 계약·시간외/통화·신선도·호출 제한) 도입, 실응답 안전성/비용·권한 검토.
 - [ ] MD-05C 개별 종목 평가손익 계산(소수 정확도, 통화/환율/기준시각, 입력값 검사), 실 시세와 DEMO 분리, 알림/신호는 별도.
 - 상세 docs/MD05A_MANUAL_KIS_DAILY_REFERENCE.md.
+
+
+## MD-05B — KIS 제공 현재가 수동 조회 (2026-11-24)
+- [x] MD05A PR #37 승인 후 main@a1a4d58 병합, postmerge Actions #45303574289 Backend 365 / Frontend 29 PASS. MiniPC/KIS 실호출 없음.
+- [x] KIS 공식 upstream commit b0a0d33b7e5f863a8f3c6790f50adb840829c806 KR 주식현재가/US 현재체결가 API(TR·파라미터·가격 필드) 검토 및 문서화.
+- [x] 신규 읽기 전용 `KisReadOnlyCurrentProvider`, 기존 토큰·호출 제한 shared state에 고정된 2개 현재가 TR/path만 추가.
+- [x] 로그인+Origin+CSRF 수동 현재가 POST와 capability GET, 두 개의 기본 비활성 운영 플래그, 신규 토큰 기본 비허용. Provider 원천시각·지연/개장 상태 UNKNOWN 및 수신시각만 표시.
+- [x] Frontend 현재가 버튼/참조 일봉 버튼 분리, 시세 응답 문자열 엄격 검증, RealTracked.quote/PnL/알림/DEMO 분리, 합성 KR/US 5거래소 및 오류 테스트.
+- [ ] MD05B Draft PR Backend/Frontend typecheck/build, change impact/CI gate PASS 확인 및 별도 병합 승인.
+- [ ] 실 KIS API/토큰/운영 배포·가격공개 승인은 별도 검토. 공급자 체결시각·미국 지연/유료시세 권한과 시장별 세션 경계를 실 응답으로 확인.
+- [ ] MD05C 개별 보유수량·매입단가 기반 평가손익(Decimal 정확도, 통화 분리, 가격 신선도/이상 응답 차단), 이후 알림/시그널 별도.
+- 상세 docs/MD05B_MANUAL_CURRENT_QUOTE.md.

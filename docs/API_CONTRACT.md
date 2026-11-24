@@ -128,3 +128,13 @@
 - `RealTracked.quote.status=UNAVAILABLE`와 `close/change_pct/as_of/source=null`, `market_value/unrealized_pnl/unrealized_pnl_percent=null` 기존 contract 불변. 별도 수동 reference를 기존 값에 병합하거나 FINAL/실시간 현재가·평가손익/신호 계산에 사용 금지.
 - API 오류(401/403/404/422/503), KIS 속도 제한/미설정, 스키마 위조는 가격 fallback 없이 실패 처리. DB migration·일봉 캐시·스케줄러 없음.
 - 별도 운영 변경 승인과 정확한 세부: docs/MD05A_MANUAL_KIS_DAILY_REFERENCE.md.
+
+
+## MD-05B — 기본 OFF KIS 현재가 수동 조회 (2026-11-24)
+
+- `GET /api/v1/market-data/current-capabilities`: 세션 필수, `{"manual_current_quote_enabled":false}` 기본. 비밀 파일·KIS·포트폴리오 DB 접근 없음.
+- `POST /api/v1/tracked/{tracked_id}/current-quote`: 세션·Origin·CSRF 필수. MD05B 읽기/화면 두 개 운영 플래그가 모두 `yes`가 아닐 경우 503, 토큰·DB·KIS 접근 전에 차단. 사용자 버튼에서만 수동 1회 GET KIS 호출, 자동 수집/재시도 없음.
+- 응답 키 `tracked_id` + `current_quote`만. 하위 키는 정확히 `status` (`RECEIVED`/`UNAVAILABLE`), `price`(Decimal string/null), `fetched_at`(UTC 수신시각/null), `currency`(`KRW`/`USD`), `source`(`KIS`/null), `provider_time_status`=`UNKNOWN`, `delay_status`=`UNKNOWN`, `market_session`=`UNKNOWN`, `realtime_verified=false`, `is_final=false`.
+- `RECEIVED`는 KIS REST API에서 **가장 최근 제공한** 값을 수신했다는 뜻. **실시간/체결시각/시장개장 상태/지연여부 검증 없음.** `UNAVAILABLE`은 price/fetched_at/source null.
+- 실제 종목 `quote-status` GET은 UNAVAILABLE/가격 null, `tracked` 목록의 손익/시세 미계산 유지. MD05A `daily-reference`와 독립, 실제 현재가와 과거 일봉을 섞지 않음. 주문·알림·평가손익·DB 저장 금지.
+- 자세한 테스트·운영 설정·소스 고정 버전: docs/MD05B_MANUAL_CURRENT_QUOTE.md.

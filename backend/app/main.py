@@ -13,6 +13,7 @@ from app.demo_data import DEMO_INSTRUMENTS, DemoInstrument
 from app.demo_overview import get_demo_overview
 from app.portfolio_api import router as portfolio_router
 from app.md05_manual_reference import router as md05_reference_router
+from app.md05_current_quote import router as md05_current_router
 
 app = FastAPI(
     title="FolioSentry API", version="0.1.0",
@@ -139,3 +140,4 @@ def demo_overview() -> DemoOverviewDTO:
 # All routes inherit the existing global Origin/CSRF/session middleware.
 app.include_router(portfolio_router)
 app.include_router(md05_reference_router)
+app.include_router(md05_current_router)

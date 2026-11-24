@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   loadInstruments, loadTracked, loadTrackedQuoteStatus,
   loadManualReferenceCapability, loadManualDailyReference,
+  loadManualCurrentCapability, loadManualCurrentQuote,
   addInstrument, addTracked, editTracked, removeTracked,
 } from "./realPortfolioApi.ts";
 
@@ -320,4 +321,130 @@ test("manual reference outage cannot fall back to synthetic price", async () => 
   try {
     await assert.rejects(loadManualDailyReference(position.id, csrf), /준비되지/);
   } finally { globalThis.fetch = prior; }
+});
+
+const currentQuote = {
+  status: "RECEIVED", price: "251.2300",
+  fetched_at: "2026-11-24T01:00:00+00:00",
+  currency: "USD", source: "KIS",
+  provider_time_status: "UNKNOWN", delay_status: "UNKNOWN",
+  market_session: "UNKNOWN", realtime_verified: false, is_final: false,
+};
+
+test("MD05B capability is exact auth GET without price/network fallback", async () => {
+  const before = globalThis.fetch;
+  const seen = [];
+  globalThis.fetch = async (url, opt) => {
+    seen.push([url, opt]);
+    return okJson({ manual_current_quote_enabled: false });
+  };
+  try {
+    assert.equal(await loadManualCurrentCapability(), false);
+    assert.equal(seen[0][0], "/api/v1/market-data/current-capabilities");
+    assert.equal(seen[0][1].credentials, "same-origin");
+    assert.equal(seen[0][1].cache, "no-store");
+    assert.equal(seen[0][1].method, undefined);
+    assert.ok(!seen[0][0].includes("kis"));
+    globalThis.fetch = async () => okJson({ manual_current_quote_enabled: "true" });
+    await assert.rejects(loadManualCurrentCapability(), /기능 상태/);
+    globalThis.fetch = async () => okJson({
+      manual_current_quote_enabled: true, token: "leak",
+    });
+    await assert.rejects(loadManualCurrentCapability(), /기능 상태/);
+  } finally { globalThis.fetch = before; }
+});
+
+test("MD05B current price requires owner POST/CSRF and stays independent of PnL", async () => {
+  const before = globalThis.fetch;
+  const seen = [];
+  globalThis.fetch = async (url, opt) => {
+    seen.push([url, opt]);
+    return okJson({ tracked_id: position.id, current_quote: currentQuote });
+  };
+  try {
+    assert.deepEqual(await loadManualCurrentQuote(position.id, csrf), currentQuote);
+    assert.equal(seen.length, 1);
+    assert.equal(seen[0][0], "/api/v1/tracked/" + position.id + "/current-quote");
+    assert.equal(seen[0][1].method, "POST");
+    assert.equal(seen[0][1].credentials, "same-origin");
+    assert.equal(seen[0][1].cache, "no-store");
+    assert.equal(seen[0][1].headers["X-CSRF-Token"], csrf);
+    assert.equal(position.quote.close, null);
+    assert.equal(position.market_value, null);
+    assert.equal(position.unrealized_pnl, null);
+    assert.ok(!seen[0][0].includes("demo"));
+    assert.ok(!seen[0][0].includes("kis"));
+  } finally { globalThis.fetch = before; }
+});
+
+test("MD05B no CSRF never sends a request", async () => {
+  const before = globalThis.fetch;
+  globalThis.fetch = async () => { throw Error("should not send"); };
+  try { await assert.rejects(loadManualCurrentQuote(position.id, "short"), /인증 세션/); }
+  finally { globalThis.fetch = before; }
+});
+
+test("MD05B unavailable output must be strictly empty", async () => {
+  const before = globalThis.fetch;
+  const empty = {
+    ...currentQuote, status: "UNAVAILABLE", price: null,
+    fetched_at: null, source: null,
+  };
+  globalThis.fetch = async () => okJson({
+    tracked_id: position.id, current_quote: empty,
+  });
+  try { assert.deepEqual(await loadManualCurrentQuote(position.id, csrf), empty); }
+  finally { globalThis.fetch = before; }
+});
+
+test("MD05B cannot smuggle finality, DEMO, realtime or unverified priced states", async () => {
+  const before = globalThis.fetch;
+  const invalid = [
+    { ...currentQuote, status: "FINAL" },
+    { ...currentQuote, status: "STALE" },
+    { ...currentQuote, is_final: true },
+    { ...currentQuote, realtime_verified: true },
+    { ...currentQuote, provider_time_status: "LIVE" },
+    { ...currentQuote, delay_status: "REALTIME" },
+    { ...currentQuote, market_session: "OPEN" },
+    { ...currentQuote, source: "DEMO" },
+    { ...currentQuote, price: 251.23 },
+    { ...currentQuote, price: "-1" },
+    { ...currentQuote, price: "0" },
+    { ...currentQuote, price: "01" },
+    { ...currentQuote, price: "NaN" },
+    { ...currentQuote, price: "10000000000000000" },
+    { ...currentQuote, price: "5.123456789" },
+    { ...currentQuote, fetched_at: "now" },
+    { ...currentQuote, quote_as_of: "2026-11-24" },
+    { ...currentQuote, market_value: "100" },
+    { ...currentQuote, unrealized_pnl: "5" },
+    { ...currentQuote, status: "UNAVAILABLE", price: "100" },
+  ];
+  try {
+    for (const row of invalid) {
+      globalThis.fetch = async () => okJson({
+        tracked_id: position.id, current_quote: row,
+      });
+      await assert.rejects(loadManualCurrentQuote(position.id, csrf));
+    }
+    for (const broken of [
+      { tracked_id: manual.id, current_quote: currentQuote },
+      { tracked_id: position.id, current_quote: currentQuote, extra: "secret" },
+      { tracked_id: position.id },
+    ]) {
+      globalThis.fetch = async () => okJson(broken);
+      await assert.rejects(loadManualCurrentQuote(position.id, csrf));
+    }
+  } finally { globalThis.fetch = before; }
+});
+
+test("MD05B current-price 401/403/503 errors never fall back to a DEMO price", async () => {
+  const before = globalThis.fetch;
+  try {
+    for (const status of [401, 403, 503]) {
+      globalThis.fetch = async () => ({ ok: false, status });
+      await assert.rejects(loadManualCurrentQuote(position.id, csrf));
+    }
+  } finally { globalThis.fetch = before; }
 });
