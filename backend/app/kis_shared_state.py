@@ -19,13 +19,16 @@ import time
 from typing import Callable, Mapping
 
 from app.kis_readonly import (
-    KR_DAILY_PATH, US_DAILY_PATH, TOKEN_PATH, KisCredentials,
+    KR_DAILY_PATH, US_DAILY_PATH, KR_CURRENT_PATH, US_CURRENT_PATH,
+    TOKEN_PATH, KisCredentials,
     KisReadOnlyError, Transport,
 )
 
 EXPECTED_TR = {
     KR_DAILY_PATH: "FHKST03010100",
     US_DAILY_PATH: "HHDFS76240000",
+    KR_CURRENT_PATH: "FHKST01010100",
+    US_CURRENT_PATH: "HHDFS00000300",
 }
 MAX_HTTP_REQUESTS_24H = 60
 MIN_TOKEN_ISSUE_GAP = 24 * 3600
