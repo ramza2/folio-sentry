@@ -123,6 +123,47 @@ def validate_batch(
     return tuple(result)
 
 
+
+def validate_reference_batch(
+    batch: DailyBarBatch, *, now: datetime,
+) -> tuple[UnverifiedPriceBar, ...]:
+    """MD06: prior local dates, RAW reference history only.
+
+    No calendar attestation or finality assertion. This is a separate policy
+    from validate_batch, intended for non-final chart history, never evidence
+    of exchange hours, settlement or analysis eligibility.
+    """
+    current = _utc(now)
+    if not isinstance(batch, DailyBarBatch) or batch.provider != SOURCE \
+            or not isinstance(batch.instrument, InstrumentIdentity):
+        raise PriceBarQualityError("PRICE_REFERENCE_BATCH_INVALID")
+    seen = set()
+    result = []
+    for bar in batch.bars:
+        if not isinstance(bar, DailyBarCandidate) or bar.source != SOURCE \
+                or bar.price_basis != "RAW" or bar.is_final is not False \
+                or bar.source_observed_at is not None:
+            raise PriceBarQualityError("PRICE_REFERENCE_BAR_INVALID")
+        if not isinstance(bar.session_date, date) or isinstance(bar.session_date, datetime):
+            raise PriceBarQualityError("PRICE_SESSION_DATE_INVALID")
+        _check_prices(bar)
+        fetched = _utc(bar.fetched_at)
+        if fetched > current + MAX_CLOCK_SKEW or current - fetched > MAX_FETCH_AGE:
+            raise PriceBarQualityError("PRICE_REFERENCE_FETCH_TIME_INVALID")
+        if bar.session_date >= fetched.astimezone(batch.instrument.exchange_timezone).date() \
+                or bar.session_date >= current.astimezone(batch.instrument.exchange_timezone).date() \
+                or bar.session_date.weekday() >= 5:
+            raise PriceBarQualityError("PRICE_REFERENCE_SESSION_INVALID")
+        if bar.session_date in seen:
+            raise PriceBarQualityError("PRICE_DUPLICATE_IN_BATCH")
+        seen.add(bar.session_date)
+        result.append(UnverifiedPriceBar(
+            session_date=bar.session_date, price_basis="RAW", open=bar.open,
+            high=bar.high, low=bar.low, close=bar.close, volume=bar.volume,
+            fetched_at=fetched,
+        ))
+    return tuple(result)
+
 def analysis_eligible(*, quality_status: str, is_final: bool,
                       source_observed_at: datetime | None) -> bool:
     """MD-03 hard stop; validation policy and finality promotion not yet built."""
