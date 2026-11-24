@@ -26,6 +26,9 @@ function Candles({ history, selected, select }: {
     <svg viewBox="0 0 760 280" role="img"
       aria-label="저장된 참고 일봉 캔들 및 거래량 차트"
       style={{ display: "block", width: "100%", minWidth: 0, height: "auto" }}>
+      <text x="20" y="11" fill="currentColor" fontSize="11">최고 {format(bars.find(b => priceUnits(b.high) === high)!.high)} {history.currency}</text>
+      <text x="720" y="207" textAnchor="end" fill="currentColor" fontSize="11">최저 {format(bars.find(b => priceUnits(b.low) === low)!.low)}</text>
+      <text x="20" y="207" fill="currentColor" fontSize="10">거래량</text>
       {[20, 64, 108, 152, 195, 258].map(v =>
         <line key={v} x1="20" x2="720" y1={v} y2={v} stroke="currentColor" opacity={0.15}/>)}
       {bars.map((bar, i) => {
@@ -84,7 +87,7 @@ export default function ReferenceHistoryChart({ item, close }: {
         <h3>{item.instrument.name} · 참고 일봉 차트</h3>
         <button className="button secondary" onClick={close}>닫기</button>
       </div>
-      <p className="real-muted">KIS 저장 이력 · 원주가(RAW) · 최종 확정 미검증 · 실시간 아님. 누락 거래일 및 기업행사 반영 여부는 확인되지 않았습니다. 시각화는 저장된 행 순서이며 날짜 간격은 균등하지 않습니다.</p>
+      <p className="real-muted">KIS 저장 이력 · 원주가(RAW) · 최종 확정 미검증 · 실시간 아님. 누락 거래일 및 기업행사 반영 여부는 확인되지 않았습니다. 가로축은 저장된 거래일을 같은 간격으로 배치하며 누락 날짜를 채우지 않습니다.</p>
       <div className="real-filter" role="group" aria-label="차트 기간">
         {([30,90] as const).map(d => <button type="button" key={d} aria-pressed={days === d}
           className={days === d ? "active" : ""} onClick={() => setDays(d)}>{d}일</button>)}
