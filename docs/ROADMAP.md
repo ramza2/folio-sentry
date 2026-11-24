@@ -448,3 +448,13 @@ Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 �
 - [ ] UID/GID·DB secret·KIS private bind 및 shared-state 사전점검, image build, rollback 준비.
 - [ ] backend/frontend 배포(운영 DB schema 유지), 실제 KIS 시세/손익 별도 승인 후 인수검사.
 - [ ] price history schema/자동 수집/백업 timer 재활성은 별도 검토.
+
+## MD06A — automatic reference daily collection
+- [x] MD05 operational deployment and activation PASS; actual KR/US current and reference daily reads 4/4 PASS on 2026-11-24; cached token private, rolling 24h count 5/60.
+- [ ] Actual holding valuation UI test (no holdings registered; non-blocking).
+- [x] Backup timer re-enabled; catch-up service activating at observation.
+- [ ] Verify completed daily backup service and next scheduled run.
+- [x] MD06A one-shot collector and MD06B reference-only storage core: market-local windows, 90-calendar-day request, active tracked set, durable attempt marker, shared 40/60 budget, partial-only idempotent writes.
+- [ ] Latest PR CI and merge approval.
+- [ ] Approved additive DB migration (production portfolio01), updated backend deployment, isolated runtime verification and actual scheduler installation/activation. No new automatic KIS calls until separately approved.
+- [ ] MD06C collection status and chart read API; MD07 chart UI; signals/alerts separate, no automatic orders.
