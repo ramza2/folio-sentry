@@ -108,3 +108,45 @@ HOME="$scratch" bash scripts/run-daily-backup.sh --confirm-daily-backup
   echo "ERROR=CI_PREPUBLISH_BACKUP_CHANGED" >&2; exit 1;
 }
 echo "FOLIOSENTRY_OPS01_DAILY_RETENTION_E2E_PASS"
+
+
+# MD05 deployment compatibility: known revision AND matching required tables.
+# These are synthetic fixtures, not a substitute for Alembic migration CI.
+for revision in 20261119_portfolio01 20261123_quality02; do
+  if [[ "$revision" == 20261119_portfolio01 ]]; then
+    docker exec -i "$cid" psql -X -w -q -v ON_ERROR_STOP=1 -U folio -d folio <<'SQL'
+UPDATE public.alembic_version SET version_num = '20261119_portfolio01';
+CREATE TABLE public.instrument (id integer PRIMARY KEY);
+CREATE TABLE public.tracked_instrument (id integer PRIMARY KEY, instrument_id integer REFERENCES public.instrument);
+INSERT INTO public.instrument VALUES (1);
+INSERT INTO public.tracked_instrument VALUES (1, 1);
+SQL
+  else
+    docker exec -i "$cid" psql -X -w -q -v ON_ERROR_STOP=1 -U folio -d folio <<'SQL'
+UPDATE public.alembic_version SET version_num = '20261123_quality02';
+CREATE TABLE public.price_bar (id integer PRIMARY KEY);
+CREATE TABLE public.price_quality_evidence (id integer PRIMARY KEY);
+SQL
+    # A revision claim alone is insufficient.
+    if HOME="$scratch" bash scripts/backup-db.sh --confirm-prepublish-backup >/dev/null 2>&1; then
+      echo "ERROR=INCOMPLETE_KNOWN_SCHEMA_ACCEPTED" >&2; exit 1
+    fi
+    docker exec "$cid" psql -X -w -q -v ON_ERROR_STOP=1 -U folio -d folio \
+      -c 'CREATE TABLE public.evidence_reference_revision (id integer PRIMARY KEY)'
+  fi
+  case_home="$(mktemp -d "$scratch/revision.XXXXXXXX")"
+  HOME="$case_home" bash scripts/backup-db.sh --confirm-prepublish-backup
+  revision_archives=("$case_home"/.local/share/folio-sentry/backups/*.pgdump)
+  [[ "${#revision_archives[@]}" -eq 1 ]]
+  result="$(HOME="$case_home" bash scripts/verify-backup-restore.sh \
+    --confirm-isolated-restore "${revision_archives[0]}")"
+  grep -qx "RESTORED_DB_REVISION=$revision" <<< "$result"
+  echo "FOLIOSENTRY_BACKUP_RESTORE_REVISION_PASS=$revision"
+done
+
+docker exec "$cid" psql -X -w -q -v ON_ERROR_STOP=1 -U folio -d folio \
+  -c "UPDATE public.alembic_version SET version_num='unknown_future_revision'"
+if HOME="$scratch" bash scripts/backup-db.sh --confirm-prepublish-backup >/dev/null 2>&1; then
+  echo "ERROR=UNKNOWN_SCHEMA_REVISION_ACCEPTED" >&2; exit 1
+fi
+echo "FOLIOSENTRY_MD05_BACKUP_COMPATIBILITY_PASS"
