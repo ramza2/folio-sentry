@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 from app.market_data import DailyBarBatch
 from app.portfolio_models import Instrument
 from app.price_models import PriceBar
-from app.price_quality import UnverifiedPriceBar, validate_batch
+from app.price_quality import UnverifiedPriceBar, validate_batch, validate_reference_batch
 
 
 class PriceBarStorageError(ValueError):
@@ -55,6 +55,26 @@ def insert_unverified_daily_batch(
     if not isinstance(session, Session) or not isinstance(instrument_id, UUID):
         raise PriceBarStorageError("PRICE_BAR_STORAGE_INPUT_INVALID")
     bars = validate_batch(batch, now=now)  # all-or-nothing validation before DML
+    return _insert_validated(session, instrument_id, batch, bars)
+
+
+def insert_reference_daily_batch(
+    session: Session, instrument_id: UUID, batch: DailyBarBatch, *,
+    now: datetime, allow_write: bool = False,
+) -> PriceBarWriteResult:
+    """Explicit MD06 reference-only RAW history; not calendar/finality evidence."""
+    if not allow_write:
+        raise PriceBarStorageError("PRICE_BAR_WRITE_DISABLED")
+    if not isinstance(session, Session) or not isinstance(instrument_id, UUID):
+        raise PriceBarStorageError("PRICE_BAR_STORAGE_INPUT_INVALID")
+    bars = validate_reference_batch(batch, now=now)
+    return _insert_validated(session, instrument_id, batch, bars)
+
+
+def _insert_validated(
+    session: Session, instrument_id: UUID, batch: DailyBarBatch,
+    bars: tuple[UnverifiedPriceBar, ...],
+) -> PriceBarWriteResult:
     if not bars:
         return PriceBarWriteResult(inserted=0, unchanged=0)
 
