@@ -1,0 +1,5 @@
+# Optional owner-approved reference history display. Never starts collection.
+services:
+  backend:
+    environment:
+      FOLIOSENTRY_MD07_REFERENCE_HISTORY_DISPLAY_ENABLED: "${FOLIOSENTRY_MD07_REFERENCE_HISTORY_DISPLAY_ENABLED:-no}"
