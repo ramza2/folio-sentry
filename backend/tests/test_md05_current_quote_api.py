@@ -23,7 +23,8 @@ PATH = "/api/v1/tracked"
 @pytest.fixture(autouse=True)
 def isolated_current(monkeypatch):
     monkeypatch.setattr(md05b, "get_engine", lambda: portfolio_api.get_engine())
-    for flag in (*FLAGS, "FOLIOSENTRY_MD05_NEW_TOKEN_ISSUE_ALLOWED"):
+    for flag in (*FLAGS, "FOLIOSENTRY_MD05_NEW_TOKEN_ISSUE_ALLOWED",
+                 "FOLIOSENTRY_MD05_VALUATION_DISPLAY_ENABLED"):
         monkeypatch.delenv(flag, raising=False)
     for field in (
         "FOLIOSENTRY_KIS_APPKEY_FILE", "FOLIOSENTRY_KIS_APPSECRET_FILE",
@@ -263,3 +264,29 @@ def test_md05a_daily_gate_remains_independent(monkeypatch):
     enable(monkeypatch)
     from app import md05_manual_reference
     assert md05_manual_reference._enabled() is False
+
+
+@pytest.mark.parametrize("flags,expected", [
+    ((), False),
+    (FLAGS, False),
+    (("FOLIOSENTRY_MD05_VALUATION_DISPLAY_ENABLED",), False),
+    ((*FLAGS, "FOLIOSENTRY_MD05_VALUATION_DISPLAY_ENABLED"), True),
+])
+def test_valuation_capability_requires_all_flags_and_no_provider_access(monkeypatch, flags, expected):
+    for flag in flags:
+        monkeypatch.setenv(flag, "yes")
+    def forbid():
+        raise AssertionError("capability must not reach portfolio DB or KIS")
+    monkeypatch.setattr(md05b, "_provider", forbid)
+    monkeypatch.setattr(md05b, "get_engine", forbid)
+    res = client.get("/api/v1/market-data/valuation-capabilities")
+    assert res.status_code == 200
+    assert res.json() == {"reference_valuation_enabled": expected}
+    assert res.headers["cache-control"] == "no-store"
+
+
+@pytest.mark.no_auto_login
+def test_valuation_capability_is_owner_only(monkeypatch):
+    enable(monkeypatch)
+    monkeypatch.setenv("FOLIOSENTRY_MD05_VALUATION_DISPLAY_ENABLED", "yes")
+    assert client.get("/api/v1/market-data/valuation-capabilities").status_code == 401
