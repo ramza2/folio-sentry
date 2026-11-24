@@ -1,0 +1,38 @@
+# Optional owner-approved MD05 overlay. Not loaded by default.
+# Runtime UID/GID must match the MiniPC private file owner. Do not chmod
+# secrets or change ownership to root. Existing DB/frontend are unchanged.
+services:
+  backend:
+    user: "${FOLIOSENTRY_MD05_RUNTIME_UID:?Set non-root host UID}:${FOLIOSENTRY_MD05_RUNTIME_GID:?Set host GID}"
+    environment:
+      FOLIOSENTRY_KIS_APPKEY_FILE: /run/kis/appkey
+      FOLIOSENTRY_KIS_APPSECRET_FILE: /run/kis/appsecret
+      FOLIOSENTRY_KIS_SHARED_STATE_DIR: /run/kis-state
+      FOLIOSENTRY_MD05_MANUAL_READ_ENABLED: "${FOLIOSENTRY_MD05_MANUAL_READ_ENABLED:-no}"
+      FOLIOSENTRY_MD05_REFERENCE_DISPLAY_ENABLED: "${FOLIOSENTRY_MD05_REFERENCE_DISPLAY_ENABLED:-no}"
+      FOLIOSENTRY_MD05_CURRENT_READ_ENABLED: "${FOLIOSENTRY_MD05_CURRENT_READ_ENABLED:-no}"
+      FOLIOSENTRY_MD05_CURRENT_DISPLAY_ENABLED: "${FOLIOSENTRY_MD05_CURRENT_DISPLAY_ENABLED:-no}"
+      FOLIOSENTRY_MD05_VALUATION_DISPLAY_ENABLED: "${FOLIOSENTRY_MD05_VALUATION_DISPLAY_ENABLED:-no}"
+      FOLIOSENTRY_MD05_NEW_TOKEN_ISSUE_ALLOWED: "${FOLIOSENTRY_MD05_NEW_TOKEN_ISSUE_ALLOWED:-no}"
+    volumes:
+      - type: bind
+        source: ${FOLIOSENTRY_MD05_APPKEY_HOST_FILE:?Set private appkey file}
+        target: /run/kis/appkey
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${FOLIOSENTRY_MD05_APPSECRET_HOST_FILE:?Set private appsecret file}
+        target: /run/kis/appsecret
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${FOLIOSENTRY_MD05_STATE_HOST_DIR:?Set private persistent state directory}
+        target: /run/kis-state
+        bind:
+          create_host_path: false
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
