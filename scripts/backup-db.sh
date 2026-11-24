@@ -38,7 +38,23 @@ SELECT CASE WHEN
   (SELECT COUNT(*) FROM public.auth_owner) = 1
   AND (SELECT COUNT(*) FROM public.auth_session) >= 0
   AND (SELECT COUNT(*) FROM public.alembic_version) = 1
-  AND (SELECT MAX(version_num) FROM public.alembic_version) = '20261119_auth01'
+  AND EXISTS (
+    SELECT 1 FROM public.alembic_version v
+    WHERE v.version_num IN (
+      '20261119_auth01', '20261119_portfolio01',
+      '20261120_pricebar01', '20261123_quality01', '20261123_quality02'
+    )
+    AND (v.version_num = '20261119_auth01' OR (
+      to_regclass('public.instrument') IS NOT NULL
+      AND to_regclass('public.tracked_instrument') IS NOT NULL
+    ))
+    AND (v.version_num NOT IN ('20261120_pricebar01', '20261123_quality01', '20261123_quality02')
+      OR to_regclass('public.price_bar') IS NOT NULL)
+    AND (v.version_num NOT IN ('20261123_quality01', '20261123_quality02')
+      OR to_regclass('public.price_quality_evidence') IS NOT NULL)
+    AND (v.version_num <> '20261123_quality02'
+      OR to_regclass('public.evidence_reference_revision') IS NOT NULL)
+  )
   THEN 'OWNER_SCHEMA_READY'
   ELSE 'BLOCKED'
 END;
