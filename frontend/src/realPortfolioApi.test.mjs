@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {
   loadInstruments, loadTracked, loadTrackedQuoteStatus,
   loadManualReferenceCapability, loadManualDailyReference,
-  loadManualCurrentCapability, loadManualCurrentQuote,
+  loadManualCurrentCapability, loadManualCurrentQuote, loadValuationCapability,
   addInstrument, addTracked, editTracked, removeTracked,
 } from "./realPortfolioApi.ts";
 
@@ -445,6 +445,30 @@ test("MD05B current-price 401/403/503 errors never fall back to a DEMO price", a
     for (const status of [401, 403, 503]) {
       globalThis.fetch = async () => ({ ok: false, status });
       await assert.rejects(loadManualCurrentQuote(position.id, csrf));
+    }
+  } finally { globalThis.fetch = before; }
+});
+
+test("MD05C valuation capability GET is owner-auth metadata, strict and no-store", async () => {
+  const before = globalThis.fetch;
+  const calls = [];
+  try {
+    globalThis.fetch = async (url, options) => {
+      calls.push([url, options]);
+      return okJson({ reference_valuation_enabled: true });
+    };
+    assert.equal(await loadValuationCapability(), true);
+    assert.equal(calls[0][0], "/api/v1/market-data/valuation-capabilities");
+    assert.equal(calls[0][1].method, undefined);
+    assert.equal(calls[0][1].credentials, "same-origin");
+    assert.equal(calls[0][1].cache, "no-store");
+    for (const bad of [
+      {reference_valuation_enabled:"true"},
+      {reference_valuation_enabled:true, pnl:"10"},
+      {manual_current_quote_enabled:true},
+    ]) {
+      globalThis.fetch = async () => okJson(bad);
+      await assert.rejects(loadValuationCapability(), /기능 상태/);
     }
   } finally { globalThis.fetch = before; }
 });

@@ -426,3 +426,15 @@ Figma Make 시안 승인 이후에만 `AGENTS.md`와 `docs/API_CONTRACT.md`를 �
 - [ ] 실 KIS API/토큰/운영 배포·가격공개 승인은 별도 검토. 공급자 체결시각·미국 지연/유료시세 권한과 시장별 세션 경계를 실 응답으로 확인.
 - [ ] MD05C 개별 보유수량·매입단가 기반 평가손익(Decimal 정확도, 통화 분리, 가격 신선도/이상 응답 차단), 이후 알림/시그널 별도.
 - 상세 docs/MD05B_MANUAL_CURRENT_QUOTE.md.
+
+
+## MD-05C — 보유종목 참고 평가손익 및 통화별 집계 (2026-11-24)
+- [x] MD05B PR #38 승인 main@2840fa5 병합, postmerge #45308087479 SUCCESS (Backend 432 / Frontend 35).
+- [x] KIS 현재가 + 직접 입력 수량/평균단가 기반 정확한 소수점 평가금액·매입금액·미실현 참고 손익·수익률.
+- [x] KRW/USD 별도 집계, 로드한 보유 종목 중 계산 가능 건수 및 수신시각 범위 표시. 미조회/만료/관심 제외, 원가 미입력은 평가금액만 포함.
+- [x] 별도 기본 OFF 손익 표시 capability, 현재가 응답 미변경, 추가 KIS 호출·DB migration·자동 알림 없음. 합성 Backend/Frontend 테스트 작성.
+- [ ] MD05C Draft PR 최신 CI PASS 및 사용자 병합 승인.
+- [ ] MD05A/B/C MiniPC 현행 버전·DB 스키마·백업·비밀파일·shared-state preflight 및 별도 배포/기능 활성화 승인.
+- [ ] 실제 KIS 국내/미국 현재가·일봉 수동 조회 및 화면/참고 평가손익 인수검사. 실제 응답 시간·지연 권한 확인; 신규 토큰 승인 및 호출량 제한 유지.
+- [ ] 이후 자동 시세 갱신·차트·신호·알림 단계 진행. 환율환산/세금·수수료/실현손익은 별도.
+- 상세 docs/MD05C_REFERENCE_VALUATION.md.

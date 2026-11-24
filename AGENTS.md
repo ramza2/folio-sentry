@@ -436,3 +436,13 @@
 - 새 소유자 POST `/api/v1/tracked/{id}/current-quote`는 CSRF+Origin·기능 2중 게이트 `FOLIOSENTRY_MD05_CURRENT_READ_ENABLED=yes` / `FOLIOSENTRY_MD05_CURRENT_DISPLAY_ENABLED=yes` **기본 OFF**. 신규 토큰 발급 `FOLIOSENTRY_MD05_NEW_TOKEN_ISSUE_ALLOWED=yes`는 독립 승인, 기본 금지. 기본 OFF일 때 미리 DB/비밀/KIS 접근하지 않는다.
 - 프론트 수동 현재가 조회 버튼은 기존 MD05A 참고 일봉과 분리되고 응답은 일회성 메모리 상태에만 둔다. `RealTracked.quote=UNAVAILABLE`, 가격/손익 null·DEMO 격리, `price_bar` PARTIAL-only, MD04 품질/이력 제약, 알림/신호 차단 유지.
 - PR 병합·MiniPC 서비스 배포·비밀정보 마운트·KIS 실조회·실 가격 노출/평가손익/자동 알림은 별도 승인. 이 PR에서는 GitHub 합성 테스트 외 운영 작업 금지.
+
+
+## MD-05C — KIS 현재가 기반 참고 평가손익 (2026-11-24)
+- MD05B PR #38 승인 병합 main@2840fa5, postmerge CI #45308087479 Backend 432 / Frontend 35 PASS. 운영 배포·KIS 실호출 없음.
+- MD05C는 기존 MD05B 소유자 수동 현재가 응답과 등록 수량/평균 매입단가로 브라우저의 참고 평가금액/매입금액/평가손익/수익률을 계산. 새 KIS API, 토큰, DB migration, 저장, 배경수집 없음.
+- `GET /api/v1/market-data/valuation-capabilities`는 owner-auth no-store boolean만 반환. 기존 두 current 플래그와 `FOLIOSENTRY_MD05_VALUATION_DISPLAY_ENABLED=yes`가 모두 있어야 UI 계산 활성. 기본 OFF, 실 KIS 호출/운영 배포/실시세 및 손익 표시 승인은 별도.
+- `frontend/src/referenceValuation.ts`: 입력 8자리 decimal string→BigInt 고정소수점, 곱셈 16자리 정밀도, 합산 후 표시 2자리 half-away-from-zero. JS Number 금융연산 금지, 금액 누락 null, 0원가 수익률 미계산. USD/KRW 합산·환율환산 없음.
+- 최근 앱 수신 5분만 계산, 수신시각 미래 5초 초과·비정상 값·시세 출처/통화/최종성 불일치 차단. 이는 공급자 체결시각/실시간 시세 보증 아님. 수량/원가 미입력, 관심종목 및 미조회/만료 제외, 원가 없는 종목은 평가금액만 표시. 현재가 재조회 실패/목록 갱신 시 임시 값 제거. 로컬 시간 타이머만, 자동 KIS 폴링 금지.
+- 통화별 집계는 로드된 보유 목록의 참고 부분 집계(평가금액·손익 포함 건수/시각 범위, pagination 안내)이며 실제 계좌 잔고 아님. 세금/수수료/환율/실현손익/기업행동 보정 제외. 기존 GET 목록 quote=UNAVAILABLE/PnL null 및 MD03/MD04 저장 제약 불변; DEMO·신호·알림 독립.
+- 다음은 코드 병합 후 **MiniPC 배포 및 실제 KIS 연동 점검**에 집중. 운영 플래그·토큰·배포·가격/손익 활성화는 별도 명시 승인. Cursor 불필요.

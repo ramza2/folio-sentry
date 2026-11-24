@@ -138,3 +138,10 @@
 - `RECEIVED`는 KIS REST API에서 **가장 최근 제공한** 값을 수신했다는 뜻. **실시간/체결시각/시장개장 상태/지연여부 검증 없음.** `UNAVAILABLE`은 price/fetched_at/source null.
 - 실제 종목 `quote-status` GET은 UNAVAILABLE/가격 null, `tracked` 목록의 손익/시세 미계산 유지. MD05A `daily-reference`와 독립, 실제 현재가와 과거 일봉을 섞지 않음. 주문·알림·평가손익·DB 저장 금지.
 - 자세한 테스트·운영 설정·소스 고정 버전: docs/MD05B_MANUAL_CURRENT_QUOTE.md.
+
+
+## MD-05C — 참고 평가손익 (2026-11-24)
+- 신규 owner-auth no-store `GET /api/v1/market-data/valuation-capabilities` → `{"reference_valuation_enabled":false}` 기본. MD05B current read/display 및 `FOLIOSENTRY_MD05_VALUATION_DISPLAY_ENABLED=yes` 모두 설정 시 true. DB/secret/KIS 접근 없음.
+- 기존 POST current-quote 및 GET tracked/quote-status 응답은 변경하지 않음. 계산은 브라우저의 현재 조회 결과와 수동 등록 수량/평균단가로만 수행. BigInt 고정소수점 decimal, 2자리 표시 반올림. KRW/USD 개별 집계. 추가 API/저장/알림 없음.
+- 공급자 가격 지연·시각 미확인. 앱 수신 5분 미만인 가격만 참고 계산하며 수량/원가 누락·만료는 명시. 원가 없는 종목 평가금액만 표시. 0원가 수익률 미표시. 계산 대상/로드된 보유 종목 건수 및 수신 범위 표시. 계좌 실제 잔고/손익이 아님.
+- 운영 승인 전 신규 플래그 미설정, 배포/실 KIS 호출/토큰 및 실제 가격·손익 표시 별도 승인.

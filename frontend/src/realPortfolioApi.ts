@@ -337,3 +337,13 @@ export async function loadManualCurrentQuote(
   }
   return parseManualCurrentQuote(raw.current_quote);
 }
+
+/** Owner-authenticated metadata only; no KIS access or calculated data. */
+export async function loadValuationCapability(signal?: AbortSignal): Promise<boolean> {
+  const raw = await apiRequest("market-data/valuation-capabilities", { signal });
+  if (!isRecord(raw) || Object.keys(raw).length !== 1 ||
+      typeof raw.reference_valuation_enabled !== "boolean") {
+    throw new Error("평가손익 기능 상태를 확인할 수 없습니다.");
+  }
+  return raw.reference_valuation_enabled;
+}

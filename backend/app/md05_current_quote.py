@@ -34,6 +34,10 @@ class CurrentCapabilityDTO(StrictDTO):
     manual_current_quote_enabled: bool
 
 
+class ValuationCapabilityDTO(StrictDTO):
+    reference_valuation_enabled: bool
+
+
 class CurrentQuoteDTO(StrictDTO):
     status: Literal["RECEIVED", "UNAVAILABLE"]
     price: str | None
@@ -125,6 +129,14 @@ def _snapshot(
 def current_quote_capability():
     """Authenticated metadata GET never contacts KIS, database or secrets."""
     return {"manual_current_quote_enabled": _enabled()}
+
+
+@router.get("/market-data/valuation-capabilities", response_model=ValuationCapabilityDTO)
+def valuation_capability():
+    """No price, secrets, database or KIS access. Independent display opt-in."""
+    return {"reference_valuation_enabled": (
+        _enabled() and _flag("FOLIOSENTRY_MD05_VALUATION_DISPLAY_ENABLED")
+    )}
 
 
 @router.post("/tracked/{tracked_id}/current-quote", response_model=TrackedCurrentQuoteDTO)
