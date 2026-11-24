@@ -24,7 +24,13 @@ KIS_BASE = "https://openapi.koreainvestment.com:9443"
 TOKEN_PATH = "/oauth2/tokenP"
 KR_DAILY_PATH = "/uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice"
 US_DAILY_PATH = "/uapi/overseas-price/v1/quotations/dailyprice"
-ALLOWED_CALLS = frozenset({("POST", TOKEN_PATH), ("GET", KR_DAILY_PATH), ("GET", US_DAILY_PATH)})
+KR_CURRENT_PATH = "/uapi/domestic-stock/v1/quotations/inquire-price"
+US_CURRENT_PATH = "/uapi/overseas-price/v1/quotations/price"
+ALLOWED_CALLS = frozenset({
+    ("POST", TOKEN_PATH),
+    ("GET", KR_DAILY_PATH), ("GET", US_DAILY_PATH),
+    ("GET", KR_CURRENT_PATH), ("GET", US_CURRENT_PATH),
+})
 MAX_RESPONSE_BYTES = 512 * 1024
 
 
