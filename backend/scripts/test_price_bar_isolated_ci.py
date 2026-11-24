@@ -227,3 +227,54 @@ with Session(get_engine()) as db:
             .where(Instrument.normalized_symbol == symbol)
         ) == 0
 print("FOLIOSENTRY_MD04A_ROLLBACK_AND_NONPUBLICATION_PASS")
+
+
+# MD06 reference-only storage on a date outside the attested whitelist.
+# Same PARTIAL schema; no live network, no finality promotion, rollback.
+from app.price_repository import insert_reference_daily_batch
+from app.price_quality import PriceBarQualityError
+
+reference_identity = InstrumentIdentity("KR", "XKRX", "000006", "KRW")
+reference_fetch = datetime(2026, 11, 24, 0, tzinfo=timezone.utc)
+reference_batch = normalize_kis_daily_response(
+    {"rt_cd": "0", "output2": [dict(sample, stck_bsop_date="20261123")]},
+    identity=reference_identity, price_basis="RAW", fetched_at=reference_fetch,
+)
+with Session(get_engine()) as db:
+    try:
+        instrument = Instrument(
+            market="KR", exchange_mic="XKRX", symbol="000006",
+            normalized_symbol="000006", name="MD06 synthetic only",
+            currency="KRW", asset_type="STOCK", timezone="Asia/Seoul",
+        )
+        db.add(instrument)
+        db.flush()
+        try:
+            insert_unverified_daily_batch(db, instrument.id, reference_batch,
+                                          now=reference_fetch, allow_write=True)
+        except PriceBarQualityError as exc:
+            assert str(exc) == "PRICE_SESSION_CALENDAR_UNVERIFIED"
+        else:
+            raise AssertionError("strict attested policy must remain unchanged")
+        result = insert_reference_daily_batch(db, instrument.id, reference_batch,
+                                             now=reference_fetch, allow_write=True)
+        assert (result.inserted, result.unchanged) == (1, 0)
+        again = insert_reference_daily_batch(db, instrument.id, reference_batch,
+                                            now=reference_fetch, allow_write=True)
+        assert (again.inserted, again.unchanged) == (0, 1)
+        row = db.scalars(select(PriceBar).where(PriceBar.instrument_id == instrument.id)).one()
+        assert row.quality_status == "PARTIAL" and row.is_final is False
+        assert row.source_observed_at is None
+        changed = replace(reference_batch, bars=(
+            replace(reference_batch.bars[0], close=reference_batch.bars[0].close + 1),
+        ))
+        try:
+            insert_reference_daily_batch(db, instrument.id, changed,
+                                         now=reference_fetch, allow_write=True)
+        except PriceBarStorageError as exc:
+            assert str(exc) == "PRICE_BAR_CONFLICT_NEEDS_REVIEW"
+        else:
+            raise AssertionError("reference correction must not overwrite first observation")
+    finally:
+        db.rollback()
+print("FOLIOSENTRY_MD06_REFERENCE_STORAGE_POSTGRES_PASS")

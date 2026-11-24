@@ -289,3 +289,40 @@ def test_failed_token_attempt_also_marks_independent_reissue_guard(tmp_path):
     with pytest.raises(KisSharedStateError, match="KIS_SHARED_STATE_LOST_AFTER_ISSUE"):
         fetch(cli(KisSharedState(directory, clock=clock), stub, issue=True))
     assert len(stub.calls) == 1
+
+
+def test_automated_cap_leaves_manual_headroom(tmp_path):
+    clock = Clock()
+    manual, directory = state(tmp_path, clock)
+    auto = KisSharedState(directory, clock=clock, request_cap=40)
+    stub = Stub()
+    fetch(cli(auto, stub, issue=True))
+    for _ in range(38):
+        clock.advance(2)
+        fetch(cli(auto, stub))
+    clock.advance(2)
+    with pytest.raises(KisSharedStateError, match="KIS_SHARED_DAILY_CAP"):
+        fetch(cli(auto, stub))
+    assert len(stub.calls) == 40
+    fetch(cli(manual, stub))
+    assert len(stub.calls) == 41
+
+
+def test_cap_reserves_token_and_quote_before_issue(tmp_path):
+    clock = Clock()
+    manual, directory = state(tmp_path, clock)
+    stub = Stub(ttl=86400)
+    fetch(cli(manual, stub, issue=True))
+    # Expired cached token, with one counted request left in a small cap.
+    saved = directory / STATE_FILE
+    data = json.loads(saved.read_text())
+    data["token"] = None
+    data["expires_at"] = None
+    data["last_token_attempt"] = None
+    data["requests"] = [clock.value]
+    saved.write_text(json.dumps(data))
+    clock.advance(2)
+    gate = KisSharedState(directory, clock=clock, request_cap=2)
+    with pytest.raises(KisSharedStateError, match="KIS_SHARED_DAILY_CAP"):
+        fetch(cli(gate, stub, issue=True))
+    assert len(stub.calls) == 2
